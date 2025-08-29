@@ -29,3 +29,28 @@ body {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
 }
+
+@media (max-width: 576px) {
+  body {
+    font-size: 13px;
+  }
+
+  .navbar .btn {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  footer {
+    text-align: center;
+    font-size: 0.8rem;
+  }
+}
+
+@media (min-width: 577px) and (max-width: 991px) {
+  .navbar-nav {
+    text-align: center;
+  }
+  .container {
+    max-width: 90%;
+  }
+}

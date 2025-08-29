@@ -8,19 +8,19 @@
     "net9.0": []
   },
   "packageFolders": {
-    "C:\\Users\\Pc\\.nuget\\packages\\": {}
+    "C:\\Users\\NYCOL\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\Pc\\LifeHub\\LifeHub.csproj",
+      "projectUniqueName": "C:\\Users\\NYCOL\\.vscode\\LifeHub\\LifeHub\\LifeHub.csproj",
       "projectName": "LifeHub",
-      "projectPath": "C:\\Users\\Pc\\LifeHub\\LifeHub.csproj",
-      "packagesPath": "C:\\Users\\Pc\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\Pc\\LifeHub\\obj\\",
+      "projectPath": "C:\\Users\\NYCOL\\.vscode\\LifeHub\\LifeHub\\LifeHub.csproj",
+      "packagesPath": "C:\\Users\\NYCOL\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\NYCOL\\.vscode\\LifeHub\\LifeHub\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\Pc\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\NYCOL\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net9.0"
