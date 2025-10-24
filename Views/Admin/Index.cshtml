@@ -1,0 +1,1045 @@
+@model LifeHub.Models.ViewModels.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard Admin";
+}
+
+<div class="admin-dashboard">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div class="header-content">
+            <div class="header-text">
+                <h1 class="dashboard-title">
+                    <i class="fas fa-tachometer-alt me-3"></i>Panel de Administración
+                </h1>
+                <p class="dashboard-subtitle">Resumen general y métricas de LifeHub</p>
+            </div>
+            <div class="header-actions">
+                <div class="action-buttons">
+                    <a href="@Url.Action("Users")" class="btn-action">
+                        <i class="fas fa-users me-2"></i>
+                        Gestión de Usuarios
+                    </a>
+                    <a href="@Url.Action("Stats")" class="btn-action">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Estadísticas
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertas -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert-card success">
+            <div class="alert-content">
+                <i class="fas fa-check-circle alert-icon"></i>
+                <div class="alert-text">
+                    <h4>¡Éxito!</h4>
+                    <p>@TempData["SuccessMessage"]</p>
+                </div>
+            </div>
+            <button class="alert-close" onclick="this.parentElement.style.display='none'">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert-card error">
+            <div class="alert-content">
+                <i class="fas fa-exclamation-circle alert-icon"></i>
+                <div class="alert-text">
+                    <h4>Error</h4>
+                    <p>@TempData["ErrorMessage"]</p>
+                </div>
+            </div>
+            <button class="alert-close" onclick="this.parentElement.style.display='none'">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    }
+
+    <!-- Métricas Principales -->
+    <div class="metrics-grid">
+        <!-- Tarjeta de Usuarios -->
+        <div class="metric-card primary">
+            <div class="metric-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="metric-content">
+                <h3 class="metric-value">@Model.TotalUsers</h3>
+                <p class="metric-label">Total Usuarios</p>
+                <div class="metric-trend">
+                    <i class="fas fa-arrow-up trend-up"></i>
+                    <span>@Model.NewUsersToday nuevos hoy</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjeta de Activos -->
+        <div class="metric-card success">
+            <div class="metric-icon">
+                <i class="fas fa-user-check"></i>
+            </div>
+            <div class="metric-content">
+                <h3 class="metric-value">@Model.ActiveUsers</h3>
+                <p class="metric-label">Usuarios Activos</p>
+                <div class="metric-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: @((Model.ActiveUsers * 100) / Math.Max(Model.TotalUsers, 1))%"></div>
+                    </div>
+                    <span>@((Model.ActiveUsers * 100) / Math.Max(Model.TotalUsers, 1))%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjeta de Baneados -->
+        <div class="metric-card danger">
+            <div class="metric-icon">
+                <i class="fas fa-user-slash"></i>
+            </div>
+            <div class="metric-content">
+                <h3 class="metric-value">@Model.BannedUsers</h3>
+                <p class="metric-label">Usuarios Baneados</p>
+                <div class="metric-trend">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>@Model.BannedUsers en moderación</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjeta de Ingresos -->
+        <div class="metric-card accent">
+            <div class="metric-icon">
+                <i class="fas fa-dollar-sign"></i>
+            </div>
+            <div class="metric-content">
+                <h3 class="metric-value">$@Model.MonthlyRevenue.ToString("N2")</h3>
+                <p class="metric-label">Ingresos Mensuales</p>
+                <div class="metric-trend">
+                    <i class="fas fa-chart-line trend-up"></i>
+                    <span>Ingresos recurrentes</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Segunda Fila de Métricas -->
+    <div class="metrics-grid">
+        <!-- Tarjeta de Hábitos -->
+        <div class="metric-card warning">
+            <div class="metric-icon">
+                <i class="fas fa-tasks"></i>
+            </div>
+            <div class="metric-content">
+                <h3 class="metric-value">@Model.TotalHabits</h3>
+                <p class="metric-label">Total Hábitos</p>
+                <div class="metric-detail">
+                    <span class="detail-item">
+                        <i class="fas fa-running"></i>
+                        @Model.ActiveHabits activos
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjeta de Transacciones -->
+        <div class="metric-card info">
+            <div class="metric-icon">
+                <i class="fas fa-exchange-alt"></i>
+            </div>
+            <div class="metric-content">
+                <h3 class="metric-value">@Model.TotalTransactions</h3>
+                <p class="metric-label">Transacciones</p>
+                <div class="metric-trend">
+                    <i class="fas fa-history"></i>
+                    <span>Total registradas</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjeta de Planes -->
+        <div class="metric-card secondary">
+            <div class="metric-icon">
+                <i class="fas fa-crown"></i>
+            </div>
+            <div class="metric-content">
+                <h3 class="metric-value">@Model.PlanDistribution.Count</h3>
+                <p class="metric-label">Planes Activos</p>
+                <div class="metric-detail">
+                    <span class="detail-item">
+                        <i class="fas fa-chart-pie"></i>
+                        @Model.PlanDistribution.Sum(p => p.UserCount) suscriptores
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjeta de Crecimiento -->
+        <div class="metric-card gradient">
+            <div class="metric-icon">
+                <i class="fas fa-seedling"></i>
+            </div>
+            <div class="metric-content">
+                <h3 class="metric-value">+@Model.GrowthStats.Sum(g => g.NewUsers)</h3>
+                <p class="metric-label">Crecimiento 7D</p>
+                <div class="metric-trend">
+                    <i class="fas fa-rocket trend-up"></i>
+                    <span>Usuarios nuevos</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficas y Visualizaciones -->
+    <div class="charts-section">
+        <div class="chart-row">
+            <!-- Distribución de Planes -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Distribución de Planes
+                    </h3>
+                    <div class="chart-actions">
+                        <button class="chart-action-btn" title="Actualizar">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-body">
+                    <div class="chart-container">
+                        <canvas id="planDistributionChart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="chart-legend">
+                        @foreach (var plan in Model.PlanDistribution)
+                        {
+                            <div class="legend-item">
+                                <div class="legend-color" style="background-color: @plan.Color"></div>
+                                <span class="legend-label">@plan.PlanName</span>
+                                <span class="legend-value">@plan.UserCount</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Crecimiento Reciente -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Crecimiento de la Plataforma
+                    </h3>
+                    <div class="chart-actions">
+                        <button class="chart-action-btn" title="Configurar">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-body">
+                    <div class="chart-container">
+                        <canvas id="growthChart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="chart-legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #3B82F6"></div>
+                            <span class="legend-label">Nuevos Usuarios</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #10B981"></div>
+                            <span class="legend-label">Nuevos Hábitos</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background-color: #8B5CF6"></div>
+                            <span class="legend-label">Nuevas Transacciones</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Acciones Rápidas -->
+    <div class="actions-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-bolt me-2"></i>
+                Acciones Rápidas
+            </h2>
+            <p class="section-subtitle">Accesos directos a las funciones principales</p>
+        </div>
+        <div class="actions-grid">
+            <a href="@Url.Action("Users")" class="action-card">
+                <div class="action-icon users">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="action-content">
+                    <h3>Gestión de Usuarios</h3>
+                    <p>Administra usuarios, roles y permisos</p>
+                </div>
+                <div class="action-arrow">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </a>
+
+            <a href="@Url.Action("Stats")" class="action-card">
+                <div class="action-icon stats">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="action-content">
+                    <h3>Estadísticas Detalladas</h3>
+                    <p>Métricas avanzadas y reportes</p>
+                </div>
+                <div class="action-arrow">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </a>
+
+            <a href="#" class="action-card">
+                <div class="action-icon settings">
+                    <i class="fas fa-cog"></i>
+                </div>
+                <div class="action-content">
+                    <h3>Configuración</h3>
+                    <p>Ajustes del sistema y preferencias</p>
+                </div>
+                <div class="action-arrow">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </a>
+
+            <a href="/" class="action-card">
+                <div class="action-icon home">
+                    <i class="fas fa-home"></i>
+                </div>
+                <div class="action-content">
+                    <h3>Ir al Sitio</h3>
+                    <p>Volver a la vista de usuario</p>
+                </div>
+                <div class="action-arrow">
+                    <i class="fas fa-chevron-right"></i>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Gráfico de Distribución de Planes
+        var planCtx = document.getElementById('planDistributionChart').getContext('2d');
+        var planChart = new Chart(planCtx, {
+            type: 'doughnut',
+            data: {
+                labels: [
+                    @foreach (var plan in Model.PlanDistribution)
+                    {
+                        @Html.Raw($"'{plan.PlanName}',")
+                    }
+                ],
+                datasets: [{
+                    data: [
+                        @foreach (var plan in Model.PlanDistribution)
+                        {
+                            @Html.Raw($"{plan.UserCount},")
+                        }
+                    ],
+                    backgroundColor: [
+                        @foreach (var plan in Model.PlanDistribution)
+                        {
+                            @Html.Raw($"'{plan.Color}',")
+                        }
+                    ],
+                    borderWidth: 3,
+                    borderColor: '#fff',
+                    hoverOffset: 15
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: {
+                            size: 14,
+                            weight: '600'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        padding: 12,
+                        cornerRadius: 8
+                    }
+                }
+            }
+        });
+
+        // Gráfico de Crecimiento
+        var growthCtx = document.getElementById('growthChart').getContext('2d');
+        var growthChart = new Chart(growthCtx, {
+            type: 'line',
+            data: {
+                labels: [
+                    @foreach (var stat in Model.GrowthStats)
+                    {
+                        @Html.Raw($"'{stat.Date}',")
+                    }
+                ],
+                datasets: [
+                    {
+                        label: 'Nuevos Usuarios',
+                        data: [
+                            @foreach (var stat in Model.GrowthStats)
+                            {
+                                @Html.Raw($"{stat.NewUsers},")
+                            }
+                        ],
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#3B82F6',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    },
+                    {
+                        label: 'Nuevos Hábitos',
+                        data: [
+                            @foreach (var stat in Model.GrowthStats)
+                            {
+                                @Html.Raw($"{stat.NewHabits},")
+                            }
+                        ],
+                        borderColor: '#10B981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#10B981',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    },
+                    {
+                        label: 'Nuevas Transacciones',
+                        data: [
+                            @foreach (var stat in Model.GrowthStats)
+                            {
+                                @Html.Raw($"{stat.NewTransactions},")
+                            }
+                        ],
+                        borderColor: '#8B5CF6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#8B5CF6',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }
+                ]
+            },
+            options: {
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            precision: 0
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: {
+                            size: 14,
+                            weight: '600'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        padding: 12,
+                        cornerRadius: 8
+                    }
+                }
+            }
+        });
+
+        // Efectos de hover para las tarjetas de acción
+        document.querySelectorAll('.action-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-8px)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+
+        // Actualizar métricas en tiempo real (simulado)
+        function updateMetrics() {
+            // Aquí iría la lógica para actualizar métricas en tiempo real
+            console.log('Actualizando métricas...');
+        }
+
+        // Actualizar cada 30 segundos
+        setInterval(updateMetrics, 30000);
+    </script>
+}
+
+<style>
+    /* ===== DASHBOARD ADMIN MODERNO ===== */
+    .admin-dashboard {
+        padding: 2rem;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        min-height: 100vh;
+    }
+
+    /* Header del Dashboard */
+    .dashboard-header {
+        margin-bottom: 2.5rem;
+    }
+
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 2rem;
+    }
+
+    .header-text {
+        flex: 1;
+    }
+
+    .dashboard-title {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, #4361ee, #3a0ca3);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        display: flex;
+        align-items: center;
+    }
+
+    .dashboard-subtitle {
+        font-size: 1.2rem;
+        color: #64748b;
+        margin: 0;
+    }
+
+    .header-actions {
+        display: flex;
+        align-items: center;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .btn-action {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1.5rem;
+        background: white;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        color: #475569;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .btn-action:hover {
+        background: #4361ee;
+        color: white;
+        border-color: #4361ee;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(67, 97, 238, 0.3);
+    }
+
+    /* Alertas */
+    .alert-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        border-radius: 16px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        border-left: 4px solid;
+    }
+
+    .alert-card.success {
+        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+        border-left-color: #10b981;
+        color: #065f46;
+    }
+
+    .alert-card.error {
+        background: linear-gradient(135deg, #fee2e2, #fecaca);
+        border-left-color: #ef4444;
+        color: #7f1d1d;
+    }
+
+    .alert-content {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex: 1;
+    }
+
+    .alert-icon {
+        font-size: 1.5rem;
+    }
+
+    .alert-text h4 {
+        margin: 0 0 0.25rem 0;
+        font-weight: 600;
+    }
+
+    .alert-text p {
+        margin: 0;
+        opacity: 0.9;
+    }
+
+    .alert-close {
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+    }
+
+    .alert-close:hover {
+        background: rgba(0, 0, 0, 0.1);
+    }
+
+    /* Grid de Métricas */
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .metric-card {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .metric-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(135deg, currentColor, transparent);
+    }
+
+    .metric-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 50px rgba(0, 0, 0, 0.12);
+    }
+
+    .metric-card.primary { color: #4361ee; }
+    .metric-card.success { color: #10b981; }
+    .metric-card.danger { color: #ef4444; }
+    .metric-card.warning { color: #f59e0b; }
+    .metric-card.info { color: #3b82f6; }
+    .metric-card.secondary { color: #64748b; }
+    .metric-card.accent { color: #f72585; }
+    .metric-card.gradient { 
+        background: linear-gradient(135deg, #4361ee, #3a0ca3);
+        color: white;
+    }
+
+    .metric-card.gradient .metric-icon {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .metric-icon {
+        width: 70px;
+        height: 70px;
+        background: rgba(67, 97, 238, 0.1);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .metric-content {
+        flex: 1;
+    }
+
+    .metric-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        line-height: 1;
+    }
+
+    .metric-label {
+        font-size: 1rem;
+        color: #64748b;
+        margin-bottom: 1rem;
+        font-weight: 500;
+    }
+
+    .metric-trend, .metric-progress, .metric-detail {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .trend-up {
+        color: #10b981;
+    }
+
+    .trend-down {
+        color: #ef4444;
+    }
+
+    .progress-bar {
+        flex: 1;
+        height: 6px;
+        background: #e2e8f0;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: currentColor;
+        border-radius: 3px;
+        transition: width 0.5s ease;
+    }
+
+    .detail-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        color: #64748b;
+    }
+
+    /* Sección de Gráficas */
+    .charts-section {
+        margin-bottom: 2.5rem;
+    }
+
+    .chart-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+
+    .chart-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        overflow: hidden;
+    }
+
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid #f1f5f9;
+        background: #f8fafc;
+    }
+
+    .chart-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .chart-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .chart-action-btn {
+        background: none;
+        border: none;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .chart-action-btn:hover {
+        background: #e2e8f0;
+        color: #374151;
+    }
+
+    .chart-body {
+        padding: 2rem;
+    }
+
+    .chart-container {
+        height: 250px;
+        position: relative;
+    }
+
+    .chart-legend {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem 0;
+    }
+
+    .legend-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+
+    .legend-label {
+        flex: 1;
+        font-size: 0.9rem;
+        color: #64748b;
+    }
+
+    .legend-value {
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    /* Sección de Acciones */
+    .actions-section {
+        margin-bottom: 2rem;
+    }
+
+    .section-header {
+        text-align: center;
+        margin-bottom: 2.5rem;
+    }
+
+    .section-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .section-subtitle {
+        font-size: 1.1rem;
+        color: #64748b;
+        margin: 0;
+    }
+
+    .actions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .action-card {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .action-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(67, 97, 238, 0.05), transparent);
+        transition: left 0.5s ease;
+    }
+
+    .action-card:hover::before {
+        left: 100%;
+    }
+
+    .action-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 50px rgba(67, 97, 238, 0.15);
+        border-color: #4361ee;
+    }
+
+    .action-icon {
+        width: 70px;
+        height: 70px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.8rem;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .action-icon.users { background: linear-gradient(135deg, #4361ee, #3a0ca3); }
+    .action-icon.stats { background: linear-gradient(135deg, #10b981, #059669); }
+    .action-icon.settings { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .action-icon.home { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+    .action-content {
+        flex: 1;
+    }
+
+    .action-content h3 {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+    }
+
+    .action-content p {
+        color: #64748b;
+        margin: 0;
+        font-size: 0.95rem;
+    }
+
+    .action-arrow {
+        color: #64748b;
+        font-size: 1.2rem;
+        transition: all 0.3s ease;
+    }
+
+    .action-card:hover .action-arrow {
+        color: #4361ee;
+        transform: translateX(4px);
+    }
+
+    /* Responsive */
+    @@media (max-width: 1200px) {
+        .chart-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .admin-dashboard {
+            padding: 1rem;
+        }
+
+        .header-content {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .dashboard-title {
+            font-size: 2rem;
+            justify-content: center;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .btn-action {
+            justify-content: center;
+        }
+
+        .metrics-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .actions-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .action-card {
+            flex-direction: column;
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .chart-body {
+            padding: 1rem;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .dashboard-title {
+            font-size: 1.8rem;
+        }
+
+        .metric-card {
+            padding: 1.5rem;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+        }
+    }
+</style>

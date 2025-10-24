@@ -1,0 +1,1046 @@
+@{
+    ViewData["Title"] = "Estadísticas Detalladas";
+    var usageStats = ViewBag.UsageStats as LifeHub.Models.ViewModels.UsageStatsViewModel;
+    var growthStats = ViewBag.GrowthStats as List<LifeHub.Models.ViewModels.GrowthStatsViewModel>;
+    var planDistribution = ViewBag.PlanDistribution as LifeHub.Models.ViewModels.PlanDistributionViewModel;
+}
+
+<div class="admin-stats">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div class="header-content">
+            <div class="header-text">
+                <h1 class="dashboard-title">
+                    <i class="fas fa-chart-bar me-3"></i>Estadísticas Detalladas
+                </h1>
+                <p class="dashboard-subtitle">Métricas avanzadas y análisis de la plataforma</p>
+            </div>
+            <div class="header-actions">
+                <a href="@Url.Action("Index")" class="btn-back">
+                    <i class="fas fa-arrow-left me-2"></i>
+                    Volver al Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filters-card">
+        <div class="filters-header">
+            <h3 class="filters-title">
+                <i class="fas fa-filter me-2"></i>
+                Filtros y Configuración
+            </h3>
+        </div>
+        <div class="filters-body">
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label for="dateRange" class="filter-label">Rango de fechas:</label>
+                    <select class="filter-select" id="dateRange">
+                        <option value="7">Últimos 7 días</option>
+                        <option value="30" selected>Últimos 30 días</option>
+                        <option value="90">Últimos 3 meses</option>
+                        <option value="365">Último año</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="metricType" class="filter-label">Tipo de métrica:</label>
+                    <select class="filter-select" id="metricType">
+                        <option value="all" selected>Todas las métricas</option>
+                        <option value="users">Solo usuarios</option>
+                        <option value="habits">Solo hábitos</option>
+                        <option value="transactions">Solo transacciones</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <button class="filter-apply-btn" id="applyFilters">
+                        <i class="fas fa-filter me-2"></i>Aplicar Filtros
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Métricas de Uso General -->
+    <div class="section-header">
+        <h2 class="section-title">
+            <i class="fas fa-chart-pie me-2"></i>
+            Estadísticas de Uso General
+        </h2>
+        <p class="section-subtitle">Resumen completo de la actividad en la plataforma</p>
+    </div>
+
+    <div class="usage-metrics-grid">
+        <div class="usage-metric">
+            <div class="usage-icon primary">
+                <i class="fas fa-tasks"></i>
+            </div>
+            <div class="usage-content">
+                <h3 class="usage-value">@usageStats.TotalHabitsCreated</h3>
+                <p class="usage-label">Hábitos Creados</p>
+                <div class="usage-trend">
+                    <i class="fas fa-fire trend-up"></i>
+                    <span>@usageStats.ActiveHabitsToday activos hoy</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="usage-metric">
+            <div class="usage-icon success">
+                <i class="fas fa-exchange-alt"></i>
+            </div>
+            <div class="usage-content">
+                <h3 class="usage-value">@usageStats.TotalTransactionsCreated</h3>
+                <p class="usage-label">Transacciones</p>
+                <div class="usage-trend">
+                    <i class="fas fa-calendar trend-up"></i>
+                    <span>@usageStats.TransactionsThisMonth este mes</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="usage-metric">
+            <div class="usage-icon info">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="usage-content">
+                <h3 class="usage-value">@usageStats.TotalAppointmentsCreated</h3>
+                <p class="usage-label">Citas Médicas</p>
+                <div class="usage-trend">
+                    <i class="fas fa-heartbeat"></i>
+                    <span>Seguimiento de salud</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="usage-metric">
+            <div class="usage-icon warning">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="usage-content">
+                <h3 class="usage-value">@usageStats.TotalCommunitiesCreated</h3>
+                <p class="usage-label">Comunidades</p>
+                <div class="usage-trend">
+                    <i class="fas fa-comments"></i>
+                    <span>Espacios colaborativos</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficas Principales -->
+    <div class="charts-section">
+        <div class="charts-grid">
+            <!-- Gráfico de Crecimiento -->
+            <div class="chart-card large">
+                <div class="chart-header">
+                    <h3 class="chart-title">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Crecimiento de la Plataforma
+                    </h3>
+                    <div class="chart-actions">
+                        <button class="chart-action-btn" title="Configurar">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-body">
+                    <div class="chart-container">
+                        <canvas id="growthChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Distribución de Planes -->
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3 class="chart-title">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Distribución de Planes
+                    </h3>
+                    <div class="chart-actions">
+                        <button class="chart-action-btn" title="Actualizar">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-body">
+                    <div class="chart-container">
+                        <canvas id="planDistributionChart" width="400" height="200"></canvas>
+                    </div>
+                    <div class="chart-legend">
+                        @foreach (var plan in planDistribution.Distribution)
+                        {
+                            <div class="legend-item">
+                                <div class="legend-color" style="background-color: @plan.Color"></div>
+                                <span class="legend-label">@plan.PlanName</span>
+                                <span class="legend-value">@plan.UserCount (@plan.Percentage.ToString("N1")%)</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Crecimiento Detallado -->
+    <div class="table-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-table me-2"></i>
+                Detalle de Crecimiento Diario
+            </h2>
+            <p class="section-subtitle">Análisis detallado de la actividad diaria</p>
+        </div>
+        
+        <div class="table-card">
+            <div class="table-container">
+                <table class="data-table" id="growthTable">
+                    <thead>
+                        <tr>
+                            <th>Fecha</th>
+                            <th>Nuevos Usuarios</th>
+                            <th>Nuevos Hábitos</th>
+                            <th>Nuevas Transacciones</th>
+                            <th>Total Diario</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var stat in growthStats)
+                        {
+                            <tr>
+                                <td class="date-cell">@stat.Date</td>
+                                <td>
+                                    <div class="metric-badge primary">
+                                        <i class="fas fa-user-plus me-1"></i>
+                                        @stat.NewUsers
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="metric-badge success">
+                                        <i class="fas fa-tasks me-1"></i>
+                                        @stat.NewHabits
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="metric-badge info">
+                                        <i class="fas fa-exchange-alt me-1"></i>
+                                        @stat.NewTransactions
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="total-cell">
+                                        <strong>@(stat.NewUsers + stat.NewHabits + stat.NewTransactions)</strong>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-footer">
+                            <td><strong>Total</strong></td>
+                            <td><strong class="total-value">@growthStats.Sum(s => s.NewUsers)</strong></td>
+                            <td><strong class="total-value">@growthStats.Sum(s => s.NewHabits)</strong></td>
+                            <td><strong class="total-value">@growthStats.Sum(s => s.NewTransactions)</strong></td>
+                            <td><strong class="total-value accent">@growthStats.Sum(s => s.NewUsers + s.NewHabits + s.NewTransactions)</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Gráfico de Crecimiento
+        var growthCtx = document.getElementById('growthChart').getContext('2d');
+        var growthChart = new Chart(growthCtx, {
+            type: 'line',
+            data: {
+                labels: [
+                    @foreach (var stat in growthStats)
+                    {
+                        @Html.Raw($"'{stat.Date}',")
+                    }
+                ],
+                datasets: [
+                    {
+                        label: 'Nuevos Usuarios',
+                        data: [
+                            @foreach (var stat in growthStats)
+                            {
+                                @Html.Raw($"{stat.NewUsers},")
+                            }
+                        ],
+                        borderColor: '#4361ee',
+                        backgroundColor: 'rgba(67, 97, 238, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#4361ee',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    },
+                    {
+                        label: 'Nuevos Hábitos',
+                        data: [
+                            @foreach (var stat in growthStats)
+                            {
+                                @Html.Raw($"{stat.NewHabits},")
+                            }
+                        ],
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#10b981',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    },
+                    {
+                        label: 'Nuevas Transacciones',
+                        data: [
+                            @foreach (var stat in growthStats)
+                            {
+                                @Html.Raw($"{stat.NewTransactions},")
+                            }
+                        ],
+                        borderColor: '#8b5cf6',
+                        backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#8b5cf6',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }
+                ]
+            },
+            options: {
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            precision: 0
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: {
+                            size: 14,
+                            weight: '600'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        padding: 12,
+                        cornerRadius: 8
+                    },
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20,
+                            font: {
+                                size: 12,
+                                weight: '600'
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Gráfico de Distribución de Planes
+        var planCtx = document.getElementById('planDistributionChart').getContext('2d');
+        var planChart = new Chart(planCtx, {
+            type: 'doughnut',
+            data: {
+                labels: [
+                    @foreach (var plan in planDistribution.Distribution)
+                    {
+                        @Html.Raw($"'{plan.PlanName}',")
+                    }
+                ],
+                datasets: [{
+                    data: [
+                        @foreach (var plan in planDistribution.Distribution)
+                        {
+                            @Html.Raw($"{plan.UserCount},")
+                        }
+                    ],
+                    backgroundColor: [
+                        @foreach (var plan in planDistribution.Distribution)
+                        {
+                            @Html.Raw($"'{plan.Color}',")
+                        }
+                    ],
+                    borderWidth: 3,
+                    borderColor: '#fff',
+                    hoverOffset: 15
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: {
+                            size: 14,
+                            weight: '600'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        padding: 12,
+                        cornerRadius: 8,
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: ${value} (${percentage}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Filtros
+        document.getElementById('applyFilters').addEventListener('click', function() {
+            const days = document.getElementById('dateRange').value;
+            const metricType = document.getElementById('metricType').value;
+            
+            // Aquí iría la lógica para actualizar los gráficos con los nuevos filtros
+            console.log(`Filtros aplicados: ${days} días, tipo: ${metricType}`);
+            
+            // Simular actualización
+            this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Aplicando...';
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-check me-2"></i>Filtros Aplicados';
+                setTimeout(() => {
+                    this.innerHTML = '<i class="fas fa-filter me-2"></i>Aplicar Filtros';
+                }, 2000);
+            }, 1000);
+        });
+
+        // Ordenar tabla por fecha (más reciente primero)
+        document.addEventListener('DOMContentLoaded', function() {
+            const table = document.getElementById('growthTable');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            rows.sort((a, b) => {
+                const dateA = a.querySelector('.date-cell').textContent;
+                const dateB = b.querySelector('.date-cell').textContent;
+                return dateB.localeCompare(dateA);
+            });
+            
+            rows.forEach(row => tbody.appendChild(row));
+        });
+    </script>
+}
+
+<style>
+    /* ===== ESTADÍSTICAS DETALLADAS - ESTILOS MEJORADOS ===== */
+    .admin-stats {
+        padding: 2rem;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        min-height: 100vh;
+    }
+
+    /* Header */
+    .dashboard-header {
+        background: linear-gradient(120deg, var(--primary) 0%, var(--secondary) 100%);
+        color: white;
+        border-radius: 20px;
+        padding: 2.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(67, 97, 238, 0.2);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .dashboard-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 200px;
+        height: 200px;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%23ffffff' fill-opacity='0.1' d='M0,128L48,117.3C96,107,192,85,288,112C384,139,480,213,576,218.7C672,224,768,160,864,138.7C960,117,1056,139,1152,149.3C1248,160,1344,160,1392,160L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'%3E%3C/path%3E%3C/svg%3E");
+        background-size: cover;
+        opacity: 0.1;
+    }
+
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+        z-index: 2;
+    }
+
+    .dashboard-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: white;
+    }
+
+    .dashboard-subtitle {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin: 0;
+    }
+
+    .btn-back {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        color: white;
+        padding: 0.875rem 1.5rem;
+        border-radius: 12px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .btn-back:hover {
+        background: rgba(255, 255, 255, 0.25);
+        transform: translateY(-2px);
+        color: white;
+    }
+
+    /* Secciones */
+    .section-header {
+        margin-bottom: 2rem;
+    }
+
+    .section-title {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .section-subtitle {
+        color: #64748b;
+        font-size: 1.1rem;
+        margin: 0;
+    }
+
+    /* Filtros */
+    .filters-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        margin-bottom: 2rem;
+        overflow: hidden;
+    }
+
+    .filters-header {
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid #f1f5f9;
+        background: #f8fafc;
+    }
+
+    .filters-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .filters-body {
+        padding: 2rem;
+    }
+
+    .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        align-items: end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .filter-label {
+        font-weight: 600;
+        color: #374151;
+        font-size: 0.95rem;
+    }
+
+    .filter-select {
+        padding: 0.875rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        background: white;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        font-family: inherit;
+    }
+
+    .filter-select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+    }
+
+    .filter-apply-btn {
+        background: linear-gradient(135deg, var(--primary), var(--secondary));
+        color: white;
+        border: none;
+        padding: 0.875rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: inherit;
+    }
+
+    .filter-apply-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(67, 97, 238, 0.3);
+    }
+
+    /* Métricas de Uso */
+    .usage-metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2.5rem;
+    }
+
+    .usage-metric {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .usage-metric:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 50px rgba(0, 0, 0, 0.12);
+    }
+
+    .usage-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: white;
+        flex-shrink: 0;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .usage-icon.primary { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
+    .usage-icon.success { background: linear-gradient(135deg, #10b981, #059669); }
+    .usage-icon.info { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+    .usage-icon.warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+    .usage-content {
+        flex: 1;
+    }
+
+    .usage-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+        line-height: 1;
+    }
+
+    .usage-label {
+        font-size: 1.1rem;
+        color: #64748b;
+        margin-bottom: 1rem;
+        font-weight: 500;
+    }
+
+    .usage-trend {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        color: #64748b;
+        padding: 0.5rem 0.8rem;
+        background: #f8fafc;
+        border-radius: 8px;
+        border: 1px solid #f1f5f9;
+    }
+
+    .trend-up {
+        color: #10b981;
+    }
+
+    /* Gráficas */
+    .charts-section {
+        margin-bottom: 2.5rem;
+    }
+
+    .charts-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+    }
+
+    .chart-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        overflow: hidden;
+    }
+
+    .chart-card.large {
+        grid-column: 1;
+    }
+
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid #f1f5f9;
+        background: #f8fafc;
+    }
+
+    .chart-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .chart-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .chart-action-btn {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 0.5rem;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .chart-action-btn:hover {
+        background: #f8fafc;
+        color: var(--primary);
+        border-color: var(--primary);
+    }
+
+    .chart-body {
+        padding: 2rem;
+    }
+
+    .chart-container {
+        height: 300px;
+        position: relative;
+    }
+
+    .chart-legend {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .legend-item:hover {
+        background: #f8fafc;
+    }
+
+    .legend-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .legend-label {
+        flex: 1;
+        font-weight: 500;
+        color: #374151;
+    }
+
+    .legend-value {
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    /* Tabla */
+    .table-section {
+        margin-bottom: 2rem;
+    }
+
+    .table-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        overflow: hidden;
+    }
+
+    .table-container {
+        overflow-x: auto;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .data-table thead {
+        background: #f8fafc;
+    }
+
+    .data-table th {
+        padding: 1.5rem 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #374151;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 0.95rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .data-table td {
+        padding: 1.25rem 1rem;
+        border-bottom: 1px solid #f1f5f9;
+        color: #374151;
+    }
+
+    .data-table tbody tr {
+        transition: all 0.3s ease;
+    }
+
+    .data-table tbody tr:hover {
+        background: #f8fafc;
+    }
+
+    .date-cell {
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .metric-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        border: 1px solid;
+    }
+
+    .metric-badge.primary {
+        background: rgba(67, 97, 238, 0.1);
+        color: var(--primary);
+        border-color: rgba(67, 97, 238, 0.2);
+    }
+
+    .metric-badge.success {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        border-color: rgba(16, 185, 129, 0.2);
+    }
+
+    .metric-badge.info {
+        background: rgba(139, 92, 246, 0.1);
+        color: #8b5cf6;
+        border-color: rgba(139, 92, 246, 0.2);
+    }
+
+    .total-cell {
+        text-align: center;
+    }
+
+    .table-footer {
+        background: #f8fafc;
+        font-weight: 600;
+    }
+
+    .table-footer td {
+        border-bottom: none;
+        padding: 1.5rem 1rem;
+    }
+
+    .total-value {
+        font-size: 1.1rem;
+    }
+
+    .total-value.accent {
+        color: var(--primary);
+    }
+
+    /* Responsive */
+    @@media (max-width: 1200px) {
+        .charts-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .chart-card.large {
+            grid-column: 1;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .admin-stats {
+            padding: 1rem;
+        }
+
+        .dashboard-header {
+            padding: 2rem 1.5rem;
+            border-radius: 16px;
+        }
+
+        .header-content {
+            flex-direction: column;
+            gap: 1.5rem;
+            text-align: center;
+        }
+
+        .dashboard-title {
+            font-size: 2rem;
+        }
+
+        .filters-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .usage-metrics-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .usage-metric {
+            flex-direction: column;
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .usage-icon {
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+        }
+
+        .usage-value {
+            font-size: 2rem;
+        }
+
+        .chart-body {
+            padding: 1.5rem;
+        }
+
+        .chart-container {
+            height: 250px;
+        }
+
+        .data-table {
+            font-size: 0.9rem;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 1rem 0.5rem;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .dashboard-title {
+            font-size: 1.8rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+        }
+
+        .usage-value {
+            font-size: 1.8rem;
+        }
+
+        .metric-badge {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.8rem;
+        }
+
+        .chart-header {
+            padding: 1.25rem 1.5rem;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+        }
+    }
+</style>
