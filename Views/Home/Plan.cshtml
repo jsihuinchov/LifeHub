@@ -1,0 +1,428 @@
+@model LifeHub.Models.SubscriptionPlan
+
+@{
+    ViewData["Title"] = Model.Name;
+    var isFreePlan = Model.Price == 0;
+    var isPopularPlan = Model.IsFeatured;
+}
+
+<div class="plan-detail-container">
+    <!-- Hero Section Elegante -->
+    <section class="plan-hero-elegant" style="background: linear-gradient(135deg, @Model.ColorCode 0%, #@(Model.ColorCode.Substring(1))88 100%);">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    @if (isFreePlan)
+                    {
+                        <span class="elegant-badge elegant-badge-free">✨ Comienza Gratis</span>
+                    }
+                    else if (isPopularPlan)
+                    {
+                        <span class="elegant-badge elegant-badge-popular">⭐ Más Elegido</span>
+                    }
+                    
+                    <h1 class="elegant-title">@Model.Name</h1>
+                    <p class="elegant-subtitle">@Model.ShortDescription</p>
+                    
+                    <div class="elegant-price">
+                        <span class="price-amount">@Model.FormattedPrice</span>
+                        <span class="price-period">/ @Model.Period</span>
+                    </div>
+                </div>
+                <div class="col-lg-4 text-center">
+                    <div class="hero-graphic">
+                        @if (isFreePlan)
+                        {
+                            <i class="fas fa-gem"></i>
+                        }
+                        else if (Model.Name.Contains("Premium") || Model.Name.Contains("Máxima"))
+                        {
+                            <i class="fas fa-crown"></i>
+                        }
+                        else
+                        {
+                            <i class="fas fa-star"></i>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Características Elegantes -->
+    <section class="elegant-features">
+        <div class="container">
+            <div class="section-header text-center mb-5">
+                <h2 class="section-title-elegant">Características del Plan</h2>
+                <p class="section-subtitle">Descubre todo lo que incluye este plan</p>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="feature-card-elegant">
+                        <div class="feature-header">
+                            <div class="feature-icon-wrapper">
+                                <i class="fas fa-tasks"></i>
+                            </div>
+                            <h4 class="feature-card-title">Gestión de Hábitos</h4>
+                        </div>
+                        <p class="feature-card-desc">Crea y sigue hasta <strong>@Model.MaxHabits hábitos</strong> @(Model.MaxHabits >= 999 ? "ilimitados" : "simultáneos") con herramientas avanzadas de seguimiento.</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="feature-card-elegant">
+                        <div class="feature-header">
+                            <div class="feature-icon-wrapper">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <h4 class="feature-card-title">Control Financiero</h4>
+                        </div>
+                        <p class="feature-card-desc"><strong>@Model.MaxTransactions transacciones</strong> mensuales @(Model.MaxTransactions >= 999 ? "ilimitadas" : "") con categorización inteligente y reportes.</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="feature-card-elegant">
+                        <div class="feature-header">
+                            <div class="feature-icon-wrapper">
+                                <i class="fas fa-heartbeat"></i>
+                            </div>
+                            <h4 class="feature-card-title">Seguimiento de Salud</h4>
+                        </div>
+                        <p class="feature-card-desc">Monitoreo completo de tu bienestar con recordatorios inteligentes y análisis de progreso.</p>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="feature-card-elegant">
+                        <div class="feature-header">
+                            <div class="feature-icon-wrapper">
+                                <i class="fas fa-database"></i>
+                            </div>
+                            <h4 class="feature-card-title">Almacenamiento</h4>
+                        </div>
+                        <p class="feature-card-desc"><strong>@Model.StorageMB MB</strong> de almacenamiento seguro en la nube para todos tus datos.</p>
+                    </div>
+                </div>
+
+                @if (Model.HasCommunityAccess)
+                {
+                    <div class="col-md-6">
+                        <div class="feature-card-elegant">
+                            <div class="feature-header">
+                                <div class="feature-icon-wrapper">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <h4 class="feature-card-title">Comunidad LifeHub</h4>
+                            </div>
+                            <p class="feature-card-desc">Acceso completo a nuestra comunidad exclusiva de usuarios y grupos de interés.</p>
+                        </div>
+                    </div>
+                }
+
+                @if (Model.HasAIFeatures)
+                {
+                    <div class="col-md-6">
+                        <div class="feature-card-elegant">
+                            <div class="feature-header">
+                                <div class="feature-icon-wrapper">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                                <h4 class="feature-card-title">Inteligencia Artificial</h4>
+                            </div>
+                            <p class="feature-card-desc">Análisis predictivo y recomendaciones personalizadas impulsadas por IA.</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Elegante -->
+    <section class="elegant-cta">
+        <div class="container">
+            <div class="cta-card-elegant">
+                <div class="row align-items-center">
+                    <div class="col-lg-8">
+                        <h3 class="cta-title-elegant">Transforma tu vida hoy</h3>
+                        <p class="cta-desc-elegant">Únete a miles de personas que ya están logrando sus metas con LifeHub. Comienza tu viaje hacia una vida más organizada y productiva.</p>
+                    </div>
+                    <div class="col-lg-4 text-lg-end">
+                        <div class="cta-actions">
+                            <a href="@Url.Action("Register", "Account", new { planId = Model.Id })" 
+                               class="btn btn-elegant-primary btn-lg">
+                                <i class="fas fa-sparkles me-2"></i>
+                                Comenzar Ahora
+                            </a>
+                            <a href="@Url.Action("Index", "Home")#planes" class="btn btn-elegant-secondary">
+                                <i class="fas fa-compress-alt me-2"></i>
+                                Comparar Planes
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+@section Styles {
+    <style>
+        /* Hero Section Elegante */
+        .plan-hero-elegant {
+            color: white;
+            padding: 60px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .plan-hero-elegant::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><polygon fill="rgba(255,255,255,0.03)" points="0,1000 1000,0 1000,1000"/></svg>');
+            background-size: cover;
+        }
+
+        .elegant-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .elegant-badge-free {
+            background: rgba(255,255,255,0.15);
+        }
+
+        .elegant-badge-popular {
+            background: linear-gradient(45deg, rgba(255,215,0,0.3), rgba(255,140,0,0.3));
+        }
+
+        .elegant-title {
+            font-size: 2.8rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .elegant-subtitle {
+            font-size: 1.3rem;
+            opacity: 0.95;
+            margin-bottom: 1.5rem;
+            font-weight: 300;
+        }
+
+        .elegant-price {
+            margin-top: 1.5rem;
+        }
+
+        .price-amount {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+
+        .price-period {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .hero-graphic {
+            font-size: 6rem;
+            opacity: 0.4;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+        }
+
+        /* Features Elegantes */
+        .elegant-features {
+            padding: 80px 0;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        .section-header {
+            margin-bottom: 4rem;
+        }
+
+        .section-title-elegant {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .section-subtitle {
+            font-size: 1.1rem;
+            color: #64748b;
+        }
+
+        .feature-card-elegant {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid #f1f5f9;
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+
+        .feature-card-elegant:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        }
+
+        .feature-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .feature-icon-wrapper {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, @Model.ColorCode, #@(Model.ColorCode.Substring(1))99);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .feature-card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .feature-card-desc {
+            color: #64748b;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        /* CTA Elegante */
+        .elegant-cta {
+            padding: 80px 0;
+            background: white;
+        }
+
+        .cta-card-elegant {
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: white;
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+
+        .cta-title-elegant {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .cta-desc-elegant {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .cta-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn-elegant-primary {
+            background: linear-gradient(45deg, @Model.ColorCode, #@(Model.ColorCode.Substring(1))99);
+            border: none;
+            color: white;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-elegant-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            color: white;
+        }
+
+        .btn-elegant-secondary {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-elegant-secondary:hover {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        /* Responsive */
+        @@media (max-width: 768px) {
+            .plan-hero-elegant {
+                padding: 40px 0;
+                text-align: center;
+            }
+            
+            .elegant-title {
+                font-size: 2.2rem;
+            }
+            
+            .hero-graphic {
+                font-size: 4rem;
+                margin-top: 20px;
+            }
+            
+            .elegant-features {
+                padding: 60px 0;
+            }
+            
+            .cta-card-elegant {
+                padding: 2rem;
+                text-align: center;
+            }
+            
+            .cta-actions {
+                margin-top: 2rem;
+            }
+            
+            .btn-elegant-primary,
+            .btn-elegant-secondary {
+                width: 100%;
+            }
+        }
+
+        @@media (max-width: 576px) {
+            .elegant-title {
+                font-size: 1.8rem;
+            }
+            
+            .section-title-elegant {
+                font-size: 1.8rem;
+            }
+            
+            .feature-card-elegant {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+}
