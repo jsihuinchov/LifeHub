@@ -1,0 +1,150 @@
+@using LifeHub.Models.ViewModels
+@model ContactViewModel
+
+<footer id="contacto" class="lh-footer">
+    <div class="container">
+        <div class="row">
+            <div class="col-12 text-center mb-4">
+                <h2 class="footer-main-title">¿Listo para transformar tu vida?</h2>
+                <p class="footer-main-subtitle">Contáctanos y comienza tu viaje hacia el bienestar integral</p>
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- Formulario de Contacto -->
+            <div class="col-lg-7">
+                <div class="contact-form-footer">
+                    <h4 class="form-title">Envíanos un mensaje</h4>
+                    <form class="contact-form-main" id="contactForm" method="post" asp-action="SendContactEmail" asp-controller="Home">
+                        @Html.AntiForgeryToken()
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="Nombre" class="form-label">Nombre completo *</label>
+                                    <input asp-for="Nombre" class="form-control" required>
+                                    <span asp-validation-for="Nombre" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="Email" class="form-label">Email *</label>
+                                    <input asp-for="Email" class="form-control" required>
+                                    <span asp-validation-for="Email" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label asp-for="TipoConsulta" class="form-label">Tipo de consulta *</label>
+                            <select asp-for="TipoConsulta" asp-items="Html.GetEnumSelectList<TipoConsulta>()" class="form-control form-select-custom">
+                                <option value="">Selecciona un tipo de consulta</option>
+                            </select>
+                            <span asp-validation-for="TipoConsulta" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label asp-for="Asunto" class="form-label">Asunto *</label>
+                            <input asp-for="Asunto" class="form-control" required>
+                            <span asp-validation-for="Asunto" class="text-danger"></span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label asp-for="Mensaje" class="form-label">Mensaje *</label>
+                            <textarea asp-for="Mensaje" class="form-control" rows="4" placeholder="Describe cómo podemos ayudarte..." required></textarea>
+                            <span asp-validation-for="Mensaje" class="text-danger"></span>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-send">
+                            <i class="fas fa-paper-plane me-2"></i>Enviar Mensaje
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Información de Contacto -->
+            <div class="col-lg-5">
+                <div class="contact-info-footer">
+                    <h4 class="info-title">Información de contacto</h4>
+                    
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="contact-details">
+                            <h5>Email</h5>
+                            <p>soporte@lifehub.com</p>
+                            <small>Respuesta en menos de 24 horas</small>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <div class="contact-details">
+                            <h5>Teléfono</h5>
+                            <p>+51 987 654 321</p>
+                            <small>Lun-Vie 9:00-18:00 • Sáb 9:00-13:00</small>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-item">
+                        <div class="contact-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="contact-details">
+                            <h5>Oficina principal</h5>
+                            <p>Av. Ejemplo 123, Lima, Perú</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Redes Sociales -->
+                    <div class="social-section">
+                        <h5>Síguenos en redes</h5>
+                        <div class="social-icons-footer">
+                            <a href="#" class="social-icon" title="Facebook">
+                                <i class="fab fa-facebook-f"></i>
+                            </a>
+                            <a href="#" class="social-icon" title="Instagram">
+                                <i class="fab fa-instagram"></i>
+                            </a>
+                            <a href="#" class="social-icon" title="LinkedIn">
+                                <i class="fab fa-linkedin-in"></i>
+                            </a>
+                            <a href="#" class="social-icon" title="Twitter">
+                                <i class="fab fa-twitter"></i>
+                            </a>
+                            <a href="#" class="social-icon" title="YouTube">
+                                <i class="fab fa-youtube"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Línea divisoria -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="footer-divider"></div>
+            </div>
+        </div>
+        
+        <!-- Enlaces legales y copyright -->
+        <div class="row footer-bottom">
+            <div class="col-md-6">
+                <div class="legal-links">
+                    <a href="#privacidad">Política de privacidad</a>
+                    <a href="#terminos">Términos de servicio</a>
+                    <a href="#cookies">Política de cookies</a>
+                </div>
+            </div>
+            <div class="col-md-6 text-md-end">
+                <div class="copyright">
+                    © 2024 LifeHub. Todos los derechos reservados. 
+                    <span class="version">v2.1.0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
