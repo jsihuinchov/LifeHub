@@ -1,0 +1,1591 @@
+@model List<LifeHub.Models.Entities.FinancialTransaction>
+@using LifeHub.Services
+@inject ISubscriptionService SubscriptionService
+@{
+    ViewData["Title"] = "Transacciones";
+    
+    // ✅ CORREGIDO: Usar límites reales del plan
+    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var userSubscription = await SubscriptionService.GetUserSubscriptionAsync(userId);
+    var userPlan = userSubscription?.Plan;
+    
+    // OBTENER USO REAL DEL PLAN
+    var transactionUsage = await SubscriptionService.GetTransactionUsageAsync(userId);
+    var transactionsCount = transactionUsage.current;
+    var monthlyLimit = transactionUsage.max;
+    var usagePercentage = monthlyLimit > 0 ? (transactionsCount * 100) / monthlyLimit : 0;
+    var canCreateTransaction = await SubscriptionService.CanUserCreateTransactionAsync(userId);
+    
+    // Datos para las nuevas secciones
+    var monthlyIncome = Model.Where(t => t.TransactionType == 0 && t.TransactionDate.Month == DateTime.Now.Month).Sum(t => t.Amount);
+    var monthlyExpense = Model.Where(t => t.TransactionType == 1 && t.TransactionDate.Month == DateTime.Now.Month).Sum(t => t.Amount);
+    var monthlyBalance = monthlyIncome - monthlyExpense;
+    var recurringTransactions = Model.Where(t => t.Recurring).Take(3);
+    var topCategories = Model
+        .GroupBy(t => t.Category)
+        .Select(g => new { Category = g.Key, Count = g.Count(), Total = g.Sum(t => t.Amount) })
+        .OrderByDescending(x => x.Count)
+        .Take(5);
+}
+
+<div class="finance-container">
+    <!-- Navegación Horizontal -->
+    <div class="finance-nav">
+        <div class="nav-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Index" ? "active" : "")">
+            <a href="@Url.Action("Index", "Finance")">
+                <i class="fas fa-chart-line"></i>
+                <span>Dashboard</span>
+            </a>
+        </div>
+        
+        <div class="nav-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Transactions" ? "active" : "")">
+            <a href="@Url.Action("Transactions", "Finance")">
+                <i class="fas fa-exchange-alt"></i>
+                <span>Transacciones</span>
+                @if (userPlan != null)
+                {
+                    <small class="plan-badge" style="font-size: 0.7em; background: @userPlan.ColorCode; color: white; padding: 1px 4px; border-radius: 4px; margin-top: 2px;">
+                        @transactionsCount/@monthlyLimit
+                    </small>
+                }
+            </a>
+        </div>
+        
+        <div class="nav-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Budgets" ? "active" : "")">
+            <a href="@Url.Action("Budgets", "Finance")">
+                <i class="fas fa-wallet"></i>
+                <span>Presupuestos</span>
+            </a>
+        </div>
+        
+        <div class="nav-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Reports" ? "active" : "")">
+            <a href="@Url.Action("Reports", "Finance")">
+                <i class="fas fa-chart-bar"></i>
+                <span>Reportes</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Contenido Principal -->
+    <div class="finance-main-content">
+        <!-- Header -->
+        <div class="finance-header">
+            <div class="header-content">
+                <h1 class="finance-title">
+                    <i class="fas fa-exchange-alt me-3"></i>Transacciones
+                </h1>
+                <p class="finance-subtitle">Gestiona todos tus ingresos y gastos</p>
+                
+                <!-- Badge del plan actual -->
+                @if (userPlan != null)
+                {
+                    <div class="current-plan-badge" style="margin-top: 0.5rem;">
+                        <span class="badge" style="background: @userPlan.ColorCode; color: white; padding: 0.5rem 1rem; border-radius: 20px; font-weight: 600;">
+                            <i class="fas fa-crown me-1"></i>Plan @userPlan.Name
+                        </span>
+                    </div>
+                }
+            </div>
+            <div class="header-actions">
+                @if (canCreateTransaction)
+                {
+                    <a href="@Url.Action("CreateTransaction", "Finance")" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Nueva Transacción
+                    </a>
+                }
+                else
+                {
+                    <button class="btn btn-primary" disabled title="Límite de transacciones alcanzado en tu plan actual">
+                        <i class="fas fa-plus me-2"></i>Nueva Transacción
+                    </button>
+                }
+            </div>
+        </div>
+
+        <!-- Alerta de límite de transacciones -->
+        @if (!canCreateTransaction && userPlan != null)
+        {
+            <div class="alert alert-warning">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Límite de transacciones alcanzado</strong> - Has usado las @monthlyLimit transacciones de tu plan @userPlan.Name
+                    </div>
+                    <a href="@Url.Action("Index", "Plans")" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-rocket me-1"></i>Mejorar Plan
+                    </a>
+                </div>
+            </div>
+        }
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>@TempData["ErrorMessage"]
+            </div>
+        }
+
+        <!-- Métricas Rápidas -->
+        <div class="metrics-grid secondary">
+            <div class="metric-card transactions">
+                <div class="metric-icon">
+                    <i class="fas fa-list"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@transactionsCount</h3>
+                    <p class="metric-label">Total Transacciones</p>
+                    @if (userPlan != null)
+                    {
+                        <div class="metric-trend @(usagePercentage >= 80 ? "warning" : "info")">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>@transactionsCount/@monthlyLimit este mes</span>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="metric-card income">
+                <div class="metric-icon">
+                    <i class="fas fa-arrow-up"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@Model.Where(t => t.TransactionType == 0).Sum(t => t.Amount).ToString("C")</h3>
+                    <p class="metric-label">Ingresos Totales</p>
+                </div>
+            </div>
+
+            <div class="metric-card expense">
+                <div class="metric-icon">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@Model.Where(t => t.TransactionType == 1).Sum(t => t.Amount).ToString("C")</h3>
+                    <p class="metric-label">Gastos Totales</p>
+                </div>
+            </div>
+
+            <div class="metric-card balance @(Model.Where(t => t.TransactionType == 0).Sum(t => t.Amount) - Model.Where(t => t.TransactionType == 1).Sum(t => t.Amount) >= 0 ? "positive" : "negative")">
+                <div class="metric-icon">
+                    <i class="fas fa-balance-scale"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@((Model.Where(t => t.TransactionType == 0).Sum(t => t.Amount) - Model.Where(t => t.TransactionType == 1).Sum(t => t.Amount)).ToString("C"))</h3>
+                    <p class="metric-label">Balance Neto</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Barra de progreso del límite -->
+        @if (userPlan != null && monthlyLimit < 9999)
+        {
+            <div class="finance-card">
+                <div class="card-body">
+                    <div class="limit-progress">
+                        <div class="limit-header">
+                            <span class="limit-label">
+                                <i class="fas fa-chart-bar me-2"></i>
+                                Uso de transacciones este mes
+                            </span>
+                            <span class="limit-stats">
+                                @transactionsCount/@monthlyLimit (@usagePercentage%)
+                            </span>
+                        </div>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill @(usagePercentage >= 100 ? "over-limit" : usagePercentage >= 80 ? "warning" : "good")" 
+                                     style="width: @(Math.Min(usagePercentage, 100))%">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="limit-footer">
+                            @if (usagePercentage >= 100)
+                            {
+                                <span class="limit-status over-limit">
+                                    <i class="fas fa-exclamation-circle me-1"></i>
+                                    Límite alcanzado - <a href="@Url.Action("Index", "Plans")">Mejorar plan</a>
+                                </span>
+                            }
+                            else if (usagePercentage >= 80)
+                            {
+                                <span class="limit-status warning">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    Cerca del límite - Te quedan @(monthlyLimit - transactionsCount) transacciones
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="limit-status good">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    Te quedan @(monthlyLimit - transactionsCount) transacciones este mes
+                                </span>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- SECCIÓN NUEVA: Resumen del Mes Actual -->
+        <div class="finance-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-calendar me-2"></i>
+                    Resumen del Mes Actual
+                </h3>
+                <span class="current-month">@DateTime.Now.ToString("MMMM yyyy")</span>
+            </div>
+            <div class="card-body">
+                <div class="monthly-summary">
+                    <div class="summary-item">
+                        <div class="summary-icon income">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                        <div class="summary-content">
+                            <span class="summary-label">Ingresos del Mes</span>
+                            <span class="summary-value text-success">
+                                @monthlyIncome.ToString("C")
+                            </span>
+                        </div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-icon expense">
+                            <i class="fas fa-arrow-down"></i>
+                        </div>
+                        <div class="summary-content">
+                            <span class="summary-label">Gastos del Mes</span>
+                            <span class="summary-value text-danger">
+                                @monthlyExpense.ToString("C")
+                            </span>
+                        </div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="summary-icon balance">
+                            <i class="fas fa-balance-scale"></i>
+                        </div>
+                        <div class="summary-content">
+                            <span class="summary-label">Balance Mensual</span>
+                            <span class="summary-value @(monthlyBalance >= 0 ? "text-success" : "text-danger")">
+                                @monthlyBalance.ToString("C")
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN NUEVA: Categorías Más Usadas -->
+        <div class="finance-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-tags me-2"></i>
+                    Categorías Más Usadas
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="top-categories">
+                    @if (topCategories.Any())
+                    {
+                        @foreach (var category in topCategories)
+                        {
+                            <div class="category-rank">
+                                <div class="category-info">
+                                    <span class="category-badge @GetCategoryBadgeClass(category.Category)">
+                                        @category.Category
+                                    </span>
+                                    <span class="category-stats">
+                                        <span class="category-count">@category.Count transacciones</span>
+                                    </span>
+                                </div>
+                                <div class="category-bar">
+                                    <div class="category-fill" style="width: @(category.Count * 100 / Math.Max(1, topCategories.Max(c => c.Count)))%"></div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="empty-state-mini">
+                            <i class="fas fa-tags fa-2x mb-2"></i>
+                            <p>No hay suficientes transacciones para mostrar categorías</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN NUEVA: Transacciones Recurrentes -->
+        <div class="finance-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-redo me-2"></i>
+                    Transacciones Recurrentes
+                </h3>
+                <span class="badge bg-primary">@Model.Count(t => t.Recurring)</span>
+            </div>
+            <div class="card-body">
+                @if (recurringTransactions.Any())
+                {
+                    <div class="recurring-list">
+                        @foreach (var transaction in recurringTransactions)
+                        {
+                            <div class="recurring-item">
+                                <div class="recurring-icon">
+                                    <i class="fas fa-redo"></i>
+                                </div>
+                                <div class="recurring-details">
+                                    <div class="recurring-description">@transaction.Description</div>
+                                    <div class="recurring-meta">
+                                        <span class="recurring-amount @(transaction.TransactionType == 0 ? "income" : "expense")">
+                                            @transaction.Amount.ToString("C")
+                                        </span>
+                                        <span class="recurring-category">@transaction.Category</span>
+                                        <span class="recurring-next">Próxima: @transaction.TransactionDate.AddMonths(1).ToString("dd/MM")</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    
+                    @if (Model.Count(t => t.Recurring) > 3)
+                    {
+                        <div class="text-center mt-3">
+                            <a href="@Url.Action("Transactions", new { recurring = true })" class="btn btn-outline-primary btn-sm">
+                                Ver todas las recurrentes (@Model.Count(t => t.Recurring))
+                            </a>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="empty-state-mini">
+                        <i class="fas fa-redo fa-2x mb-2"></i>
+                        <p>No hay transacciones recurrentes</p>
+                        <small class="text-muted">Las transacciones recurrentes se repiten automáticamente cada mes</small>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="finance-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-filter me-2"></i>
+                    Filtros y Búsqueda
+                </h3>
+            </div>
+            <div class="card-body">
+                <form method="get" class="filters-form">
+                    <div class="filters-grid">
+                        <div class="filter-group">
+                            <label class="filter-label">Tipo</label>
+                            <select name="type" class="filter-select">
+                                <option value="">Todos los tipos</option>
+                                <option value="0">Ingresos</option>
+                                <option value="1">Gastos</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Categoría</label>
+                            <input type="text" name="category" class="filter-input" placeholder="Todas las categorías">
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Fecha Desde</label>
+                            <input type="date" name="startDate" class="filter-input">
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Fecha Hasta</label>
+                            <input type="date" name="endDate" class="filter-input">
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">&nbsp;</label>
+                            <div class="filter-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-filter me-2"></i>Aplicar Filtros
+                                </button>
+                                <a href="@Url.Action("Transactions")" class="btn btn-outline-primary">
+                                    <i class="fas fa-redo me-2"></i>Limpiar
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Lista de Transacciones -->
+        <div class="finance-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-list me-2"></i>
+                    Lista de Transacciones
+                </h3>
+                <div class="card-actions">
+                    <span class="transactions-count">@transactionsCount transacciones</span>
+                    @if (userPlan != null && monthlyLimit < 9999)
+                    {
+                        <span class="limit-badge @(usagePercentage >= 100 ? "over-limit" : usagePercentage >= 80 ? "warning" : "good")">
+                            @transactionsCount/@monthlyLimit
+                        </span>
+                    }
+                </div>
+            </div>
+            <div class="card-body">
+                @if (Model.Any())
+                {
+                    <div class="transactions-list">
+                        @foreach (var transaction in Model)
+                        {
+                            <div class="transaction-item">
+                                <div class="transaction-icon @(transaction.TransactionType == 0 ? "income" : "expense")">
+                                    <i class="fas fa-@(transaction.TransactionType == 0 ? "arrow-up" : "arrow-down")"></i>
+                                </div>
+                                <div class="transaction-details">
+                                    <div class="transaction-main">
+                                        <div class="transaction-description">@transaction.Description</div>
+                                        <div class="transaction-amount @(transaction.TransactionType == 0 ? "income" : "expense")">
+                                            @(transaction.TransactionType == 0 ? "+" : "-")@transaction.Amount.ToString("C")
+                                        </div>
+                                    </div>
+                                    <div class="transaction-meta">
+                                        <div class="transaction-info">
+                                            <span class="transaction-category badge @GetCategoryBadgeClass(transaction.Category)">
+                                                @transaction.Category
+                                            </span>
+                                            @if (!string.IsNullOrEmpty(transaction.Subcategory))
+                                            {
+                                                <span class="transaction-subcategory">@transaction.Subcategory</span>
+                                            }
+                                            <span class="transaction-date">@transaction.TransactionDate.ToString("dd/MM/yyyy HH:mm")</span>
+                                        </div>
+                                        <div class="transaction-actions">
+                                            @if (transaction.Recurring)
+                                            {
+                                                <span class="badge recurring" title="Transacción recurrente">
+                                                    <i class="fas fa-redo"></i>
+                                                </span>
+                                            }
+                                            @if (!transaction.IsConfirmed)
+                                            {
+                                                <span class="badge pending" title="Pendiente de confirmar">
+                                                    <i class="fas fa-clock"></i>
+                                                </span>
+                                            }
+                                            <a href="@Url.Action("EditTransaction", new { id = transaction.Id })" 
+                                               class="btn-action btn-edit" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form method="post" asp-action="DeleteTransaction" asp-route-id="@transaction.Id" 
+                                                class="d-inline" onsubmit="return confirm('¿Estás seguro de eliminar esta transacción?');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn-action btn-delete" title="Eliminar">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Paginación -->
+                    <div class="pagination-container">
+                        <div class="pagination-info">
+                            Mostrando @Model.Count transacciones
+                        </div>
+                        <div class="pagination-controls">
+                            <button class="pagination-btn" disabled>
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span class="pagination-page">Página 1</span>
+                            <button class="pagination-btn" disabled>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <i class="fas fa-receipt fa-4x mb-3"></i>
+                        <h3>No hay transacciones</h3>
+                        <p>Comienza agregando tu primera transacción para llevar el control de tus finanzas</p>
+                        @if (canCreateTransaction)
+                        {
+                            <a href="@Url.Action("CreateTransaction")" class="btn btn-primary mt-2">
+                                <i class="fas fa-plus me-2"></i>Crear Primera Transacción
+                            </a>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning mt-2">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Límite de transacciones alcanzado en tu plan actual
+                                <a href="@Url.Action("Index", "Plans")" class="btn btn-sm btn-outline-primary ms-2">
+                                    Mejorar Plan
+                                </a>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Upsell para planes básicos -->
+        @if (userPlan != null && userPlan.Price == 0 && usagePercentage >= 50)
+        {
+            <div class="finance-card upsell-card" style="border: 2px solid #8b5cf6; background: linear-gradient(135deg, #f8fafc, #f0f4ff);">
+                <div class="card-body">
+                    <div class="upsell-content">
+                        <div class="upsell-icon">
+                            <i class="fas fa-rocket fa-2x" style="color: #8b5cf6;"></i>
+                        </div>
+                        <div class="upsell-text">
+                            <h5 style="color: #1e293b; margin-bottom: 0.5rem;">¿Necesitas más transacciones?</h5>
+                            <p style="color: #64748b; margin-bottom: 1rem;">
+                                Has usado el @usagePercentage% de tu límite mensual. Actualiza a un plan superior para:
+                            </p>
+                            <ul style="color: #64748b; margin-bottom: 1.5rem;">
+                                <li>Más transacciones mensuales</li>
+                                <li>Análisis financieros avanzados</li>
+                                <li>Características exclusivas</li>
+                            </ul>
+                        </div>
+                        <div class="upsell-actions">
+                            <a href="@Url.Action("Index", "Plans")" class="btn btn-primary">
+                                <i class="fas fa-crown me-1"></i>Ver Planes Superiores
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    /* === ESTILOS ADICIONALES PARA RESTRICCIONES DE PLAN === */
+
+    /* Barra de progreso de límite */
+    .limit-progress {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .limit-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-weight: 600;
+        color: #374151;
+    }
+
+    .limit-stats {
+        font-size: 0.9rem;
+        color: #64748b;
+    }
+
+    .progress-bar-container {
+        width: 100%;
+    }
+
+    .progress-bar {
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.3s ease;
+    }
+
+    .progress-fill.good { background: #10b981; }
+    .progress-fill.warning { background: #f59e0b; }
+    .progress-fill.over-limit { background: #ef4444; }
+
+    .limit-footer {
+        font-size: 0.85rem;
+    }
+
+    .limit-status.good { color: #10b981; }
+    .limit-status.warning { color: #f59e0b; }
+    .limit-status.over-limit { color: #ef4444; }
+
+    .limit-status a {
+        color: inherit;
+        text-decoration: underline;
+        font-weight: 600;
+    }
+
+    /* Badge de límite */
+    .limit-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .limit-badge.good { background: #f0fdf4; color: #065f46; }
+    .limit-badge.warning { background: #fffbeb; color: #92400e; }
+    .limit-badge.over-limit { background: #fef2f2; color: #7f1d1d; }
+
+    /* Upsell card */
+    .upsell-content {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+
+    .upsell-icon {
+        flex-shrink: 0;
+    }
+
+    .upsell-text {
+        flex: 1;
+    }
+
+    .upsell-text ul {
+        list-style: none;
+        padding-left: 0;
+    }
+
+    .upsell-text li {
+        margin-bottom: 0.25rem;
+        position: relative;
+        padding-left: 1.5rem;
+    }
+
+    .upsell-text li:before {
+        content: '✓';
+        position: absolute;
+        left: 0;
+        color: #10b981;
+        font-weight: bold;
+    }
+
+    .upsell-actions {
+        flex-shrink: 0;
+    }
+
+    /* Plan badge en navegación */
+    .plan-badge {
+        display: block;
+        line-height: 1.2;
+    }
+
+    /* Badge del plan actual */
+    .current-plan-badge .badge {
+        font-size: 0.8rem;
+    }
+
+    /* Alertas mejoradas */
+    .alert-warning {
+        background: #fffbeb;
+        color: #92400e;
+        border-left: 4px solid #f59e0b;
+    }
+
+    /* === ESTILOS PARA NUEVAS SECCIONES === */
+
+    /* Resumen del Mes */
+    .monthly-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .summary-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: 12px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+
+    .summary-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.2rem;
+    }
+
+    .summary-icon.income { background: #10b981; }
+    .summary-icon.expense { background: #ef4444; }
+    .summary-icon.balance { background: #3b82f6; }
+
+    .summary-content {
+        flex: 1;
+    }
+
+    .summary-label {
+        display: block;
+        font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+
+    .summary-value {
+        display: block;
+        font-size: 1.3rem;
+        font-weight: 700;
+    }
+
+    .current-month {
+        background: #3b82f6;
+        color: white;
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    /* Categorías Top */
+    .top-categories {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .category-rank {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .category-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .category-stats {
+        font-size: 0.85rem;
+        color: #64748b;
+    }
+
+    .category-count {
+        font-weight: 500;
+    }
+
+    .category-bar {
+        height: 6px;
+        background: #e2e8f0;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .category-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+        border-radius: 3px;
+        transition: width 0.3s ease;
+    }
+
+    /* Transacciones Recurrentes */
+    .recurring-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .recurring-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: 8px;
+        background: #f0f9ff;
+        border: 1px solid #e0f2fe;
+    }
+
+    .recurring-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        background: #0ea5e9;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .recurring-details {
+        flex: 1;
+    }
+
+    .recurring-description {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+    }
+
+    .recurring-meta {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.85rem;
+        color: #64748b;
+    }
+
+    .recurring-amount.income { color: #10b981; font-weight: 600; }
+    .recurring-amount.expense { color: #ef4444; font-weight: 600; }
+
+    .recurring-category {
+        background: #e2e8f0;
+        padding: 0.2rem 0.5rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .recurring-next {
+        color: #64748b;
+    }
+
+    /* Estados vacíos mini */
+    .empty-state-mini {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: #64748b;
+    }
+
+    .empty-state-mini i {
+        margin-bottom: 0.5rem;
+        opacity: 0.5;
+    }
+
+    .empty-state-mini p {
+        margin: 0;
+        font-size: 0.9rem;
+    }
+
+    /* === ESTILOS BASE DEL DASHBOARD FINANCIERO === */
+    .finance-container {
+        padding: 2rem;
+        background: #f8fafc;
+        min-height: 100vh;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* NAVEGACIÓN HORIZONTAL */
+    .finance-nav {
+        display: flex;
+        background: white;
+        border-radius: 16px;
+        padding: 1rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: 2rem;
+        border: 1px solid #f1f5f9;
+        gap: 0.5rem;
+    }
+
+    .nav-item {
+        flex: 1;
+    }
+
+    .nav-item a {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 1rem;
+        text-decoration: none;
+        color: #64748b;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+
+    .nav-item a:hover {
+        background: #f8fafc;
+        color: #374151;
+        transform: translateY(-2px);
+    }
+
+    .nav-item.active a {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        font-weight: 600;
+        box-shadow: 0 2px 10px rgba(16, 185, 129, 0.1);
+    }
+
+    .nav-item i {
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .nav-item span {
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    /* CONTENIDO PRINCIPAL */
+    .finance-main-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    /* HEADER */
+    .finance-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: white;
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+    }
+
+    .finance-title {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .finance-subtitle {
+        color: #64748b;
+        margin: 0;
+        font-size: 1.1rem;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 1rem;
+    }
+
+    /* MÉTRICAS */
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .metrics-grid.secondary {
+        margin-bottom: 0;
+    }
+
+    .metrics-grid.secondary .metric-card {
+        padding: 1.5rem;
+    }
+
+    .metric-card {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .metric-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+    }
+
+    .metric-card.transactions::before { background: #06b6d4; }
+    .metric-card.income::before { background: #10b981; }
+    .metric-card.expense::before { background: #ef4444; }
+    .metric-card.positive::before { background: #3b82f6; }
+    .metric-card.negative::before { background: #f59e0b; }
+
+    .metric-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    .metric-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .metric-card.transactions .metric-icon { background: #06b6d4; }
+    .metric-card.income .metric-icon { background: #10b981; }
+    .metric-card.expense .metric-icon { background: #ef4444; }
+    .metric-card.positive .metric-icon { background: #3b82f6; }
+    .metric-card.negative .metric-icon { background: #f59e0b; }
+
+    .metric-content {
+        flex: 1;
+    }
+
+    .metric-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+        line-height: 1;
+    }
+
+    .metric-label {
+        color: #64748b;
+        margin: 0;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+
+    /* TARJETAS */
+    .finance-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .finance-card:hover {
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid #f1f5f9;
+        background: #f8fafc;
+    }
+
+    .card-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-actions {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .transactions-count {
+        color: #64748b;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+
+    .card-body {
+        padding: 2rem;
+    }
+
+    /* FILTROS */
+    .filters-form {
+        width: 100%;
+    }
+
+    .filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        align-items: end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .filter-label {
+        font-weight: 600;
+        color: #374151;
+        font-size: 0.9rem;
+    }
+
+    .filter-select, .filter-input {
+        padding: 0.75rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        background: white;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+
+    .filter-select:focus, .filter-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    /* TRANSACCIONES */
+    .transactions-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .transaction-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 1px solid #f1f5f9;
+        transition: all 0.3s ease;
+        background: white;
+    }
+
+    .transaction-item:hover {
+        background: #f8fafc;
+        border-color: #e2e8f0;
+        transform: translateX(4px);
+    }
+
+    .transaction-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+
+    .transaction-icon.income { background: #10b981; }
+    .transaction-icon.expense { background: #ef4444; }
+
+    .transaction-details {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .transaction-main {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .transaction-description {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 1.1rem;
+    }
+
+    .transaction-amount {
+        font-weight: 700;
+        font-size: 1.3rem;
+        flex-shrink: 0;
+    }
+
+    .transaction-amount.income { color: #10b981; }
+    .transaction-amount.expense { color: #ef4444; }
+
+    .transaction-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .transaction-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .transaction-category {
+        background: #e2e8f0;
+        color: #374151;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .transaction-subcategory {
+        color: #64748b;
+        font-size: 0.85rem;
+    }
+
+    .transaction-date {
+        color: #94a3b8;
+        font-size: 0.85rem;
+    }
+
+    .transaction-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+
+    /* BADGES Y ESTADOS */
+    .badge.recurring {
+        background: #dbeafe;
+        color: #1e40af;
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .badge.pending {
+        background: #fef3c7;
+        color: #92400e;
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    /* BOTONES DE ACCIÓN */
+    .btn-action {
+        width: 36px;
+        height: 36px;
+        border: none;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+    }
+
+    .btn-edit {
+        background: rgba(59, 130, 246, 0.1);
+        color: #3b82f6;
+    }
+
+    .btn-edit:hover {
+        background: #3b82f6;
+        color: white;
+    }
+
+    .btn-delete {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+    }
+
+    .btn-delete:hover {
+        background: #ef4444;
+        color: white;
+    }
+
+    /* BOTONES PRINCIPALES */
+    .btn {
+        border-radius: 8px;
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        cursor: pointer;
+        font-size: 0.9rem;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-outline-primary {
+        border: 2px solid #3b82f6;
+        color: #3b82f6;
+        background: white;
+    }
+
+    .btn-outline-primary:hover {
+        background: #3b82f6;
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    /* PAGINACIÓN */
+    .pagination-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 2rem;
+        margin-top: 2rem;
+        border-top: 1px solid #f1f5f9;
+    }
+
+    .pagination-info {
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    .pagination-controls {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .pagination-btn {
+        width: 40px;
+        height: 40px;
+        border: 1px solid #e2e8f0;
+        background: white;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        color: #64748b;
+    }
+
+    .pagination-btn:not(:disabled):hover {
+        border-color: #3b82f6;
+        color: #3b82f6;
+    }
+
+    .pagination-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .pagination-page {
+        font-weight: 600;
+        color: #374151;
+    }
+
+    /* ESTADOS VACÍOS */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: #64748b;
+    }
+
+    .empty-state i {
+        margin-bottom: 1.5rem;
+        opacity: 0.5;
+    }
+
+    .empty-state h3 {
+        color: #374151;
+        margin-bottom: 0.5rem;
+        font-size: 1.5rem;
+    }
+
+    .empty-state p {
+        margin-bottom: 2rem;
+        font-size: 1.1rem;
+    }
+
+    /* ALERTAS */
+    .alert {
+        border-radius: 12px;
+        border: none;
+        padding: 1rem 1.5rem;
+        margin-bottom: 0;
+    }
+
+    .alert-success {
+        background: #f0fdf4;
+        color: #065f46;
+        border-left: 4px solid #10b981;
+    }
+
+    .alert-danger {
+        background: #fef2f2;
+        color: #7f1d1d;
+        border-left: 4px solid #ef4444;
+    }
+
+    /* RESPONSIVE */
+    @@media (max-width: 1200px) {
+        .filters-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .finance-container {
+            padding: 1rem;
+        }
+
+        .finance-nav {
+            flex-wrap: wrap;
+        }
+        
+        .nav-item {
+            flex: 1 0 45%;
+            margin-bottom: 0.5rem;
+        }
+        
+        .nav-item a {
+            padding: 0.75rem 0.5rem;
+        }
+        
+        .nav-item i {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .nav-item span {
+            font-size: 0.8rem;
+        }
+
+        .finance-header {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .metrics-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .metric-card {
+            padding: 1.5rem;
+        }
+        
+        .header-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            width: 100%;
+        }
+
+        .filters-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .filter-actions {
+            flex-direction: column;
+        }
+
+        .transaction-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .transaction-main {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+            width: 100%;
+        }
+
+        .transaction-meta {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+            width: 100%;
+        }
+
+        .transaction-info {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .transaction-actions {
+            align-self: flex-end;
+        }
+
+        .pagination-container {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+
+        .monthly-summary {
+            grid-template-columns: 1fr;
+        }
+        
+        .category-info {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .recurring-meta {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .nav-item {
+            flex: 1 0 100%;
+        }
+    }
+</style>
+
+@functions {
+    private string GetCategoryBadgeClass(string category)
+    {
+        var classes = new Dictionary<string, string>
+        {
+            {"Alimentación", "bg-danger"},
+            {"Transporte", "bg-warning"},
+            {"Vivienda", "bg-success"},
+            {"Entretenimiento", "bg-primary"},
+            {"Salud", "bg-info"},
+            {"Educación", "bg-secondary"},
+            {"Ropa", "bg-dark"}
+        };
+        
+        return classes.ContainsKey(category) ? classes[category] : "bg-light text-dark";
+    }
+}

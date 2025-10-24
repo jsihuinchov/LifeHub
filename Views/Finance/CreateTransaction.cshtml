@@ -1,0 +1,732 @@
+@model LifeHub.Models.Entities.FinancialTransaction
+@{
+    ViewData["Title"] = "Nueva Transacción";
+}
+
+<div class="finance-container">
+    <!-- Navegación Horizontal -->
+    <div class="finance-nav">
+        <div class="nav-item">
+            <a href="@Url.Action("Index", "Finance")">
+                <i class="fas fa-chart-line"></i>
+                <span>Dashboard</span>
+            </a>
+        </div>
+        
+        <div class="nav-item">
+            <a href="@Url.Action("Transactions", "Finance")">
+                <i class="fas fa-exchange-alt"></i>
+                <span>Transacciones</span>
+            </a>
+        </div>
+        
+        <div class="nav-item">
+            <a href="@Url.Action("Budgets", "Finance")">
+                <i class="fas fa-wallet"></i>
+                <span>Presupuestos</span>
+            </a>
+        </div>
+        
+        <div class="nav-item">
+            <a href="@Url.Action("Reports", "Finance")">
+                <i class="fas fa-chart-bar"></i>
+                <span>Reportes</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Contenido Principal -->
+    <div class="finance-main-content">
+        <!-- Header -->
+        <div class="finance-header">
+            <div class="header-content">
+                <h1 class="finance-title">
+                    <i class="fas fa-plus-circle me-3"></i>Nueva Transacción
+                </h1>
+                <p class="finance-subtitle">Registra un nuevo ingreso o gasto en tu historial financiero</p>
+            </div>
+            <div class="header-actions">
+                <a href="@Url.Action("Transactions", "Finance")" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left me-2"></i>Volver a Transacciones
+                </a>
+            </div>
+        </div>
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>@TempData["ErrorMessage"]
+            </div>
+        }
+
+        <!-- Formulario -->
+        <div class="finance-card">
+            <div class="card-header">
+                <h3 class="card-title">
+                    <i class="fas fa-receipt me-2"></i>
+                    Detalles de la Transacción
+                </h3>
+            </div>
+            <div class="card-body">
+                <form asp-action="CreateTransaction" method="post" class="transaction-form">
+                    @Html.AntiForgeryToken()
+                    
+                    <div class="form-grid">
+                        <!-- Tipo de Transacción -->
+                        <div class="form-group full-width">
+                            <label asp-for="TransactionType" class="form-label">Tipo de Transacción *</label>
+                            <div class="type-selector">
+                                <div class="type-option">
+                                    <input type="radio" asp-for="TransactionType" value="0" id="typeIncome" class="type-input" checked>
+                                    <label for="typeIncome" class="type-label income">
+                                        <div class="type-icon">
+                                            <i class="fas fa-arrow-up"></i>
+                                        </div>
+                                        <div class="type-content">
+                                            <span class="type-title">Ingreso</span>
+                                            <span class="type-description">Dinero que recibes</span>
+                                        </div>
+                                    </label>
+                                </div>
+                                <div class="type-option">
+                                    <input type="radio" asp-for="TransactionType" value="1" id="typeExpense" class="type-input">
+                                    <label for="typeExpense" class="type-label expense">
+                                        <div class="type-icon">
+                                            <i class="fas fa-arrow-down"></i>
+                                        </div>
+                                        <div class="type-content">
+                                            <span class="type-title">Gasto</span>
+                                            <span class="type-description">Dinero que gastas</span>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+                            <span asp-validation-for="TransactionType" class="text-danger"></span>
+                        </div>
+
+                        <!-- Monto -->
+                        <div class="form-group">
+                            <label asp-for="Amount" class="form-label">Monto *</label>
+                            <div class="amount-input">
+                                <span class="currency-symbol">$</span>
+                                <input asp-for="Amount" class="form-control" placeholder="0.00" step="0.01" min="0.01">
+                            </div>
+                            <span asp-validation-for="Amount" class="text-danger"></span>
+                        </div>
+
+                        <!-- Fecha -->
+                        <div class="form-group">
+                            <label asp-for="TransactionDate" class="form-label">Fecha *</label>
+                            <input asp-for="TransactionDate" type="date" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")">
+                            <span asp-validation-for="TransactionDate" class="text-danger"></span>
+                        </div>
+
+                        <!-- Descripción -->
+                        <div class="form-group full-width">
+                            <label asp-for="Description" class="form-label">Descripción *</label>
+                            <input asp-for="Description" class="form-control" placeholder="Ej: Salario mensual, Compra en supermercado...">
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+
+                        <!-- Categoría -->
+                        <div class="form-group">
+                            <label asp-for="Category" class="form-label">Categoría *</label>
+                            <select asp-for="Category" class="form-select" id="categorySelect">
+                                <option value="">Seleccionar categoría</option>
+                                <optgroup label="Ingresos" id="incomeCategories">
+                                    <option value="Salario">Salario</option>
+                                    <option value="Freelance">Freelance</option>
+                                    <option value="Inversiones">Inversiones</option>
+                                    <option value="Regalos">Regalos</option>
+                                    <option value="Otros Ingresos">Otros Ingresos</option>
+                                </optgroup>
+                                <optgroup label="Gastos" id="expenseCategories">
+                                    <option value="Alimentación">Alimentación</option>
+                                    <option value="Transporte">Transporte</option>
+                                    <option value="Vivienda">Vivienda</option>
+                                    <option value="Entretenimiento">Entretenimiento</option>
+                                    <option value="Salud">Salud</option>
+                                    <option value="Educación">Educación</option>
+                                    <option value="Ropa">Ropa</option>
+                                    <option value="Otros Gastos">Otros Gastos</option>
+                                </optgroup>
+                            </select>
+                            <span asp-validation-for="Category" class="text-danger"></span>
+                        </div>
+
+                        <!-- Subcategoría -->
+                        <div class="form-group">
+                            <label asp-for="Subcategory" class="form-label">Subcategoría</label>
+                            <input asp-for="Subcategory" class="form-control" placeholder="Opcional (ej: Supermercado, Gasolina)">
+                        </div>
+
+                        <!-- Recurrencia -->
+                        <div class="form-group full-width">
+                            <div class="recurring-section">
+                                <div class="form-check">
+                                    <input asp-for="Recurring" class="form-check-input" id="recurringCheck">
+                                    <label class="form-check-label" for="recurringCheck">
+                                        <i class="fas fa-redo me-2"></i>
+                                        Esta es una transacción recurrente
+                                    </label>
+                                </div>
+                                
+                                <div class="recurring-fields" id="recurringFields" style="display: none;">
+                                    <div class="recurring-options">
+                                        <label asp-for="RecurringFrequency" class="form-label">Frecuencia</label>
+                                        <select asp-for="RecurringFrequency" class="form-select">
+                                            <option value="">Seleccionar frecuencia</option>
+                                            <option value="Diario">Diario</option>
+                                            <option value="Semanal">Semanal</option>
+                                            <option value="Quincenal">Quincenal</option>
+                                            <option value="Mensual">Mensual</option>
+                                            <option value="Anual">Anual</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-save me-2"></i>Crear Transacción
+                        </button>
+                        <a href="@Url.Action("Transactions", "Finance")" class="btn btn-secondary btn-lg">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const typeIncome = document.getElementById('typeIncome');
+            const typeExpense = document.getElementById('typeExpense');
+            const incomeCategories = document.getElementById('incomeCategories');
+            const expenseCategories = document.getElementById('expenseCategories');
+            const recurringCheck = document.getElementById('recurringCheck');
+            const recurringFields = document.getElementById('recurringFields');
+
+            // Mostrar/ocultar categorías según tipo
+            function updateCategories() {
+                if (typeIncome.checked) {
+                    incomeCategories.style.display = 'block';
+                    expenseCategories.style.display = 'none';
+                    // Seleccionar primera categoría de ingresos por defecto
+                    if (!document.querySelector('#categorySelect').value) {
+                        document.querySelector('#categorySelect').value = 'Salario';
+                    }
+                } else {
+                    incomeCategories.style.display = 'none';
+                    expenseCategories.style.display = 'block';
+                    // Seleccionar primera categoría de gastos por defecto
+                    if (!document.querySelector('#categorySelect').value) {
+                        document.querySelector('#categorySelect').value = 'Alimentación';
+                    }
+                }
+            }
+
+            // Mostrar/ocultar campos de recurrencia
+            function updateRecurringFields() {
+                if (recurringCheck.checked) {
+                    recurringFields.style.display = 'block';
+                } else {
+                    recurringFields.style.display = 'none';
+                }
+            }
+
+            typeIncome.addEventListener('change', updateCategories);
+            typeExpense.addEventListener('change', updateCategories);
+            recurringCheck.addEventListener('change', updateRecurringFields);
+
+            // Inicializar
+            updateCategories();
+            updateRecurringFields();
+        });
+    </script>
+}
+
+<style>
+    /* === ESTILOS BASE DEL DASHBOARD FINANCIERO === */
+    .finance-container {
+        padding: 2rem;
+        background: #f8fafc;
+        min-height: 100vh;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* NAVEGACIÓN HORIZONTAL */
+    .finance-nav {
+        display: flex;
+        background: white;
+        border-radius: 16px;
+        padding: 1rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: 2rem;
+        border: 1px solid #f1f5f9;
+        gap: 0.5rem;
+    }
+
+    .nav-item {
+        flex: 1;
+    }
+
+    .nav-item a {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 1rem;
+        text-decoration: none;
+        color: #64748b;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+
+    .nav-item a:hover {
+        background: #f8fafc;
+        color: #374151;
+        transform: translateY(-2px);
+    }
+
+    .nav-item.active a {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        font-weight: 600;
+        box-shadow: 0 2px 10px rgba(16, 185, 129, 0.1);
+    }
+
+    .nav-item i {
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .nav-item span {
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    /* CONTENIDO PRINCIPAL */
+    .finance-main-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    /* HEADER */
+    .finance-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: white;
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+    }
+
+    .finance-title {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, #10b981, #059669);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .finance-subtitle {
+        color: #64748b;
+        margin: 0;
+        font-size: 1.1rem;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 1rem;
+    }
+
+    /* TARJETAS */
+    .finance-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .finance-card:hover {
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid #f1f5f9;
+        background: #f8fafc;
+    }
+
+    .card-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-body {
+        padding: 2rem;
+    }
+
+    /* FORMULARIO */
+    .transaction-form {
+        width: 100%;
+    }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .form-group.full-width {
+        grid-column: 1 / -1;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #374151;
+        font-size: 0.95rem;
+    }
+
+    .form-control, .form-select {
+        padding: 0.875rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        background: white;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+
+    .form-control:focus, .form-select:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    /* SELECTOR DE TIPO */
+    .type-selector {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .type-option {
+        position: relative;
+    }
+
+    .type-input {
+        display: none;
+    }
+
+    .type-label {
+        display: flex;
+        align-items: center;
+        padding: 1.5rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: white;
+        gap: 1rem;
+    }
+
+    .type-label:hover {
+        border-color: #cbd5e1;
+        transform: translateY(-2px);
+    }
+
+    .type-label.income {
+        color: #374151;
+    }
+
+    .type-label.expense {
+        color: #374151;
+    }
+
+    .type-input:checked + .type-label.income {
+        background: rgba(16, 185, 129, 0.05);
+        border-color: #10b981;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1);
+    }
+
+    .type-input:checked + .type-label.expense {
+        background: rgba(239, 68, 68, 0.05);
+        border-color: #ef4444;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+    }
+
+    .type-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: white;
+    }
+
+    .type-label.income .type-icon {
+        background: #10b981;
+    }
+
+    .type-label.expense .type-icon {
+        background: #ef4444;
+    }
+
+    .type-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .type-title {
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .type-description {
+        font-size: 0.85rem;
+        color: #64748b;
+    }
+
+    /* INPUT DE MONTO */
+    .amount-input {
+        position: relative;
+    }
+
+    .currency-symbol {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-weight: 600;
+        color: #64748b;
+        z-index: 2;
+    }
+
+    .amount-input .form-control {
+        padding-left: 2.5rem;
+    }
+
+    /* SECCIÓN DE RECURRENCIA */
+    .recurring-section {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    .form-check {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0;
+    }
+
+    .form-check-input {
+        width: 1.2em;
+        height: 1.2em;
+        margin: 0;
+    }
+
+    .form-check-label {
+        font-weight: 500;
+        color: #374151;
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .recurring-fields {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .recurring-options {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    /* ACCIONES DEL FORMULARIO */
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        padding-top: 2rem;
+        margin-top: 2rem;
+        border-top: 1px solid #f1f5f9;
+    }
+
+    /* BOTONES */
+    .btn {
+        border-radius: 8px;
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        cursor: pointer;
+        font-size: 0.9rem;
+    }
+
+    .btn-lg {
+        padding: 1rem 2rem;
+        font-size: 1.1rem;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-outline-primary {
+        border: 2px solid #10b981;
+        color: #10b981;
+        background: white;
+    }
+
+    .btn-outline-primary:hover {
+        background: #10b981;
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+        background: #6b7280;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #4b5563;
+        transform: translateY(-2px);
+    }
+
+    /* VALIDACIÓN */
+    .text-danger {
+        color: #ef4444;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    /* ALERTAS */
+    .alert {
+        border-radius: 12px;
+        border: none;
+        padding: 1rem 1.5rem;
+        margin-bottom: 0;
+    }
+
+    .alert-danger {
+        background: #fef2f2;
+        color: #7f1d1d;
+        border-left: 4px solid #ef4444;
+    }
+
+    /* RESPONSIVE */
+    @@media (max-width: 768px) {
+        .finance-container {
+            padding: 1rem;
+        }
+
+        .finance-nav {
+            flex-wrap: wrap;
+        }
+        
+        .nav-item {
+            flex: 1 0 45%;
+            margin-bottom: 0.5rem;
+        }
+        
+        .nav-item a {
+            padding: 0.75rem 0.5rem;
+        }
+        
+        .nav-item i {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .nav-item span {
+            font-size: 0.8rem;
+        }
+
+        .finance-header {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .type-selector {
+            grid-template-columns: 1fr;
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .header-actions {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .nav-item {
+            flex: 1 0 100%;
+        }
+        
+        .type-label {
+            padding: 1rem;
+        }
+        
+        .type-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1rem;
+        }
+    }
+</style>
