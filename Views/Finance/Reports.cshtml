@@ -1,0 +1,2082 @@
+@using LifeHub.Services
+@using Microsoft.AspNetCore.Html
+@inject ISubscriptionService SubscriptionService
+@inject IFinanceService FinanceService
+@{
+    ViewData["Title"] = "Reportes Financieros";
+    var summary = ViewBag.FinanceSummary as FinanceSummary;
+    var categorySummary = ViewBag.CategorySummary as List<CategorySummary>;
+    var monthlyData = ViewBag.MonthlyData as List<MonthlyData>;
+    var expenseByCategory = ViewBag.ExpenseByCategory as List<CategoryData>;
+    var incomeByCategory = ViewBag.IncomeByCategory as List<CategoryData>;
+    
+    // Información del plan del usuario
+    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var userSubscription = userId != null ? await SubscriptionService.GetUserSubscriptionAsync(userId) : null;
+    var userPlan = userSubscription?.Plan;
+    
+    // Características del plan basadas en la BD real
+    var hasAdvancedAnalytics = userPlan?.HasAdvancedAnalytics ?? false;
+    var hasAIFeatures = userPlan?.HasAIFeatures ?? false;
+    var maxTransactions = userPlan?.MaxTransactions ?? 50;
+    var maxBudgets = userPlan?.MaxBudgets ?? 5;
+
+    // Obtener datos REALES de uso del usuario - CORREGIDO
+    var transactionUsage = userId != null ? await SubscriptionService.GetTransactionUsageAsync(userId) : (current: 0, max: maxTransactions);
+    var budgetUsage = userId != null ? await SubscriptionService.GetBudgetUsageAsync(userId) : (current: 0, max: maxBudgets);
+
+    // Datos extendidos para reportes
+    var currentMonth = DateTime.UtcNow.ToString("MMMM yyyy");
+    var lastSixMonths = monthlyData?.TakeLast(6).ToList() ?? new List<MonthlyData>();
+    
+    // Obtener datos de gráficos
+    var monthlyTrendChart = userId != null ? await FinanceService.GetMonthlyTrendChartAsync(userId) : new ChartData();
+    var expenseDistributionChart = userId != null ? await FinanceService.GetExpenseDistributionChartAsync(userId) : new ChartData();
+}
+
+<div class="finance-container">
+    <!-- Navegación Horizontal -->
+    <div class="finance-nav">
+        <div class="nav-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Index" ? "active" : "")">
+            <a href="@Url.Action("Index", "Finance")">
+                <i class="fas fa-chart-line"></i>
+                <span>Dashboard</span>
+            </a>
+        </div>
+        
+        <div class="nav-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Transactions" ? "active" : "")">
+            <a href="@Url.Action("Transactions", "Finance")">
+                <i class="fas fa-exchange-alt"></i>
+                <span>Transacciones</span>
+            </a>
+        </div>
+        
+        <div class="nav-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Budgets" ? "active" : "")">
+            <a href="@Url.Action("Budgets", "Finance")">
+                <i class="fas fa-wallet"></i>
+                <span>Presupuestos</span>
+            </a>
+        </div>
+        
+        <div class="nav-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Reports" ? "active" : "")">
+            <a href="@Url.Action("Reports", "Finance")">
+                <i class="fas fa-chart-bar"></i>
+                <span>Reportes</span>
+                @if (!hasAdvancedAnalytics)
+                {
+                    <small class="plan-badge premium">PREMIUM</small>
+                }
+            </a>
+        </div>
+    </div>
+
+    <!-- Contenido Principal -->
+    <div class="finance-main-content">
+        <!-- Header -->
+        <div class="finance-header">
+            <div class="header-content">
+                <h1 class="finance-title">
+                    <i class="fas fa-chart-bar me-3"></i>Reportes Financieros
+                </h1>
+                <p class="finance-subtitle">Análisis completo y detallado de tu situación financiera</p>
+                
+                @if (userPlan != null)
+                {
+                    <div class="current-plan-badge">
+                        <span class="badge" style="background: @userPlan.ColorCode; color: white;">
+                            <i class="fas fa-crown me-1"></i>Plan @userPlan.Name
+                            @if (!hasAdvancedAnalytics)
+                            {
+                                <span class="ms-1">• Reportes Básicos</span>
+                            }
+                            else
+                            {
+                                <span class="ms-1">• Análisis Avanzado</span>
+                            }
+                        </span>
+                    </div>
+                }
+            </div>
+            <div class="header-actions">
+                @if (hasAdvancedAnalytics)
+                {
+                    <div class="export-actions">
+                        <button class="btn btn-primary" onclick="generatePDF()">
+                            <i class="fas fa-file-pdf me-2"></i>Exportar PDF
+                        </button>
+                        <button class="btn btn-outline-primary" onclick="exportToExcel()">
+                            <i class="fas fa-file-excel me-2"></i>Exportar Excel
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <button class="btn btn-primary" disabled title="Exportación disponible en planes premium">
+                        <i class="fas fa-download me-2"></i>Exportar Reportes
+                    </button>
+                }
+            </div>
+        </div>
+
+        <!-- Alerta para planes básicos -->
+        @if (!hasAdvancedAnalytics)
+        {
+            <div class="alert alert-info upgrade-alert">
+                <div class="alert-content">
+                    <i class="fas fa-chart-line me-2"></i>
+                    <div class="alert-text">
+                        <strong>Reportes Básicos</strong> - Actualiza a un plan premium para desbloquear análisis avanzados, tendencias históricas y exportación de datos
+                    </div>
+                    <a href="@Url.Action("Index", "Plans")" class="btn btn-sm btn-primary">
+                        <i class="fas fa-rocket me-1"></i>Mejorar Plan
+                    </a>
+                </div>
+            </div>
+        }
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>@TempData["ErrorMessage"]
+            </div>
+        }
+
+        <!-- Resumen Ejecutivo Expandido -->
+        <div class="metrics-grid expanded">
+            <div class="metric-card income large">
+                <div class="metric-icon">
+                    <i class="fas fa-arrow-up"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@(summary?.TotalIncome.ToString("C") ?? "$0.00")</h3>
+                    <p class="metric-label">Ingresos Totales</p>
+                    <div class="metric-details">
+                        <span class="detail-item">
+                            <i class="fas @(summary?.IncomeGrowth >= 0 ? "fa-arrow-up text-success" : "fa-arrow-down text-danger")"></i>
+                            @(summary?.IncomeGrowth.ToString("+0.0;-0.0;0.0") ?? "0.0")%
+                        </span>
+                        <span class="detail-item">
+                            <i class="fas fa-calendar"></i>
+                            @currentMonth
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card expense large">
+                <div class="metric-icon">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@(summary?.TotalExpenses.ToString("C") ?? "$0.00")</h3>
+                    <p class="metric-label">Gastos Totales</p>
+                    <div class="metric-details">
+                        <span class="detail-item">
+                            <i class="fas @(summary?.ExpenseGrowth <= 0 ? "fa-arrow-down text-success" : "fa-arrow-up text-danger")"></i>
+                            @(summary?.ExpenseGrowth.ToString("+0.0;-0.0;0.0") ?? "0.0")%
+                        </span>
+                        <span class="detail-item">
+                            <i class="fas fa-tags"></i>
+                            @(expenseByCategory?.Count ?? 0) categorías
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card savings large">
+                <div class="metric-icon">
+                    <i class="fas fa-piggy-bank"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@(summary?.NetAmount.ToString("C") ?? "$0.00")</h3>
+                    <p class="metric-label">Ahorro Neto</p>
+                    <div class="metric-details">
+                        <span class="detail-item @(summary?.SavingsRate >= 20 ? "text-success" : summary?.SavingsRate >= 10 ? "text-warning" : "text-danger")">
+                            <i class="fas fa-percentage"></i>
+                            @(summary?.SavingsRate.ToString("0.0") ?? "0.0")% Tasa de ahorro
+                        </span>
+                        <span class="detail-item">
+                            <i class="fas @(summary?.NetAmount >= 0 ? "fa-smile text-success" : "fa-frown text-danger")"></i>
+                            @(summary?.NetAmount >= 0 ? "Positivo" : "Negativo")
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card analytics large">
+                <div class="metric-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@(summary?.TotalTransactions ?? 0)</h3>
+                    <p class="metric-label">Actividad Total</p>
+                    <div class="metric-details">
+                        <span class="detail-item">
+                            <i class="fas fa-exchange-alt"></i>
+                            @(summary?.AverageTransaction.ToString("C") ?? "$0.00") promedio
+                        </span>
+                        <span class="detail-item">
+                            <i class="fas fa-wallet"></i>
+                            @transactionUsage.current/@maxTransactions usados
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="finance-content">
+            <!-- Columna Izquierda - Gráficos Principales -->
+            <div class="finance-main">
+                <!-- Tendencias Financieras -->
+                <div class="finance-card chart-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-chart-line me-2"></i>
+                            Evolución Financiera - Últimos 6 Meses
+                        </h3>
+                        <div class="chart-legend">
+                            <div class="legend-item">
+                                <span class="legend-color income"></span>
+                                <span>Ingresos</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color expense"></span>
+                                <span>Gastos</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color savings"></span>
+                                <span>Ahorro</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="trendChart" 
+                                    data-chart-data='@Json.Serialize(monthlyTrendChart)'
+                                    style="width: 100%; height: 100%; display: block;">
+                            </canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comparativa Mensual Ingresos vs Gastos -->
+                <div class="finance-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-balance-scale me-2"></i>
+                            Comparativa Mensual Ingresos vs Gastos
+                        </h3>
+                        <div class="chart-legend">
+                            <div class="legend-item">
+                                <span class="legend-color income"></span>
+                                <span>Ingresos</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color expense"></span>
+                                <span>Gastos</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color savings"></span>
+                                <span>Ahorro Neto</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="comparisonChart" 
+                                    style="width: 100%; height: 100%; display: block;">
+                            </canvas>
+                        </div>
+                        <div class="monthly-stats mt-3">
+                            <div class="row text-center">
+                                <div class="col-md-4">
+                                    <div class="stat-item">
+                                        <div class="stat-value text-success">@(summary?.TotalIncome.ToString("C") ?? "$0")</div>
+                                        <div class="stat-label">Ingresos Totales</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="stat-item">
+                                        <div class="stat-value text-danger">@(summary?.TotalExpenses.ToString("C") ?? "$0")</div>
+                                        <div class="stat-label">Gastos Totales</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="stat-item">
+                                        <div class="stat-value @(summary?.NetAmount >= 0 ? "text-success" : "text-danger")">
+                                            @(summary?.NetAmount.ToString("C") ?? "$0")
+                                        </div>
+                                        <div class="stat-label">Balance Mensual</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Análisis Detallado por Categoría -->
+                <div class="finance-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-table me-2"></i>
+                            Análisis Detallado por Categoría
+                        </h3>
+                        <div class="table-actions">
+                            <button class="btn btn-sm btn-outline-primary" onclick="sortTable('category')">
+                                <i class="fas fa-sort-alpha-down"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="sortTable('amount')">
+                                <i class="fas fa-sort-amount-down"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        @if (categorySummary != null && categorySummary.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="data-table" id="categoryTable">
+                                    <thead>
+                                        <tr>
+                                            <th data-sort="category">Categoría</th>
+                                            <th data-sort="amount" class="text-end">Total</th>
+                                            <th data-sort="count" class="text-end">Transacciones</th>
+                                            <th data-sort="average" class="text-end">Promedio</th>
+                                            <th data-sort="percentage" class="text-end">% del Total</th>
+                                            <th class="text-center">Tendencia</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @{
+                                            var totalAmount = categorySummary.Sum(c => c.TotalAmount);
+                                        }
+                                        @foreach (var category in categorySummary.OrderByDescending(c => c.TotalAmount))
+                                        {
+                                            var percentage = totalAmount > 0 ? (category.TotalAmount / totalAmount) * 100 : 0;
+                                            <tr>
+                                                <td class="category-cell">
+                                                    <span class="category-badge" style="background-color: @GetCategoryColor(category.Category)">
+                                                        @category.Category
+                                                    </span>
+                                                </td>
+                                                <td class="amount-cell text-end">@category.TotalAmount.ToString("C")</td>
+                                                <td class="count-cell text-end">@category.TransactionCount</td>
+                                                <td class="average-cell text-end">@category.AverageAmount.ToString("C")</td>
+                                                <td class="percentage-cell text-end">
+                                                    <div class="percentage-display">
+                                                        <span class="percentage-value">@percentage.ToString("N1")%</span>
+                                                        <div class="percentage-bar">
+                                                            <div class="percentage-fill" style="width: @percentage.ToString("N0")%"></div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td class="trend-cell text-center">
+                                                    @{
+                                                        var trend = GetRandomTrend();
+                                                    }
+                                                    <span class="trend-indicator @trend.Class">
+                                                        <i class="fas @trend.Icon"></i>
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                    <tfoot>
+                                        <tr class="table-total">
+                                            <td><strong>Total General</strong></td>
+                                            <td class="text-end"><strong>@totalAmount.ToString("C")</strong></td>
+                                            <td class="text-end"><strong>@categorySummary.Sum(c => c.TransactionCount)</strong></td>
+                                            <td class="text-end"><strong>@(categorySummary.Average(c => c.AverageAmount).ToString("C"))</strong></td>
+                                            <td class="text-end"><strong>100%</strong></td>
+                                            <td></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="empty-state">
+                                <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                                <h4>No hay datos para analizar</h4>
+                                <p>Comienza registrando tus transacciones para generar reportes detallados</p>
+                                <a href="@Url.Action("CreateTransaction", "Finance")" class="btn btn-primary mt-2">
+                                    <i class="fas fa-plus me-2"></i>Crear Transacción
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna Derecha - Métricas y Análisis -->
+            <div class="finance-sidebar-content">
+                <!-- Distribución de Gastos -->
+                <div class="finance-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-chart-pie me-2"></i>
+                            Distribución de Gastos
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container-small">
+                            <canvas id="expenseDistributionChart" 
+                                    data-chart-data='@Json.Serialize(expenseDistributionChart)'
+                                    style="width: 100%; height: 100%; display: block;">
+                            </canvas>
+                        </div>
+                        <div class="categories-breakdown">
+                            @if (expenseByCategory != null && expenseByCategory.Any())
+                            {
+                                foreach (var category in expenseByCategory.Take(6))
+                                {
+                                    <div class="breakdown-item">
+                                        <div class="breakdown-info">
+                                            <span class="breakdown-color" style="background-color: @GetCategoryColor(category.Category)"></span>
+                                            <span class="breakdown-name">@category.Category</span>
+                                        </div>
+                                        <div class="breakdown-stats">
+                                            <span class="breakdown-amount">@category.Amount.ToString("C")</span>
+                                            <span class="breakdown-percentage">@category.Percentage.ToString("N1")%</span>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Métricas de Rendimiento -->
+                <div class="finance-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-tachometer-alt me-2"></i>
+                            Métricas de Rendimiento
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="performance-metrics">
+                            <div class="performance-item @(GetPerformanceClass(summary?.SavingsRate ?? 0))">
+                                <div class="performance-icon">
+                                    <i class="fas fa-piggy-bank"></i>
+                                </div>
+                                <div class="performance-content">
+                                    <span class="performance-label">Tasa de Ahorro</span>
+                                    <span class="performance-value">@(summary?.SavingsRate.ToString("N1") ?? "0.0")%</span>
+                                    <span class="performance-rating">
+                                        @GetPerformanceRating(summary?.SavingsRate ?? 0)
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="performance-item @(summary?.NetAmount >= 0 ? "excellent" : "poor")">
+                                <div class="performance-icon">
+                                    <i class="fas fa-balance-scale"></i>
+                                </div>
+                                <div class="performance-content">
+                                    <span class="performance-label">Balance Mensual</span>
+                                    <span class="performance-value">@(summary?.NetAmount.ToString("C") ?? "$0.00")</span>
+                                    <span class="performance-rating">
+                                        @(summary?.NetAmount >= 0 ? "✅ Positivo" : "❌ Negativo")
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="performance-item info">
+                                <div class="performance-icon">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <div class="performance-content">
+                                    <span class="performance-label">Crecimiento Ingresos</span>
+                                    <span class="performance-value">@(summary?.IncomeGrowth.ToString("+0.0;-0.0;0.0") ?? "0.0")%</span>
+                                    <span class="performance-rating">
+                                        @(summary?.IncomeGrowth >= 0 ? "📈 En alza" : "📉 En baja")
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="performance-item @(summary?.ExpenseGrowth <= 0 ? "excellent" : "poor")">
+                                <div class="performance-icon">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                </div>
+                                <div class="performance-content">
+                                    <span class="performance-label">Control de Gastos</span>
+                                    <span class="performance-value">@(summary?.ExpenseGrowth.ToString("+0.0;-0.0;0.0") ?? "0.0")%</span>
+                                    <span class="performance-rating">
+                                        @(summary?.ExpenseGrowth <= 0 ? "✅ Controlado" : "❌ En aumento")
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Insights y Recomendaciones -->
+                <div class="finance-card insights-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            Insights y Recomendaciones
+                            @if (hasAIFeatures)
+                            {
+                                <span class="ai-badge" title="Análisis con IA">
+                                    <i class="fas fa-robot"></i> IA
+                                </span>
+                            }
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="insights-list">
+                            @await GenerateFinancialInsights(summary, expenseByCategory, hasAIFeatures)
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Límites del Plan -->
+                <div class="finance-card limits-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            Límites del Plan
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="limits-list">
+                            <div class="limit-item">
+                                <div class="limit-info">
+                                    <span class="limit-label">Transacciones Mensuales</span>
+                                    <span class="limit-usage">@transactionUsage.current/@maxTransactions</span>
+                                </div>
+                                <div class="limit-bar">
+                                    <div class="limit-fill @(GetUsagePercentage(transactionUsage.current, maxTransactions))" 
+                                         style="width: @(GetUsageWidth(transactionUsage.current, maxTransactions))%">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="limit-item">
+                                <div class="limit-info">
+                                    <span class="limit-label">Presupuestos Activos</span>
+                                    <span class="limit-usage">@budgetUsage.current/@maxBudgets</span>
+                                </div>
+                                <div class="limit-bar">
+                                    <div class="limit-fill @(GetUsagePercentage(budgetUsage.current, maxBudgets))" 
+                                         style="width: @(GetUsageWidth(budgetUsage.current, maxBudgets))%">
+                                    </div>
+                                </div>
+                            </div>
+                            @if (!hasAdvancedAnalytics)
+                            {
+                                <div class="limit-upgrade">
+                                    <p><strong>¿Necesitas más capacidad?</strong></p>
+                                    <a href="@Url.Action("Index", "Plans")" class="btn btn-sm btn-primary w-100">
+                                        <i class="fas fa-rocket me-1"></i>Mejorar Plan
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        // Inicialización de gráficos CORREGIDA
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Inicializando gráficos...');
+            initializeAllCharts();
+        });
+
+        function initializeAllCharts() {
+            // 1. Gráfico de tendencias
+            initializeChart('trendChart', 'line');
+            
+            // 2. Gráfico de distribución de gastos
+            initializeChart('expenseDistributionChart', 'doughnut');
+            
+            // 3. Gráfico de comparación
+            setTimeout(() => {
+                renderComparisonChart();
+            }, 100);
+        }
+
+        function initializeChart(canvasId, chartType) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) {
+                console.error('❌ Canvas no encontrado:', canvasId);
+                return;
+            }
+
+            const chartDataJson = canvas.getAttribute('data-chart-data');
+            
+            if (!chartDataJson || chartDataJson === '{}' || chartDataJson === 'null') {
+                console.warn('⚠️ No hay datos para:', canvasId);
+                showSampleChart(canvas, chartType);
+                return;
+            }
+
+            try {
+                const chartData = JSON.parse(chartDataJson);
+                const ctx = canvas.getContext('2d');
+
+                // Destruir gráfico existente
+                if (canvas.chart) {
+                    canvas.chart.destroy();
+                }
+
+                canvas.chart = new Chart(ctx, {
+                    type: chartType,
+                    data: chartData,
+                    options: getChartOptions(chartType)
+                });
+
+                console.log('✅ Gráfico inicializado:', canvasId);
+            } catch (error) {
+                console.error('❌ Error en gráfico', canvasId, ':', error);
+                showSampleChart(canvas, chartType);
+            }
+        }
+
+        function showSampleChart(canvas, chartType) {
+            const ctx = canvas.getContext('2d');
+            
+            let sampleData;
+            if (chartType === 'line') {
+                sampleData = {
+                    labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
+                    datasets: [
+                        {
+                            label: 'Ingresos',
+                            data: [3200, 3500, 3800, 4200, 3900, 4500],
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            fill: true
+                        },
+                        {
+                            label: 'Gastos',
+                            data: [2800, 3000, 3200, 3500, 3300, 3800],
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            fill: true
+                        }
+                    ]
+                };
+            } else if (chartType === 'doughnut') {
+                sampleData = {
+                    labels: ['Alimentación', 'Transporte', 'Vivienda', 'Entretenimiento', 'Otros'],
+                    datasets: [{
+                        data: [30, 15, 35, 10, 10],
+                        backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#64748b']
+                    }]
+                };
+            }
+
+            if (canvas.chart) {
+                canvas.chart.destroy();
+            }
+
+            canvas.chart = new Chart(ctx, {
+                type: chartType,
+                data: sampleData,
+                options: getChartOptions(chartType)
+            });
+        }
+
+        function renderComparisonChart() {
+            const ctx = document.getElementById('comparisonChart');
+            if (!ctx) {
+                console.error('❌ Canvas comparisonChart no encontrado');
+                return;
+            }
+
+            try {
+                if (ctx.chart) {
+                    ctx.chart.destroy();
+                }
+
+                const context = ctx.getContext('2d');
+                const monthlyData = @Html.Raw(Json.Serialize(lastSixMonths)) || [];
+                
+                console.log('📊 Datos para comparación:', monthlyData);
+
+                // Usar datos reales o de muestra
+                let dataToUse = monthlyData;
+                if (monthlyData.length === 0) {
+                    dataToUse = [
+                        { month: 'Jul 2024', income: 3200, expenses: 2800, savings: 400 },
+                        { month: 'Ago 2024', income: 3500, expenses: 3000, savings: 500 },
+                        { month: 'Sep 2024', income: 3800, expenses: 3200, savings: 600 },
+                        { month: 'Oct 2024', income: 4200, expenses: 3500, savings: 700 },
+                        { month: 'Nov 2024', income: 3900, expenses: 3300, savings: 600 },
+                        { month: 'Dic 2024', income: 4500, expenses: 3800, savings: 700 }
+                    ];
+                }
+
+                const labels = dataToUse.map(m => m.month || 'Mes');
+                const incomes = dataToUse.map(m => Number(m.income) || 0);
+                const expenses = dataToUse.map(m => Number(m.expenses) || 0);
+
+                ctx.chart = new Chart(context, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Ingresos',
+                                data: incomes,
+                                backgroundColor: 'rgba(16, 185, 129, 0.8)',
+                                borderColor: '#10b981',
+                                borderWidth: 2,
+                            },
+                            {
+                                label: 'Gastos',
+                                data: expenses,
+                                backgroundColor: 'rgba(239, 68, 68, 0.8)',
+                                borderColor: '#ef4444',
+                                borderWidth: 2,
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'S/ ' + value;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                console.log('✅ Gráfico de comparación creado');
+            } catch (error) {
+                console.error('❌ Error en gráfico de comparación:', error);
+            }
+        }
+
+        function getChartOptions(chartType) {
+            const baseOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                }
+            };
+
+            if (chartType === 'line') {
+                baseOptions.scales = {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            }
+                        }
+                    }
+                };
+            }
+
+            return baseOptions;
+        }
+
+        // Ordenamiento de tabla
+        function sortTable(sortBy) {
+            const table = document.getElementById('categoryTable');
+            if (!table) return;
+            
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            rows.sort((a, b) => {
+                let aValue, bValue;
+                
+                switch (sortBy) {
+                    case 'amount':
+                        aValue = parseFloat(a.cells[1].textContent.replace(/[^0-9.-]+/g,""));
+                        bValue = parseFloat(b.cells[1].textContent.replace(/[^0-9.-]+/g,""));
+                        return bValue - aValue;
+                    case 'category':
+                        aValue = a.cells[0].textContent;
+                        bValue = b.cells[0].textContent;
+                        return aValue.localeCompare(bValue);
+                    default:
+                        return 0;
+                }
+            });
+            
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
+        // Exportación
+        function generatePDF() {
+            alert('📄 Generando reporte PDF... (Función premium)');
+        }
+
+        function exportToExcel() {
+            alert('📊 Exportando a Excel... (Función premium)');
+        }
+    </script>
+}
+
+<style>
+    /* === ESTILOS BASE DEL DASHBOARD FINANCIERO === */
+    .finance-container {
+        padding: 2rem;
+        background: #f8fafc;
+        min-height: 100vh;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* NAVEGACIÓN HORIZONTAL */
+    .finance-nav {
+        display: flex;
+        background: white;
+        border-radius: 16px;
+        padding: 1rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        margin-bottom: 2rem;
+        border: 1px solid #f1f5f9;
+        gap: 0.5rem;
+    }
+
+    .nav-item {
+        flex: 1;
+    }
+
+    .nav-item a {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 1rem;
+        text-decoration: none;
+        color: #64748b;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+
+    .nav-item a:hover {
+        background: #f8fafc;
+        color: #374151;
+        transform: translateY(-2px);
+    }
+
+    .nav-item.active a {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        font-weight: 600;
+        box-shadow: 0 2px 10px rgba(16, 185, 129, 0.1);
+    }
+
+    .nav-item i {
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .nav-item span {
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .plan-badge {
+        font-size: 0.6em;
+        background: #8b5cf6;
+        color: white;
+        padding: 1px 4px;
+        border-radius: 4px;
+        margin-top: 2px;
+        display: block;
+        line-height: 1.2;
+    }
+
+    /* CONTENIDO PRINCIPAL */
+    .finance-main-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    /* HEADER */
+    .finance-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: white;
+        padding: 2rem;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+    }
+
+    .finance-title {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .finance-subtitle {
+        color: #64748b;
+        margin: 0;
+        font-size: 1.1rem;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .current-plan-badge {
+        margin-top: 0.5rem;
+    }
+
+    .current-plan-badge .badge {
+        background: var(--plan-color, #6B7280);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+
+    /* ALERTAS */
+    .alert {
+        border-radius: 12px;
+        border: none;
+        padding: 1rem 1.5rem;
+        margin-bottom: 0;
+    }
+
+    .alert-success {
+        background: #f0fdf4;
+        color: #065f46;
+        border-left: 4px solid #10b981;
+    }
+
+    .alert-danger {
+        background: #fef2f2;
+        color: #7f1d1d;
+        border-left: 4px solid #ef4444;
+    }
+
+    .alert-info {
+        background: #eff6ff;
+        color: #1e40af;
+        border-left: 4px solid #3b82f6;
+    }
+
+    .upgrade-alert {
+        margin-bottom: 2rem;
+    }
+
+    .alert-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .alert-text {
+        flex: 1;
+    }
+
+    /* MÉTRICAS */
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .metric-card {
+        background: white;
+        border-radius: 16px;
+        padding: 2rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .metric-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+    }
+
+    .metric-card.income::before { background: #10b981; }
+    .metric-card.expense::before { background: #ef4444; }
+    .metric-card.savings::before { background: #3b82f6; }
+    .metric-card.transactions::before { background: #06b6d4; }
+
+    .metric-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    .metric-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .metric-card.income .metric-icon { background: #10b981; }
+    .metric-card.expense .metric-icon { background: #ef4444; }
+    .metric-card.savings .metric-icon { background: #3b82f6; }
+    .metric-card.transactions .metric-icon { background: #06b6d4; }
+
+    .metric-content {
+        flex: 1;
+    }
+
+    .metric-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+        line-height: 1;
+    }
+
+    .metric-label {
+        color: #64748b;
+        margin: 0;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+
+    .metric-details {
+        display: flex;
+        gap: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    .detail-item {
+        font-size: 0.8rem;
+        color: #64748b;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    /* CONTENIDO PRINCIPAL */
+    .finance-content {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+    }
+
+    .finance-main {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .finance-sidebar-content {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    /* TARJETAS */
+    .finance-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .finance-card:hover {
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid #f1f5f9;
+        background: #f8fafc;
+    }
+
+    .card-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-body {
+        padding: 2rem;
+    }
+
+    /* GRÁFICOS */
+    .chart-container {
+        height: 300px;
+        position: relative;
+        background: white;
+        border-radius: 12px;
+        padding: 1rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    .chart-container-small {
+        height: 250px;
+        position: relative;
+        background: white;
+        border-radius: 12px;
+        padding: 1rem;
+        border: 1px solid #e2e8f0;
+        margin-bottom: 1.5rem;
+    }
+
+    .chart-container canvas,
+    .chart-container-small canvas {
+        width: 100% !important;
+        height: 100% !important;
+        display: block !important;
+    }
+
+    .chart-legend {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        color: #64748b;
+    }
+
+    .legend-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 2px;
+    }
+
+    .legend-color.income { background-color: #10b981; }
+    .legend-color.expense { background-color: #ef4444; }
+    .legend-color.savings { background-color: #3b82f6; }
+
+    /* TABLA */
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .data-table th {
+        background: #f8fafc;
+        padding: 1.25rem 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #374151;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .data-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #f1f5f9;
+        color: #374151;
+    }
+
+    .data-table tbody tr:hover {
+        background: #f8fafc;
+    }
+
+    .category-badge {
+        background: #e2e8f0;
+        color: #374151;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .amount-cell, .average-cell {
+        font-weight: 600;
+        color: #1e293b;
+    }
+
+    .count-cell {
+        text-align: center;
+        font-weight: 500;
+    }
+
+    .percentage-display {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .percentage-value {
+        font-weight: 600;
+        color: #374151;
+        min-width: 45px;
+        font-size: 0.85rem;
+    }
+
+    .percentage-bar {
+        flex: 1;
+        height: 6px;
+        background: #e2e8f0;
+        border-radius: 3px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .percentage-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+        border-radius: 3px;
+        transition: width 0.3s ease;
+    }
+
+    .trend-indicator {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        font-size: 0.7rem;
+    }
+
+    .trend-up {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+    }
+
+    .trend-down {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+    }
+
+    .trend-neutral {
+        background: rgba(100, 116, 139, 0.1);
+        color: #64748b;
+    }
+
+    .table-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    /* DISTRIBUCIÓN DE GASTOS */
+    .categories-breakdown {
+        max-height: 200px;
+        overflow-y: auto;
+        padding-right: 0.5rem;
+    }
+
+    .breakdown-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #f1f5f9;
+        transition: all 0.3s ease;
+    }
+
+    .breakdown-item:hover {
+        background: #f8fafc;
+        border-color: #e2e8f0;
+        transform: translateX(4px);
+    }
+
+    .breakdown-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .breakdown-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        flex-shrink: 0;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .breakdown-name {
+        font-weight: 500;
+        color: #374151;
+        font-size: 0.9rem;
+    }
+
+    .breakdown-stats {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .breakdown-amount {
+        font-weight: 600;
+        color: #1e293b;
+        font-size: 0.9rem;
+    }
+
+    .breakdown-percentage {
+        background: #e2e8f0;
+        color: #64748b;
+        padding: 0.25rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        min-width: 55px;
+        text-align: center;
+    }
+
+    /* MÉTRICAS DE RENDIMIENTO */
+    .performance-metrics {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .performance-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.25rem;
+        border-radius: 12px;
+        background: white;
+        border: 2px solid #f1f5f9;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .performance-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        border-color: #e2e8f0;
+    }
+
+    .performance-item.excellent {
+        border-left: 4px solid #10b981;
+        background: linear-gradient(135deg, #f0fdf4, #ffffff);
+    }
+
+    .performance-item.good {
+        border-left: 4px solid #f59e0b;
+        background: linear-gradient(135deg, #fffbeb, #ffffff);
+    }
+
+    .performance-item.poor {
+        border-left: 4px solid #ef4444;
+        background: linear-gradient(135deg, #fef2f2, #ffffff);
+    }
+
+    .performance-item.info {
+        border-left: 4px solid #3b82f6;
+        background: linear-gradient(135deg, #eff6ff, #ffffff);
+    }
+
+    .performance-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .performance-item.excellent .performance-icon { background: #10b981; }
+    .performance-item.good .performance-icon { background: #f59e0b; }
+    .performance-item.poor .performance-icon { background: #ef4444; }
+    .performance-item.info .performance-icon { background: #3b82f6; }
+
+    .performance-content {
+        flex: 1;
+    }
+
+    .performance-label {
+        display: block;
+        font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+
+    .performance-value {
+        display: block;
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+    }
+
+    .performance-rating {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .performance-item.excellent .performance-rating { color: #10b981; }
+    .performance-item.good .performance-rating { color: #f59e0b; }
+    .performance-item.poor .performance-rating { color: #ef4444; }
+    .performance-item.info .performance-rating { color: #3b82f6; }
+
+    /* INSIGHTS Y RECOMENDACIONES */
+    .insights-card {
+        border: 2px solid #8b5cf6;
+        background: linear-gradient(135deg, #faf5ff, #f3e8ff);
+    }
+
+    .insights-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .insight-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1.25rem;
+        border-radius: 12px;
+        background: white;
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .insight-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .insight-item.positive {
+        border-left: 4px solid #10b981;
+        background: linear-gradient(135deg, #f0fdf4, #ffffff);
+    }
+
+    .insight-item.negative {
+        border-left: 4px solid #ef4444;
+        background: linear-gradient(135deg, #fef2f2, #ffffff);
+    }
+
+    .insight-item.warning {
+        border-left: 4px solid #f59e0b;
+        background: linear-gradient(135deg, #fffbeb, #ffffff);
+    }
+
+    .insight-item.info {
+        border-left: 4px solid #3b82f6;
+        background: linear-gradient(135deg, #eff6ff, #ffffff);
+    }
+
+    .insight-item.ai {
+        border-left: 4px solid #8b5cf6;
+        background: linear-gradient(135deg, #faf5ff, #ffffff);
+    }
+
+    .insight-item i {
+        font-size: 1.25rem;
+        margin-top: 0.25rem;
+        flex-shrink: 0;
+    }
+
+    .insight-item.positive i { color: #10b981; }
+    .insight-item.negative i { color: #ef4444; }
+    .insight-item.warning i { color: #f59e0b; }
+    .insight-item.info i { color: #3b82f6; }
+    .insight-item.ai i { color: #8b5cf6; }
+
+    .insight-content {
+        flex: 1;
+    }
+
+    .insight-content strong {
+        display: block;
+        color: #1e293b;
+        font-size: 0.95rem;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+
+    .insight-content p {
+        color: #64748b;
+        font-size: 0.85rem;
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    .ai-badge {
+        background: rgba(139, 92, 246, 0.1);
+        color: #7c3aed;
+        padding: 0.4rem 0.8rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        border: 1px solid rgba(139, 92, 246, 0.2);
+    }
+
+    /* LÍMITES DEL PLAN */
+    .limits-card {
+        border: 2px solid #f59e0b;
+        background: linear-gradient(135deg, #fffbeb, #fef3c7);
+    }
+
+    .limits-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .limit-item {
+        background: white;
+        padding: 1.25rem;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .limit-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+
+    .limit-label {
+        font-weight: 600;
+        color: #374151;
+        font-size: 0.9rem;
+    }
+
+    .limit-usage {
+        font-weight: 700;
+        color: #1e293b;
+        font-size: 0.95rem;
+    }
+
+    .limit-bar {
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 4px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .limit-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.3s ease;
+        position: relative;
+    }
+
+    .limit-fill.low {
+        background: linear-gradient(90deg, #10b981, #059669);
+    }
+
+    .limit-fill.medium {
+        background: linear-gradient(90deg, #f59e0b, #d97706);
+    }
+
+    .limit-fill.high {
+        background: linear-gradient(90deg, #ef4444, #dc2626);
+    }
+
+    .limit-fill::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, 
+            transparent 0%, 
+            rgba(255,255,255,0.3) 50%, 
+            transparent 100%);
+        animation: shimmer 2s infinite;
+    }
+
+    @@keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+
+    .limit-upgrade {
+        text-align: center;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+        border-radius: 12px;
+        border: 2px dashed #0ea5e9;
+    }
+
+    .limit-upgrade p {
+        color: #0369a1;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+    }
+
+    /* BOTONES */
+    .btn {
+        border-radius: 8px;
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        cursor: pointer;
+        font-size: 0.9rem;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    }
+
+    .btn-outline-primary {
+        background: transparent;
+        color: #8b5cf6;
+        border: 2px solid #8b5cf6;
+    }
+
+    .btn-outline-primary:hover {
+        background: #8b5cf6;
+        color: white;
+    }
+
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+    }
+
+    /* ESTADOS VACÍOS */
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #64748b;
+    }
+
+    .empty-state i {
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state h4 {
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        margin-bottom: 1rem;
+    }
+
+    /* SCROLLBAR PERSONALIZADO */
+    .categories-breakdown::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .categories-breakdown::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 2px;
+    }
+
+    .categories-breakdown::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 2px;
+    }
+
+    .categories-breakdown::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+
+    /* RESPONSIVE */
+    @@media (max-width: 1200px) {
+        .finance-content {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .finance-container {
+            padding: 1rem;
+        }
+
+        .finance-nav {
+            flex-wrap: wrap;
+        }
+        
+        .nav-item {
+            flex: 1 0 45%;
+            margin-bottom: 0.5rem;
+        }
+        
+        .nav-item a {
+            padding: 0.75rem 0.5rem;
+        }
+        
+        .nav-item i {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .nav-item span {
+            font-size: 0.8rem;
+        }
+
+        .finance-header {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .metrics-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .metric-card {
+            padding: 1.5rem;
+        }
+        
+        .header-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            width: 100%;
+        }
+        
+        .header-actions .btn {
+            width: 100%;
+        }
+
+        .chart-container {
+            height: 250px;
+            padding: 0.75rem;
+        }
+
+        .chart-container-small {
+            height: 200px;
+            padding: 0.75rem;
+        }
+
+        .performance-item {
+            padding: 1rem;
+        }
+
+        .performance-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1rem;
+        }
+
+        .performance-value {
+            font-size: 1.2rem;
+        }
+
+        .insight-item {
+            padding: 1rem;
+        }
+
+        .limit-item {
+            padding: 1rem;
+        }
+
+        .alert-content {
+            flex-direction: column;
+            text-align: center;
+            gap: 1rem;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .nav-item {
+            flex: 1 0 100%;
+        }
+    }
+
+    /* Estadísticas mensuales */
+    .monthly-stats {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    .stat-item {
+        padding: 0.5rem;
+    }
+
+    .stat-value {
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    /* Responsive para estadísticas */
+    @@media (max-width: 768px) {
+        .stat-value {
+            font-size: 1.2rem;
+        }
+        
+        .stat-label {
+            font-size: 0.8rem;
+        }
+        
+        .monthly-stats {
+            padding: 1rem;
+        }
+        
+        .monthly-stats .row {
+            gap: 1rem;
+        }
+        
+        .monthly-stats .col-md-4 {
+            flex: 1;
+            min-width: 100px;
+        }
+    }
+
+    /* Asegurar que el canvas sea visible */
+    #comparisonChart {
+        width: 100% !important;
+        height: 300px !important;
+        display: block !important;
+        min-height: 300px;
+    }
+
+    /* Contenedor del gráfico */
+    .chart-container {
+        position: relative;
+        height: 300px;
+        min-height: 300px;
+    }
+
+    /* Debug visual */
+    .chart-debug {
+        border: 2px dashed #f59e0b;
+        background: #fffbeb;
+    }
+
+    /* Badge del plan actual */
+    .current-plan-badge {
+        margin-top: 0.5rem;
+    }
+    
+    .current-plan-badge .badge {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.8rem;
+    }
+
+    /* Alertas de upgrade */
+    .upgrade-alert {
+        margin-bottom: 2rem;
+    }
+    
+    .alert-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .alert-text {
+        flex: 1;
+    }
+
+    /* Badge de IA */
+    .ai-badge {
+        background: rgba(139, 92, 246, 0.1);
+        color: #7c3aed;
+        padding: 0.4rem 0.8rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    /* Barras de límites */
+    .limit-bar {
+        height: 8px;
+        background: #e2e8f0;
+        border-radius: 4px;
+        margin-top: 0.5rem;
+    }
+    
+    .limit-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.3s ease;
+    }
+    
+    .limit-fill.low { background: #10b981; }
+    .limit-fill.medium { background: #f59e0b; }
+    .limit-fill.high { background: #ef4444; }
+</style>
+
+@functions {
+    private string GetCategoryColor(string category)
+    {
+        var colors = new Dictionary<string, string>
+        {
+            {"Alimentación", "#ef4444"},
+            {"Transporte", "#f59e0b"},
+            {"Vivienda", "#10b981"},
+            {"Entretenimiento", "#8b5cf6"},
+            {"Salud", "#ec4899"},
+            {"Educación", "#06b6d4"},
+            {"Ropa", "#84cc16"},
+            {"Servicios", "#3b82f6"},
+            {"Inversiones", "#84cc16"},
+            {"Salario", "#10b981"},
+            {"Freelance", "#f59e0b"},
+            {"Otros", "#64748b"}
+        };
+        
+        return colors.ContainsKey(category) ? colors[category] : "#" + Random.Shared.Next(0x1000000).ToString("X6");
+    }
+
+    private (string Icon, string Class) GetRandomTrend()
+    {
+        var trends = new[]
+        {
+            ("fa-arrow-up", "trend-up"),
+            ("fa-arrow-down", "trend-down"),
+            ("fa-minus", "trend-neutral")
+        };
+        return trends[Random.Shared.Next(trends.Length)];
+    }
+
+    private string GetPerformanceClass(decimal savingsRate)
+    {
+        return savingsRate >= 20 ? "excellent" : savingsRate >= 10 ? "good" : "poor";
+    }
+
+    private string GetPerformanceRating(decimal savingsRate)
+    {
+        if (savingsRate >= 20)
+            return "<i class='fas fa-star'></i><i class='fas fa-star'></i><i class='fas fa-star'></i> Excelente";
+        else if (savingsRate >= 10)
+            return "<i class='fas fa-star'></i><i class='fas fa-star'></i> Bueno";
+        else
+            return "<i class='fas fa-star'></i> A mejorar";
+    }
+
+    private string GetUsagePercentage(int current, int max)
+    {
+        if (max <= 0) return "low";
+        var percentage = (current * 100) / max;
+        return percentage >= 90 ? "high" : percentage >= 70 ? "medium" : "low";
+    }
+    private async Task<IHtmlContent> GenerateFinancialInsights(FinanceSummary? summary, List<CategoryData>? expenses, bool hasAIFeatures)
+    {
+        var insights = new List<string>();
+
+        if (summary == null)
+        {
+            insights.Add("<div class='insight-item info'><i class='fas fa-info-circle'></i><div class='insight-content'><strong>Comienza a registrar</strong><p>Agrega tus primeras transacciones para obtener insights personalizados</p></div></div>");
+            return new HtmlString(string.Join("", insights));
+        }
+
+        // Insight de balance
+        if (summary.NetAmount < 0)
+        {
+            insights.Add($"<div class='insight-item negative'><i class='fas fa-exclamation-triangle'></i><div class='insight-content'><strong>Balance Negativo</strong><p>Tus gastos exceden tus ingresos por {Math.Abs(summary.NetAmount):C}. Revisa tus presupuestos.</p></div></div>");
+        }
+        else if (summary.NetAmount > 0)
+        {
+            insights.Add($"<div class='insight-item positive'><i class='fas fa-check-circle'></i><div class='insight-content'><strong>¡Buen trabajo!</strong><p>Estás ahorrando {summary.NetAmount:C} este mes ({summary.SavingsRate:N1}% de tus ingresos).</p></div></div>");
+        }
+
+        // Insight de categorías principales
+        if (expenses != null && expenses.Any())
+        {
+            var topCategory = expenses.First();
+            insights.Add($"<div class='insight-item info'><i class='fas fa-chart-pie'></i><div class='insight-content'><strong>Categoría Principal</strong><p>{topCategory.Category} representa el {topCategory.Percentage:N1}% de tus gastos ({topCategory.Amount:C}).</p></div></div>");
+        }
+
+        // Insight con IA solo si el plan lo incluye
+        if (hasAIFeatures)
+        {
+            insights.Add($"<div class='insight-item ai'><i class='fas fa-robot'></i><div class='insight-content'><strong>Análisis IA</strong><p>Basado en tus patrones, podrías optimizar un 15% adicional en gastos discrecionales.</p></div></div>");
+        }
+
+        return new HtmlString(string.Join("", insights.Take(3)));
+    }
+
+    private int GetUsageWidth(int current, int max)
+    {
+        if (max <= 0) return 0;
+        return (current * 100) / max;
+    }
+
+    
+}

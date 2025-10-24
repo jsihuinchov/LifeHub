@@ -1,0 +1,115 @@
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    var currentController = ViewContext.RouteData.Values["Controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["Action"]?.ToString();
+}
+
+<div class="finance-nav">
+    <div class="nav-item @(currentAction == "Index" ? "active" : "")">
+        <a href="@Url.Action("Index", "Finance")">
+            <i class="fas fa-chart-line"></i>
+            <span>Dashboard</span>
+        </a>
+    </div>
+    
+    <div class="nav-item @(currentAction == "Transactions" ? "active" : "")">
+        <a href="@Url.Action("Transactions", "Finance")">
+            <i class="fas fa-exchange-alt"></i>
+            <span>Transacciones</span>
+        </a>
+    </div>
+    
+    <div class="nav-item @(currentAction == "Budgets" ? "active" : "")">
+        <a href="@Url.Action("Budgets", "Finance")">
+            <i class="fas fa-wallet"></i>
+            <span>Presupuestos</span>
+        </a>
+    </div>
+    
+    <div class="nav-item @(currentAction == "Reports" ? "active" : "")">
+        <a href="@Url.Action("Reports", "Finance")">
+            <i class="fas fa-chart-bar"></i>
+            <span>Reportes</span>
+        </a>
+    </div>
+</div>
+
+<style>
+    .finance-nav {
+        display: flex;
+        background: white;
+        border-radius: 12px;
+        padding: 1rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+        border: 1px solid #e2e8f0;
+        gap: 0.5rem;
+    }
+
+    .nav-item {
+        flex: 1;
+    }
+
+    .nav-item a {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 1rem;
+        text-decoration: none;
+        color: #64748b;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+
+    .nav-item a:hover {
+        background: #f8fafc;
+        color: #374151;
+    }
+
+    .nav-item.active a {
+        background: rgba(67, 97, 238, 0.1);
+        color: #4361ee;
+        font-weight: 600;
+    }
+
+    .nav-item i {
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .nav-item span {
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    @@media (max-width: 768px) {
+        .finance-nav {
+            flex-wrap: wrap;
+        }
+        
+        .nav-item {
+            flex: 1 0 45%;
+            margin-bottom: 0.5rem;
+        }
+        
+        .nav-item a {
+            padding: 0.75rem 0.5rem;
+        }
+        
+        .nav-item i {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .nav-item span {
+            font-size: 0.8rem;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .nav-item {
+            flex: 1 0 100%;
+        }
+    }
+</style>
