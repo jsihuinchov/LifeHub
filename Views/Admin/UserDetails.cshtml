@@ -1,0 +1,1309 @@
+@model LifeHub.Models.ViewModels.ChangePlanViewModel
+@{
+    var user = ViewBag.User as LifeHub.Models.ViewModels.AdminUserViewModel;
+    ViewData["Title"] = $"Detalles de Usuario - {user.Email}";
+}
+
+<div class="user-details">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div class="header-content">
+            <div class="header-text">
+                <h1 class="dashboard-title">
+                    <i class="fas fa-user me-3"></i>Detalles de Usuario
+                </h1>
+                <p class="dashboard-subtitle">@user.Email</p>
+            </div>
+            <div class="header-actions">
+                <a href="@Url.Action("Users")" class="btn-back">
+                    <i class="fas fa-arrow-left me-2"></i>Volver a la lista
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertas -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert-card success">
+            <div class="alert-content">
+                <i class="fas fa-check-circle alert-icon"></i>
+                <div class="alert-text">
+                    <h4>¡Éxito!</h4>
+                    <p>@TempData["SuccessMessage"]</p>
+                </div>
+            </div>
+            <button class="alert-close" onclick="this.parentElement.style.display='none'">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert-card error">
+            <div class="alert-content">
+                <i class="fas fa-exclamation-circle alert-icon"></i>
+                <div class="alert-text">
+                    <h4>Error</h4>
+                    <p>@TempData["ErrorMessage"]</p>
+                </div>
+            </div>
+            <button class="alert-close" onclick="this.parentElement.style.display='none'">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    }
+
+    <div class="details-grid">
+        <!-- Información del Usuario -->
+        <div class="details-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="fas fa-info-circle me-2"></i>Información del Usuario
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Email:</div>
+                        <div class="info-value">@user.Email</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Nombre de usuario:</div>
+                        <div class="info-value">@user.UserName</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Estado:</div>
+                        <div class="info-value">
+                            <span class="status-badge @user.Status.ToLower()">@user.Status</span>
+                            @if (!user.EmailConfirmed)
+                            {
+                                <div class="status-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <span>Email no confirmado</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Roles:</div>
+                        <div class="info-value">
+                            <div class="roles-container">
+                                @foreach (var role in user.Roles)
+                                {
+                                    <span class="role-badge @(role.ToLower())">@role</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Teléfono:</div>
+                        <div class="info-value">@(user.PhoneNumber ?? "No proporcionado")</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Intentos fallidos:</div>
+                        <div class="info-value">
+                            <span class="attempts-count @(user.AccessFailedCount > 0 ? "warning" : "")">
+                                @user.AccessFailedCount
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información de Suscripción -->
+        <div class="details-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="fas fa-crown me-2"></i>Información de Suscripción
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="subscription-info">
+                    <div class="info-item">
+                        <div class="info-label">Plan actual:</div>
+                        <div class="info-value">
+                            <span class="plan-name">@user.SubscriptionPlan</span>
+                        </div>
+                    </div>
+                    
+                    @if (user.SubscriptionEndDate.HasValue)
+                    {
+                        <div class="info-item">
+                            <div class="info-label">Fecha de fin:</div>
+                            <div class="info-value">@user.SubscriptionEndDate.Value.ToString("dd/MM/yyyy HH:mm")</div>
+                        </div>
+                        <div class="info-item">
+                            <div class="info-label">Días restantes:</div>
+                            <div class="info-value">
+                                <div class="days-remaining">
+                                    <span class="days-count @(user.DaysUntilSubscriptionEnd > 7 ? "success" : user.DaysUntilSubscriptionEnd > 3 ? "warning" : "danger")">
+                                        @user.DaysUntilSubscriptionEnd días
+                                    </span>
+                                    <div class="progress-bar">
+                                        @{
+                                            var daysLeft = user.DaysUntilSubscriptionEnd;
+                                            var progressClass = daysLeft > 7 ? "success" : daysLeft > 3 ? "warning" : "danger";
+                                            var progressWidth = daysLeft > 30 ? 100 : (daysLeft * 100 / 30);
+                                        }
+                                        <div class="progress-fill @progressClass" style="width: @progressWidth%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="no-subscription">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <div>
+                                <strong>Sin suscripción activa</strong>
+                                <p>Este usuario no tiene una suscripción activa.</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Acciones de Administración -->
+    <div class="actions-section">
+        <div class="actions-card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="fas fa-cog me-2"></i>Acciones de Administración
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="actions-grid">
+                    <!-- Cambiar Plan -->
+                    <div class="action-group">
+                        <h4 class="action-title">Cambiar Plan de Suscripción</h4>
+                        <form method="post" action="@Url.Action("ChangeUserPlan")" class="plan-form">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="UserId" value="@user.Id" />
+                            <div class="form-group">
+                                <label for="PlanId" class="form-label">Seleccionar Plan:</label>
+                                <select class="form-select" id="PlanId" name="PlanId" required>
+                                    <option value="">Selecciona un plan...</option>
+                                    @foreach (var plan in Model.AvailablePlans)
+                                    {
+                                        <option value="@plan.Id" data-price="@plan.Price" data-features="@plan.ShortDescription">
+                                            @plan.Name - $@plan.Price.ToString("N2")/mes
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+                            <div id="planDetails" class="plan-details">
+                                <div class="plan-preview">
+                                    <h5 id="selectedPlanName"></h5>
+                                    <div class="plan-price" id="selectedPlanPrice"></div>
+                                    <div class="plan-features" id="selectedPlanFeatures"></div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-sync-alt me-2"></i>Cambiar Plan
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Acciones de Estado -->
+                    <div class="action-group">
+                        <h4 class="action-title">Gestión de Estado</h4>
+                        <div class="action-buttons">
+                            @if (user.IsBanned)
+                            {
+                                <form method="post" action="@Url.Action("UnbanUser")" class="action-form">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="userId" value="@user.Id" />
+                                    <button type="submit" class="btn-success">
+                                        <i class="fas fa-user-check me-2"></i>Desbanear Usuario
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <button type="button" class="btn-warning ban-user" 
+                                        data-user-id="@user.Id" 
+                                        data-user-email="@user.Email">
+                                    <i class="fas fa-user-slash me-2"></i>Banear Usuario
+                                </button>
+                            }
+
+                            @if (user.IsAdmin)
+                            {
+                                <form method="post" action="@Url.Action("ToggleAdminRole")" class="action-form">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="userId" value="@user.Id" />
+                                    <button type="submit" class="btn-info">
+                                        <i class="fas fa-user-shield me-2"></i>Quitar Rol Admin
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form method="post" action="@Url.Action("ToggleAdminRole")" class="action-form">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="userId" value="@user.Id" />
+                                    <button type="submit" class="btn-info">
+                                        <i class="fas fa-shield-alt me-2"></i>Hacer Administrador
+                                    </button>
+                                </form>
+                            }
+
+                            @if (user.Id != "admin-id-123")
+                            {
+                                <button type="button" class="btn-danger delete-user" 
+                                        data-user-id="@user.Id" 
+                                        data-user-email="@user.Email">
+                                    <i class="fas fa-trash me-2"></i>Eliminar Usuario
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Banear Usuario -->
+<div class="modal" id="banModal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Banear Usuario</h3>
+            <button type="button" class="modal-close" data-bs-dismiss="modal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form method="post" action="@Url.Action("BanUser")">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="userId" id="banUserId" />
+            <div class="modal-body">
+                <div class="modal-user-info">
+                    <div class="user-avatar large">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-details">
+                        <div class="user-email" id="banUserEmail"></div>
+                        <div class="user-status warning">Será baneado</div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="banReason" class="form-label">Razón del baneo:</label>
+                    <textarea class="form-control" id="banReason" name="reason" rows="3" placeholder="Describe la razón del baneo..." required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-danger">Banear Usuario</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal para Eliminar Usuario -->
+<div class="modal" id="deleteModal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title text-danger">Eliminar Usuario</h3>
+            <button type="button" class="modal-close" data-bs-dismiss="modal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form method="post" action="@Url.Action("DeleteUser")">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="userId" id="deleteUserId" />
+            <div class="modal-body">
+                <div class="warning-banner">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div class="warning-content">
+                        <h4>¡Advertencia!</h4>
+                        <p>Esta acción no se puede deshacer.</p>
+                    </div>
+                </div>
+                <div class="modal-user-info">
+                    <div class="user-avatar large danger">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-details">
+                        <div class="user-email" id="deleteUserEmail"></div>
+                        <div class="user-status danger">Será eliminado permanentemente</div>
+                    </div>
+                </div>
+                <div class="deletion-warning">
+                    <p><strong>Se eliminarán todos los datos asociados al usuario:</strong></p>
+                    <ul>
+                        <li><i class="fas fa-tasks"></i> Hábitos y progreso</li>
+                        <li><i class="fas fa-exchange-alt"></i> Transacciones financieras</li>
+                        <li><i class="fas fa-calendar"></i> Citas médicas</li>
+                        <li><i class="fas fa-users"></i> Participación en comunidades</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-danger">Eliminar Permanentemente</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Mostrar detalles del plan seleccionado
+        document.getElementById('PlanId').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const planDetails = document.getElementById('planDetails');
+            
+            if (selectedOption.value) {
+                const planName = selectedOption.text;
+                const planPrice = selectedOption.getAttribute('data-price');
+                const planFeatures = selectedOption.getAttribute('data-features');
+                
+                document.getElementById('selectedPlanName').textContent = planName;
+                document.getElementById('selectedPlanPrice').textContent = `$${parseFloat(planPrice).toFixed(2)}/mes`;
+                document.getElementById('selectedPlanFeatures').textContent = planFeatures;
+                
+                planDetails.style.display = 'block';
+            } else {
+                planDetails.style.display = 'none';
+            }
+        });
+
+        // Modal de Baneo
+        document.querySelectorAll('.ban-user').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const userId = this.getAttribute('data-user-id');
+                const userEmail = this.getAttribute('data-user-email');
+                
+                document.getElementById('banUserId').value = userId;
+                document.getElementById('banUserEmail').textContent = userEmail;
+                
+                document.getElementById('banModal').style.display = 'block';
+            });
+        });
+
+        // Modal de Eliminación
+        document.querySelectorAll('.delete-user').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const userId = this.getAttribute('data-user-id');
+                const userEmail = this.getAttribute('data-user-email');
+                
+                document.getElementById('deleteUserId').value = userId;
+                document.getElementById('deleteUserEmail').textContent = userEmail;
+                
+                document.getElementById('deleteModal').style.display = 'block';
+            });
+        });
+
+        // Cerrar modales
+        document.querySelectorAll('.modal-close, .modal-overlay').forEach(closeBtn => {
+            closeBtn.addEventListener('click', function() {
+                document.querySelectorAll('.modal').forEach(modal => {
+                    modal.style.display = 'none';
+                });
+            });
+        });
+
+        // Prevenir cierre del modal al hacer click dentro del contenido
+        document.querySelectorAll('.modal-content').forEach(content => {
+            content.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        });
+    </script>
+}
+
+<style>
+    /* ===== DETALLES DE USUARIO - ESTILOS MEJORADOS ===== */
+    .user-details {
+        padding: 2rem;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        min-height: 100vh;
+    }
+
+    /* Header */
+    .dashboard-header {
+        background: linear-gradient(120deg, var(--primary) 0%, var(--secondary) 100%);
+        color: white;
+        border-radius: 20px;
+        padding: 2.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(67, 97, 238, 0.2);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .dashboard-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 200px;
+        height: 200px;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 320'%3E%3Cpath fill='%23ffffff' fill-opacity='0.1' d='M0,128L48,117.3C96,107,192,85,288,112C384,139,480,213,576,218.7C672,224,768,160,864,138.7C960,117,1056,139,1152,149.3C1248,160,1344,160,1392,160L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z'%3E%3C/path%3E%3C/svg%3E");
+        background-size: cover;
+        opacity: 0.1;
+    }
+
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+        z-index: 2;
+    }
+
+    .dashboard-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: white;
+    }
+
+    .dashboard-subtitle {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin: 0;
+    }
+
+    .btn-back {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        color: white;
+        padding: 0.875rem 1.5rem;
+        border-radius: 12px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .btn-back:hover {
+        background: rgba(255, 255, 255, 0.25);
+        transform: translateY(-2px);
+        color: white;
+    }
+
+    /* Alertas */
+    .alert-card {
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        border-left: 4px solid;
+    }
+
+    .alert-card.success {
+        background: rgba(16, 185, 129, 0.1);
+        border-left-color: #10b981;
+        color: #065f46;
+    }
+
+    .alert-card.error {
+        background: rgba(239, 68, 68, 0.1);
+        border-left-color: #ef4444;
+        color: #7f1d1d;
+    }
+
+    .alert-content {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex: 1;
+    }
+
+    .alert-icon {
+        font-size: 1.5rem;
+    }
+
+    .alert-text h4 {
+        margin: 0 0 0.25rem 0;
+        font-weight: 600;
+    }
+
+    .alert-text p {
+        margin: 0;
+        opacity: 0.9;
+    }
+
+    .alert-close {
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+        opacity: 0.7;
+    }
+
+    .alert-close:hover {
+        opacity: 1;
+        background: rgba(0, 0, 0, 0.1);
+    }
+
+    /* Grid de detalles */
+    .details-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    /* Tarjetas */
+    .details-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        overflow: hidden;
+    }
+
+    .card-header {
+        background: #f8fafc;
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .card-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+    }
+
+    .card-body {
+        padding: 2rem;
+    }
+
+    /* Información del usuario */
+    .info-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .info-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+
+    .info-label {
+        font-weight: 600;
+        color: #374151;
+        min-width: 140px;
+    }
+
+    .info-value {
+        color: #1e293b;
+        flex: 1;
+        text-align: right;
+    }
+
+    /* Estados y badges */
+    .status-badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-align: center;
+        min-width: 80px;
+    }
+
+    .status-badge.activo {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .status-badge.baneado {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .status-warning {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+        color: #f59e0b;
+        padding: 0.4rem 0.8rem;
+        background: rgba(245, 158, 11, 0.1);
+        border-radius: 8px;
+        border: 1px solid rgba(245, 158, 11, 0.2);
+        margin-top: 0.5rem;
+    }
+
+    .roles-container {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: flex-end;
+    }
+
+    .role-badge {
+        display: inline-block;
+        padding: 0.4rem 0.8rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-align: center;
+        border: 1px solid;
+    }
+
+    .role-badge.admin {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        border-color: rgba(239, 68, 68, 0.2);
+    }
+
+    .role-badge.user {
+        background: rgba(100, 116, 139, 0.1);
+        color: #64748b;
+        border-color: rgba(100, 116, 139, 0.2);
+    }
+
+    .attempts-count {
+        padding: 0.4rem 0.8rem;
+        border-radius: 8px;
+        font-weight: 600;
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .attempts-count.warning {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+        border-color: rgba(245, 158, 11, 0.2);
+    }
+
+    /* Información de suscripción */
+    .subscription-info {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .plan-name {
+        font-weight: 600;
+        color: var(--primary);
+        font-size: 1.1rem;
+    }
+
+    .days-remaining {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: flex-end;
+    }
+
+    .days-count {
+        font-weight: 600;
+        padding: 0.4rem 0.8rem;
+        border-radius: 8px;
+    }
+
+    .days-count.success {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .days-count.warning {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+        border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .days-count.danger {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .progress-bar {
+        width: 120px;
+        height: 6px;
+        background: #e2e8f0;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        border-radius: 3px;
+        transition: width 0.3s ease;
+    }
+
+    .progress-fill.success { background: #10b981; }
+    .progress-fill.warning { background: #f59e0b; }
+    .progress-fill.danger { background: #ef4444; }
+
+    .no-subscription {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.5rem;
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.2);
+        border-radius: 12px;
+        color: #92400e;
+    }
+
+    .no-subscription i {
+        font-size: 1.5rem;
+        color: #f59e0b;
+    }
+
+    .no-subscription strong {
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+
+    .no-subscription p {
+        margin: 0;
+        opacity: 0.8;
+    }
+
+    /* Sección de acciones */
+    .actions-section {
+        margin-bottom: 2rem;
+    }
+
+    .actions-card {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        overflow: hidden;
+    }
+
+    .actions-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3rem;
+        padding: 2rem;
+    }
+
+    .action-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .action-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #f1f5f9;
+    }
+
+    /* Formulario de plan */
+    .plan-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #374151;
+    }
+
+    .form-select {
+        padding: 0.875rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        font-family: inherit;
+        background: white;
+    }
+
+    .form-select:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+    }
+
+    .plan-details {
+        display: none;
+        padding: 1.5rem;
+        background: #f8fafc;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .plan-preview h5 {
+        margin: 0 0 0.5rem 0;
+        color: #1e293b;
+        font-weight: 600;
+    }
+
+    .plan-price {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 0.5rem;
+    }
+
+    .plan-features {
+        color: #64748b;
+        font-size: 0.9rem;
+        line-height: 1.4;
+    }
+
+    /* Botones de acción */
+    .action-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .action-form {
+        display: flex;
+    }
+
+    .btn-primary, .btn-success, .btn-warning, .btn-info, .btn-danger {
+        padding: 0.875rem 1.5rem;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-family: inherit;
+        font-size: 1rem;
+        width: 100%;
+    }
+
+    .btn-primary {
+        background: var(--primary);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: var(--secondary);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+    }
+
+    .btn-success {
+        background: #10b981;
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #059669;
+        transform: translateY(-2px);
+    }
+
+    .btn-warning {
+        background: #f59e0b;
+        color: white;
+    }
+
+    .btn-warning:hover {
+        background: #d97706;
+        transform: translateY(-2px);
+    }
+
+    .btn-info {
+        background: #8b5cf6;
+        color: white;
+    }
+
+    .btn-info:hover {
+        background: #7c3aed;
+        transform: translateY(-2px);
+    }
+
+    .btn-danger {
+        background: #ef4444;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #dc2626;
+        transform: translateY(-2px);
+    }
+
+    /* Modales (reutilizados del anterior) */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 9999;
+    }
+
+    .modal-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+    }
+
+    .modal-content {
+        position: relative;
+        background: white;
+        margin: 2rem auto;
+        border-radius: 20px;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+        max-width: 500px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+        z-index: 10000;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .modal-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin: 0;
+    }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 1.2rem;
+        color: #64748b;
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+    }
+
+    .modal-close:hover {
+        background: #f1f5f9;
+        color: #374151;
+    }
+
+    .modal-body {
+        padding: 2rem;
+    }
+
+    .modal-user-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        padding: 1.5rem;
+        background: #f8fafc;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .user-avatar {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+        box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);
+    }
+
+    .user-avatar.large {
+        width: 70px;
+        height: 70px;
+        font-size: 1.5rem;
+    }
+
+    .user-avatar.large.danger {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    }
+
+    .user-details {
+        flex: 1;
+    }
+
+    .user-email {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.25rem;
+    }
+
+    .user-status {
+        font-size: 0.9rem;
+        font-weight: 600;
+        padding: 0.4rem 0.8rem;
+        border-radius: 12px;
+        display: inline-block;
+    }
+
+    .user-status.warning {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+        border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .user-status.danger {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.875rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        font-family: inherit;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+    }
+
+    .warning-banner {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.5rem;
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+    }
+
+    .warning-banner i {
+        font-size: 1.5rem;
+        color: #f59e0b;
+    }
+
+    .warning-content h4 {
+        margin: 0 0 0.25rem 0;
+        color: #92400e;
+        font-weight: 600;
+    }
+
+    .warning-content p {
+        margin: 0;
+        color: #92400e;
+        opacity: 0.8;
+    }
+
+    .deletion-warning {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+
+    .deletion-warning p {
+        margin: 0 0 1rem 0;
+        color: #7f1d1d;
+        font-weight: 600;
+    }
+
+    .deletion-warning ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .deletion-warning li {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem 0;
+        color: #7f1d1d;
+    }
+
+    .deletion-warning li i {
+        color: #ef4444;
+        width: 16px;
+    }
+
+    .modal-footer {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        padding: 1.5rem 2rem;
+        border-top: 1px solid #f1f5f9;
+        background: #f8fafc;
+        border-radius: 0 0 20px 20px;
+    }
+
+    .btn {
+        padding: 0.875rem 1.5rem;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-family: inherit;
+        font-size: 1rem;
+    }
+
+    .btn-secondary {
+        background: #64748b;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #475569;
+        transform: translateY(-1px);
+    }
+
+    .btn-danger {
+        background: #ef4444;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #dc2626;
+        transform: translateY(-1px);
+    }
+
+    /* Responsive */
+    @@media (max-width: 1024px) {
+        .details-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .actions-grid {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .user-details {
+            padding: 1rem;
+        }
+
+        .dashboard-header {
+            padding: 2rem 1.5rem;
+            border-radius: 16px;
+        }
+
+        .header-content {
+            flex-direction: column;
+            gap: 1.5rem;
+            text-align: center;
+        }
+
+        .dashboard-title {
+            font-size: 2rem;
+        }
+
+        .info-item {
+            flex-direction: column;
+            gap: 0.5rem;
+            align-items: flex-start;
+        }
+
+        .info-value {
+            text-align: left;
+        }
+
+        .roles-container {
+            align-items: flex-start;
+        }
+
+        .days-remaining {
+            align-items: flex-start;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .actions-grid {
+            padding: 1.5rem;
+        }
+
+        .modal-content {
+            margin: 1rem;
+            width: calc(100% - 2rem);
+            border-radius: 16px;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            flex-direction: column;
+        }
+
+        .btn {
+            width: 100%;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .dashboard-title {
+            font-size: 1.8rem;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+        }
+
+        .action-title {
+            font-size: 1.1rem;
+        }
+    }
+</style>
