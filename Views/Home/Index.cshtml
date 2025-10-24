@@ -1,33 +1,375 @@
-﻿@{
-    ViewData["Title"] = "LifeHub - Inicio";
+﻿@model List<LifeHub.Models.SubscriptionPlan>
+@{
+    ViewData["Title"] = "Inicio";
 }
 
-<div class="container-fluid" style="min-height: 100vh; display: flex; align-items: center;">
-    <div class="row w-100">
-        <!-- Sección izquierda -->
-        <div class="col-md-6 d-flex flex-column justify-content-center px-5">
-            <h1 class="fw-bold display-5">LifeHub: Tu vida organizada en un solo lugar</h1>
-            <p class="mt-3 fs-5">
-                Centraliza tu salud, finanzas, hábitos y bienestar con una sola aplicación inteligente
-            </p>
-            <div class="mt-4">
-                <a href="#" class="btn btn-primary btn-lg me-2">Empieza gratis</a>
-                <a href="#" class="btn btn-outline-primary btn-lg">Más información</a>
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6 text-center text-lg-start">
+                <h1 class="hero-title">Organiza tu vida en un solo lugar</h1>
+                <p class="hero-subtitle">LifeHub te ayuda a gestionar tus hábitos, finanzas, salud y comunidad en una plataforma integral y fácil de usar.</p>
+                
+                <div class="hero-buttons">
+                    <button type="button" class="btn-hero btn-hero-primary" id="iniciarAhoraBtn">
+                        Iniciar Ahora
+                    </button>
+                    <button type="button" class="btn-hero btn-hero-secondary" id="verPlanesBtn">
+                        Ver Planes
+                    </button>
+                </div>
+                
+                <div class="contact-info">
+                    <a href="tel:16519" class="phone-link" id="soporteLink">
+                        <i class="fas fa-phone me-2"></i>Soporte: 16519
+                    </a>
+                </div>
+                
+                <div class="social-links">
+                    <button type="button" class="social-link" id="facebookBtn" aria-label="Facebook">
+                        <i class="fab fa-facebook-f"></i>
+                    </button>
+                    <button type="button" class="social-link" id="twitterBtn" aria-label="Twitter">
+                        <i class="fab fa-twitter"></i>
+                    </button>
+                    <button type="button" class="social-link" id="instagramBtn" aria-label="Instagram">
+                        <i class="fab fa-instagram"></i>
+                    </button>
+                    <button type="button" class="social-link" id="linkedinBtn" aria-label="LinkedIn">
+                        <i class="fab fa-linkedin-in"></i>
+                    </button>
+                </div>
             </div>
-
-            <!-- Iconos de contacto -->
-            <div class="mt-4 d-flex align-items-center">
-                <span class="me-3">📞 16519</span>
-                <a href="#"><i class="bi bi-facebook me-2"></i></a>
-                <a href="#"><i class="bi bi-youtube me-2"></i></a>
-                <a href="#"><i class="bi bi-linkedin me-2"></i></a>
-                <a href="#"><i class="bi bi-instagram"></i></a>
+            
+            <div class="col-lg-6 text-center mt-5 mt-lg-0">
+                <img src="https://images.unsplash.com/photo-1581276879432-15e50529f34b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80" 
+                     alt="LifeHub App" class="img-fluid rounded shadow hero-image">
             </div>
-        </div>
-
-        <!-- Sección derecha -->
-        <div class="col-md-6 d-flex justify-content-center align-items-center bg-light">
-            <img src="~/images/chica.png" alt="Persona usando app" class="img-fluid rounded">
         </div>
     </div>
-</div>
+</section>
+
+    <!-- Features Section -->
+    <section id="beneficios" class="features-section">
+        <div class="container">
+            <h2 class="section-title">Todo lo que necesitas en una sola app</h2>
+            <p class="section-subtitle">LifeHub combina todas las herramientas esenciales para gestionar tu vida diaria de manera efectiva</p>
+            
+            <div class="row">
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-tasks"></i>
+                        </div>
+                        <h3>Gestión de Hábitos</h3>
+                        <p>Crea y mantén rutinas saludables con seguimiento y recordatorios personalizados.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-wallet"></i>
+                        </div>
+                        <h3>Control Financiero</h3>
+                        <p>Administra tus ingresos, gastos y ahorros con herramientas intuitivas.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-heartbeat"></i>
+                        </div>
+                        <h3>Seguimiento de Salud</h3>
+                        <p>Monitorea tu actividad física, alimentación y bienestar general.</p>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h3>Comunidad</h3>
+                        <p>Conecta con otros usuarios, comparte logros y participa en desafíos.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Funcionalidades Section -->
+    <section id="funcionalidades" class="funcionalidades-section">
+        <div class="container">
+            <h2 class="section-title">Nuestras Funcionalidades</h2>
+            <p class="section-subtitle">Descubre cómo nuestras herramientas se complementan para transformar tu vida</p>
+            
+            <div class="row align-items-start">
+                <div class="col-lg-7">
+                    <div class="timeline-container">
+                        <div class="timeline">
+                            <!-- Gestión de Hábitos -->
+                            <div class="timeline-item">
+                                <div class="timeline-icon">
+                                    <i class="fas fa-tasks"></i>
+                                </div>
+                                <div class="timeline-content">
+                                    <div class="timeline-header" data-bs-toggle="collapse" href="#habitos-timeline" data-image="https://images.unsplash.com/photo-1581276879432-15e50529f34b?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80">
+                                        <h4>Gestión de Hábitos</h4>
+                                        <i class="fas fa-chevron-down"></i>
+                                    </div>
+                                    <p class="timeline-description">Seguimiento diario, recordatorios y reportes de progreso.</p>
+                                    <div class="collapse" id="habitos-timeline">
+                                        <div class="timeline-details">
+                                            <h5>¿Qué incluye?</h5>
+                                            <ul>
+                                                <li><i class="fas fa-check-circle"></i> Creación y seguimiento de hábitos</li>
+                                                <li><i class="fas fa-check-circle"></i> Recordatorios personalizados</li>
+                                                <li><i class="fas fa-check-circle"></i> Estadísticas de progreso</li>
+                                                <li><i class="fas fa-check-circle"></i> Desafíos semanales y mensuales</li>
+                                            </ul>
+                                            <div class="timeline-benefit">
+                                                <i class="fas fa-lightbulb"></i>
+                                                <span><strong>Beneficio:</strong> Desarrolla rutinas consistentes</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Control Financiero -->
+                            <div class="timeline-item">
+                                <div class="timeline-icon">
+                                    <i class="fas fa-chart-pie"></i>
+                                </div>
+                                <div class="timeline-content">
+                                    <div class="timeline-header" data-bs-toggle="collapse" href="#finanzas-timeline" data-image="https://images.unsplash.com/photo-1554224155-6726b3ff858f?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80">
+                                        <h4>Control Financiero</h4>
+                                        <i class="fas fa-chevron-down"></i>
+                                    </div>
+                                    <p class="timeline-description">Presupuestos, ahorros y visualización inteligente de gastos.</p>
+                                    <div class="collapse" id="finanzas-timeline">
+                                        <div class="timeline-details">
+                                            <h5>¿Qué incluye?</h5>
+                                            <ul>
+                                                <li><i class="fas fa-check-circle"></i> Registro de ingresos y gastos</li>
+                                                <li><i class="fas fa-check-circle"></i> Presupuestos personalizados</li>
+                                                <li><i class="fas fa-check-circle"></i> Alertas de gastos excesivos</li>
+                                                <li><i class="fas fa-check-circle"></i> Planificación de metas de ahorro</li>
+                                            </ul>
+                                            <div class="timeline-benefit">
+                                                <i class="fas fa-lightbulb"></i>
+                                                <span><strong>Beneficio:</strong> Alcanza libertad financiera</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Seguimiento de Salud -->
+                            <div class="timeline-item">
+                                <div class="timeline-icon">
+                                    <i class="fas fa-heartbeat"></i>
+                                </div>
+                                <div class="timeline-content">
+                                    <div class="timeline-header" data-bs-toggle="collapse" href="#salud-timeline" data-image="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80">
+                                        <h4>Seguimiento de Salud</h4>
+                                        <i class="fas fa-chevron-down"></i>
+                                    </div>
+                                    <p class="timeline-description">Monitoreo integral de tu bienestar físico y mental.</p>
+                                    <div class="collapse" id="salud-timeline">
+                                        <div class="timeline-details">
+                                            <h5>¿Qué incluye?</h5>
+                                            <ul>
+                                                <li><i class="fas fa-check-circle"></i> Registro de actividad física</li>
+                                                <li><i class="fas fa-check-circle"></i> Seguimiento de alimentación</li>
+                                                <li><i class="fas fa-check-circle"></i> Monitoreo de patrones de sueño</li>
+                                                <li><i class="fas fa-check-circle"></i> Integración con wearables</li>
+                                            </ul>
+                                            <div class="timeline-benefit">
+                                                <i class="fas fa-lightbulb"></i>
+                                                <span><strong>Beneficio:</strong> Mejora tu calidad de vida</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Comunidad LifeHub -->
+                            <div class="timeline-item">
+                                <div class="timeline-icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="timeline-content">
+                                    <div class="timeline-header" data-bs-toggle="collapse" href="#comunidad-timeline" data-image="https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80">
+                                        <h4>Comunidad LifeHub</h4>
+                                        <i class="fas fa-chevron-down"></i>
+                                    </div>
+                                    <p class="timeline-description">Conecta, comparte y crece con personas con objetivos similares.</p>
+                                    <div class="collapse" id="comunidad-timeline">
+                                        <div class="timeline-details">
+                                            <h5>¿Qué incluye?</h5>
+                                            <ul>
+                                                <li><i class="fas fa-check-circle"></i> Grupos de interés</li>
+                                                <li><i class="fas fa-check-circle"></i> Retos comunitarios</li>
+                                                <li><i class="fas fa-check-circle"></i> Compartición de logros</li>
+                                                <li><i class="fas fa-check-circle"></i> Eventos y meetups</li>
+                                            </ul>
+                                            <div class="timeline-benefit">
+                                                <i class="fas fa-lightbulb"></i>
+                                                <span><strong>Beneficio:</strong> Encuentra motivación y apoyo</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-5">
+                    <div class="timeline-visual">
+                        <div class="visual-container">
+                            <img id="timeline-image" src="https://images.unsplash.com/photo-1506784983877-45594efa4cbe?ixlib=rb-4.0.3&auto=format&fit=crop&w=500&q=80" 
+                                 alt="LifeHub Funcionalidades" class="img-fluid rounded">
+                            <div class="visual-overlay">
+                                <h5>LifeHub Experience</h5>
+                                <p>Selecciona cada funcionalidad para descubrir más</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+<!-- Planes de Pago Section -->
+<section id="planes" class="pricing-section">
+    <div class="container">
+        <h2 class="section-title">Planes de Pago</h2>
+        <p class="section-subtitle">Elige el plan perfecto para transformar tu vida organizada</p>
+        
+        <div class="row justify-content-center">
+            @if (Model != null && Model.Any())
+            {
+                foreach (var plan in Model.OrderBy(p => p.Price))
+                {
+                    <div class="col-lg-5 col-xl-4 mb-4">
+                        <div class="pricing-card @(plan.IsFeatured ? "premium" : "")" style="border-color: @plan.ColorCode">
+                            <div class="pricing-header" style="background-color: @plan.ColorCode">
+                                @if (plan.IsFeatured)
+                                {
+                                    <div class="pricing-badge premium">Recomendado</div>
+                                }
+                                else if (plan.Price == 0)
+                                {
+                                    <div class="pricing-badge">Popular</div>
+                                }
+                                
+                                <h3>@plan.Name</h3>
+                                <div class="price-container">
+                                    <span class="price-currency">$</span>
+                                    <span class="price">@plan.Price.ToString("0.00")</span>
+                                    <span class="price-period">/@plan.Period</span>
+                                </div>
+                                <p class="price-description">@plan.ShortDescription</p>
+                            </div>
+                            <div class="pricing-body">
+                                <div class="pricing-features">
+                                    <div class="feature-item">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>@plan.MaxHabits hábitos @(plan.MaxHabits >= 999 ? "ilimitados" : "")</span>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>@plan.MaxTransactions transacciones/mes</span>
+                                    </div>
+                                    
+                                    <div class="feature-item">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>@plan.StorageMB MB almacenamiento</span>
+                                    </div>
+                                    
+                                    @if (plan.HasCommunityAccess)
+                                    {
+                                        <div class="feature-item">
+                                            <i class="fas fa-check-circle"></i>
+                                            <span>Comunidad completa</span>
+                                        </div>
+                                    }
+                                    
+                                    @if (plan.HasAIFeatures)
+                                    {
+                                        <div class="feature-item">
+                                            <i class="fas fa-check-circle"></i>
+                                            <span>Análisis con IA</span>
+                                        </div>
+                                    }
+                                    
+                                    @if (plan.HasAdvancedAnalytics)
+                                    {
+                                        <div class="feature-item">
+                                            <i class="fas fa-check-circle"></i>
+                                            <span>Reportes avanzados</span>
+                                        </div>
+                                    }
+                                </div>
+                                <div class="pricing-button-container">
+                                    <a href="@Url.Action("Plan", "Home", new { id = plan.Id })"
+                                       class="btn @(plan.Price == 0 ? "btn-pricing" : plan.IsFeatured ? "btn-pricing btn-premium" : "btn-pricing")">
+                                        <i class="fas @(plan.Price == 0 ? "fa-rocket" : plan.IsFeatured ? "fa-crown" : "fa-check") me-2"></i>
+                                        @(plan.Price == 0 ? "Comenzar Gratis" : plan.IsFeatured ? "Elegir Plan" : "Ver Detalles")
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="col-12 text-center">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        No se encontraron planes de suscripción. Por favor, contacta al administrador.
+                    </div>
+                </div>
+            }
+        </div>
+        
+        <div class="text-center mt-5">
+            <p class="security-note">
+                <i class="fas fa-shield-alt me-2"></i>Todos los planes incluyen seguridad bancaria y garantía de satisfacción
+            </p>
+        </div>
+    </div>
+</section>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+@section Scripts {
+    <script>
+        // Diagnóstico avanzado
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('=== DIAGNÓSTICO BOTONES ===');
+            
+            // Verificar que los botones no estén cubiertos por otros elementos
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(btn => {
+                const rect = btn.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                // Verificar qué elemento está realmente en la posición del botón
+                const topElement = document.elementFromPoint(centerX, centerY);
+                
+                if (topElement !== btn) {
+                    console.warn('Elemento superpuesto en botón', btn.id, ':', topElement);
+                    // Solución temporal: ajustar z-index
+                    btn.style.zIndex = '1000';
+                    btn.style.position = 'relative';
+                }
+            });
+        });
+    </script>
+}

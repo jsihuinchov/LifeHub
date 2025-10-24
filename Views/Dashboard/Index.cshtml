@@ -1,0 +1,2654 @@
+@{
+    ViewData["Title"] = "Dashboard";
+    var subscription = ViewBag.UserSubscription as LifeHub.Models.UserSubscription;
+    var userEmail = ViewBag.UserEmail as string;
+    var financeSummary = ViewBag.FinanceSummary as dynamic;
+    var recentTransactions = ViewBag.RecentTransactions as List<dynamic>;
+    var hasBudgetAlerts = ViewBag.HasBudgetAlerts as bool? ?? false;
+    
+    // Datos de uso real del plan
+    var transactionUsage = ViewBag.TransactionUsage as (int current, int max)? ?? (0, 50);
+    var budgetUsage = ViewBag.BudgetUsage as (int current, int max)? ?? (0, 5);
+    var habitUsage = ViewBag.HabitUsage as (int current, int max)? ?? (0, 3);
+    
+    // Datos para módulos
+    var activeHabitsCount = ViewBag.ActiveHabitsCount ?? 0;
+    var currentStreak = ViewBag.CurrentStreak ?? 0;
+    var weeklyProgress = ViewBag.WeeklyProgress ?? 0;
+    var healthActivitiesCount = ViewBag.HealthActivitiesCount ?? 0;
+    var mealsTracked = ViewBag.MealsTracked ?? 0;
+    var dailyHealthGoal = ViewBag.DailyHealthGoal ?? 0;
+    var storageUsedMB = ViewBag.StorageUsedMB ?? 0;
+    
+    // Datos de comunidad
+    var communityMembers = ViewBag.CommunityMembers ?? 0;
+    var activeDiscussions = ViewBag.ActiveDiscussions ?? 0;
+    var communityActivity = ViewBag.CommunityActivity ?? 0;
+
+    // Información de depuración
+    var hasFinanceData = financeSummary != null;
+    var transactionCount = recentTransactions?.Count ?? 0;
+    var hasSubscription = subscription != null && subscription.Plan != null;
+}
+
+<div class="dashboard-container">
+    <!-- Header del Dashboard -->
+    <div class="dashboard-header">
+        <div class="header-content">
+            <h1 class="dashboard-title">Mi Dashboard</h1>
+            <p class="dashboard-subtitle">Bienvenido de vuelta, <strong>@userEmail</strong></p>
+        </div>
+        <div class="header-actions">
+            <div class="user-badge">
+                <i class="fas fa-user-circle me-2"></i>
+                @userEmail
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertas -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dashboard">
+            <div class="alert-content">
+                <i class="fas fa-check-circle me-2"></i>
+                <span>@TempData["SuccessMessage"]</span>
+            </div>
+            <button type="button" class="alert-close" onclick="this.parentElement.style.display='none'">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    }
+
+    <!-- Contenido Principal -->
+    <div class="dashboard-content">
+        <!-- Columna Izquierda - Información del Plan -->
+        <div class="dashboard-sidebar">
+            <!-- Tarjeta de Plan Actual -->
+            <div class="dashboard-card plan-card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-crown me-2"></i>
+                        Mi Plan Actual
+                    </h3>
+                </div>
+                <div class="card-body">
+                    @if (subscription != null && subscription.Plan != null)
+                    {
+                        <div class="plan-info">
+                            <div class="plan-badge" style="background: @subscription.Plan.ColorCode;">
+                                <i class="fas fa-gem"></i>
+                                <span>@subscription.Plan.Name</span>
+                            </div>
+                            
+                            <div class="plan-price">
+                                @subscription.Plan.FormattedPrice<small>/@subscription.Plan.Period</small>
+                            </div>
+                            
+                            <div class="plan-features">
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        <i class="fas fa-tasks"></i>
+                                    </div>
+                                    <div class="feature-content">
+                                        <span class="feature-value">@(subscription.Plan.MaxHabits >= 9999 ? "Ilimitados" : subscription.Plan.MaxHabits.ToString())</span>
+                                        <span class="feature-label">Hábitos</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        <i class="fas fa-exchange-alt"></i>
+                                    </div>
+                                    <div class="feature-content">
+                                        <span class="feature-value">@(subscription.Plan.MaxTransactions >= 9999 ? "Ilimitadas" : subscription.Plan.MaxTransactions.ToString())</span>
+                                        <span class="feature-label">Transacciones</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        <i class="fas fa-wallet"></i>
+                                    </div>
+                                    <div class="feature-content">
+                                        <span class="feature-value">@subscription.Plan.MaxBudgets</span>
+                                        <span class="feature-label">Presupuestos</span>
+                                    </div>
+                                </div>
+
+                                <div class="feature-item">
+                                    <div class="feature-icon">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                    <div class="feature-content">
+                                        <span class="feature-value">@(subscription.Plan.HasCommunityAccess ? "Incluido" : "No incluido")</span>
+                                        <span class="feature-label">Comunidad</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="plan-status">
+                                <div class="status-item">
+                                    <span class="status-label">Estado:</span>
+                                    <span class="status-value badge-active">Activo</span>
+                                </div>
+                                <div class="status-item">
+                                    <span class="status-label">Renovación:</span>
+                                    <span class="status-value">@subscription.EndDate.ToString("dd/MM/yyyy")</span>
+                                </div>
+                                <div class="status-item">
+                                    <span class="status-label">Días restantes:</span>
+                                    <span class="status-value">
+                                        @{
+                                            var daysLeft = subscription.DaysRemaining;
+                                            <span class="days-count @(daysLeft <= 7 ? "warning" : "")">@daysLeft días</span>
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="no-plan">
+                            <div class="no-plan-icon">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <h4>Sin Plan Activo</h4>
+                            <p>Selecciona un plan para desbloquear todas las funcionalidades</p>
+                        </div>
+                    }
+                </div>
+                <div class="card-footer">
+                    <a href="@Url.Action("Index", "Plans")" class="btn btn-primary btn-block">
+                        <i class="fas fa-sync-alt me-2"></i>
+                        @(subscription != null ? "Cambiar Plan" : "Seleccionar Plan")
+                    </a>
+                </div>
+            </div>
+
+            <!-- Tarjeta de Uso del Plan REAL -->
+            @if (subscription != null && subscription.Plan != null)
+            {
+                <div class="dashboard-card usage-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-chart-pie me-2"></i>
+                            Uso del Plan
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="usage-stats">
+                            <div class="usage-item">
+                                <div class="usage-label">
+                                    <i class="fas fa-exchange-alt me-2"></i>
+                                    <span>Transacciones</span>
+                                </div>
+                                <div class="usage-bar">
+                                    @{
+                                        var transactionUsagePercent = subscription.Plan.MaxTransactions > 0 ? 
+                                            Math.Min((transactionUsage.current * 100) / subscription.Plan.MaxTransactions, 100) : 0;
+                                    }
+                                    <div class="usage-fill @(transactionUsagePercent >= 80 ? "warning" : "")" 
+                                         style="width: @transactionUsagePercent%"
+                                         title="@transactionUsage.current de @subscription.Plan.MaxTransactions transacciones usadas">
+                                    </div>
+                                </div>
+                                <div class="usage-value">
+                                    @transactionUsage.current/@subscription.Plan.MaxTransactions
+                                </div>
+                            </div>
+                            
+                            <div class="usage-item">
+                                <div class="usage-label">
+                                    <i class="fas fa-wallet me-2"></i>
+                                    <span>Presupuestos</span>
+                                </div>
+                                <div class="usage-bar">
+                                    @{
+                                        var budgetUsagePercent = subscription.Plan.MaxBudgets > 0 ? 
+                                            Math.Min((budgetUsage.current * 100) / subscription.Plan.MaxBudgets, 100) : 0;
+                                    }
+                                    <div class="usage-fill @(budgetUsagePercent >= 80 ? "warning" : "")" 
+                                         style="width: @budgetUsagePercent%"
+                                         title="@budgetUsage.current de @subscription.Plan.MaxBudgets presupuestos usados">
+                                    </div>
+                                </div>
+                                <div class="usage-value">
+                                    @budgetUsage.current/@subscription.Plan.MaxBudgets
+                                </div>
+                            </div>
+                            
+                            <div class="usage-item">
+                                <div class="usage-label">
+                                    <i class="fas fa-tasks me-2"></i>
+                                    <span>Hábitos</span>
+                                </div>
+                                <div class="usage-bar">
+                                    @{
+                                        var habitUsagePercent = subscription.Plan.MaxHabits > 0 ? 
+                                            Math.Min((habitUsage.current * 100) / subscription.Plan.MaxHabits, 100) : 0;
+                                    }
+                                    <div class="usage-fill @(habitUsagePercent >= 80 ? "warning" : "")" 
+                                         style="width: @habitUsagePercent%"
+                                         title="@habitUsage.current de @subscription.Plan.MaxHabits hábitos usados">
+                                    </div>
+                                </div>
+                                <div class="usage-value">
+                                    @habitUsage.current/@(subscription.Plan.MaxHabits >= 9999 ? "∞" : subscription.Plan.MaxHabits.ToString())
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Tarjeta de Resumen Financiero REAL -->
+            <div class="dashboard-card stats-card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Resumen Financiero
+                    </h3>
+                    <a href="@Url.Action("Index", "Finance")" class="btn btn-link btn-sm">Ver Detalles</a>
+                </div>
+                <div class="card-body">
+                    @if (financeSummary != null && financeSummary.TotalTransactions > 0)
+                    {
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-icon income">
+                                    <i class="fas fa-arrow-up"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <span class="stat-number">@financeSummary.TotalIncome.ToString("C")</span>
+                                    <span class="stat-label">Ingresos</span>
+                                    @if (financeSummary.IncomeGrowth > 0)
+                                    {
+                                        <span class="stat-trend positive">+@financeSummary.IncomeGrowth.ToString("N1")%</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-icon expense">
+                                    <i class="fas fa-arrow-down"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <span class="stat-number">@financeSummary.TotalExpenses.ToString("C")</span>
+                                    <span class="stat-label">Gastos</span>
+                                    @if (financeSummary.ExpenseGrowth != 0)
+                                    {
+                                        <span class="stat-trend @(financeSummary.ExpenseGrowth > 0 ? "negative" : "positive")">
+                                            @(financeSummary.ExpenseGrowth > 0 ? "+" : "")@financeSummary.ExpenseGrowth.ToString("N1")%
+                                        </span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-icon @(financeSummary.NetAmount >= 0 ? "balance-positive" : "balance-negative")">
+                                    <i class="fas fa-balance-scale"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <span class="stat-number">@financeSummary.NetAmount.ToString("C")</span>
+                                    <span class="stat-label">Balance</span>
+                                    <span class="stat-trend @(financeSummary.NetAmount >= 0 ? "positive" : "negative")">
+                                        @(financeSummary.NetAmount >= 0 ? "Positivo" : "Negativo")
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        @if (hasBudgetAlerts)
+                        {
+                            <div class="alert alert-warning mt-3">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Tienes presupuestos cerca de su límite
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="no-data">
+                            <i class="fas fa-chart-line fa-2x mb-2"></i>
+                            <p>No hay datos financieros</p>
+                            <a href="@Url.Action("CreateTransaction", "Finance")" class="btn btn-outline-primary btn-sm mt-2">
+                                <i class="fas fa-plus me-1"></i>Agregar Transacción
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna Derecha - Módulos y Contenido -->
+        <div class="dashboard-main">
+            <!-- Tarjeta de Módulos Disponibles -->
+            <div class="dashboard-card modules-card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-th-large me-2"></i>
+                        Módulos Disponibles
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="modules-grid">
+                        <!-- Módulo de Hábitos -->
+                        <div class="module-item">
+                            <div class="module-icon habit-icon">
+                                <i class="fas fa-tasks"></i>
+                            </div>
+                            <div class="module-content">
+                                <h4>Gestión de Hábitos</h4>
+                                <p>Crea y sigue tus rutinas diarias para construir hábitos positivos</p>
+                                <div class="module-stats">
+                                    <span class="stat"><i class="fas fa-check-circle"></i> @activeHabitsCount activos</span>
+                                    <span class="stat"><i class="fas fa-fire"></i> Racha: @currentStreak días</span>
+                                </div>
+                                <div class="module-progress">
+                                    <div class="progress-text">Progreso semanal: @weeklyProgress%</div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: @weeklyProgress%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <a href="@Url.Action("Index", "Habits")" class="btn btn-module">
+                                <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                        
+                        <!-- Módulo de Finanzas -->
+                        <div class="module-item">
+                            <div class="module-icon finance-icon">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                            <div class="module-content">
+                                <h4>Control Financiero</h4>
+                                <p>Gestiona tus ingresos, gastos y alcanza tus metas financieras</p>
+                                <div class="module-stats">
+                                    <span class="stat">
+                                        <i class="fas fa-exchange-alt"></i> 
+                                        @(financeSummary?.TotalTransactions ?? 0) transacciones
+                                    </span>
+                                    <span class="stat">
+                                        <i class="fas fa-chart-line"></i> 
+                                        @((financeSummary?.NetAmount ?? 0) >= 0 ? "Positivo" : "Negativo")
+                                    </span>
+                                </div>
+                                <div class="module-progress">
+                                    <div class="progress-text">Meta mensual: @(financeSummary?.MonthlyGoalProgress?.ToString("N0") ?? "0")%</div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: @(financeSummary?.MonthlyGoalProgress ?? 0)%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <a href="@Url.Action("Index", "Finance")" class="btn btn-module">
+                                <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                        
+                        <!-- Módulo de Salud -->
+                        <div class="module-item">
+                            <div class="module-icon health-icon">
+                                <i class="fas fa-heartbeat"></i>
+                            </div>
+                            <div class="module-content">
+                                <h4>Seguimiento de Salud</h4>
+                                <p>Monitorea tu actividad física, alimentación y bienestar mental</p>
+                                <div class="module-stats">
+                                    <span class="stat"><i class="fas fa-running"></i> @healthActivitiesCount actividades</span>
+                                    <span class="stat"><i class="fas fa-apple-alt"></i> @mealsTracked comidas</span>
+                                </div>
+                                <div class="module-progress">
+                                    <div class="progress-text">Objetivo diario: @dailyHealthGoal%</div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: @dailyHealthGoal%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <a href="@Url.Action("Index", "Health")" class="btn btn-module">
+                                <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                        
+                        <!-- Módulo de Comunidad -->
+                        <div class="module-item @(ShouldShowCommunity(subscription) ? "" : "module-disabled")">
+                            <div class="module-icon community-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="module-content">
+                                <h4>Comunidad</h4>
+                                <p>Conecta con otros usuarios, comparte progresos y motívate</p>
+                                <div class="module-stats">
+                                    @if (ShouldShowCommunity(subscription))
+                                    {
+                                        <span class="stat"><i class="fas fa-user-friends"></i> @communityMembers miembros</span>
+                                        <span class="stat"><i class="fas fa-comments"></i> @activeDiscussions discusiones</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="stat premium-badge">
+                                            <i class="fas fa-crown me-1"></i> Requiere Plan Premium
+                                        </span>
+                                    }
+                                </div>
+                                @if (ShouldShowCommunity(subscription))
+                                {
+                                    <div class="module-progress">
+                                        <div class="progress-text">Actividad: @communityActivity%</div>
+                                        <div class="progress-bar">
+                                            <div class="progress-fill" style="width: @communityActivity%"></div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                            @if (ShouldShowCommunity(subscription))
+                            {
+                                <a href="@Url.Action("Index", "Community")" class="btn btn-module">
+                                    <i class="fas fa-arrow-right"></i>
+                                </a>
+                            }
+                            else
+                            {
+                                <a href="@Url.Action("Index", "Plans")" class="btn btn-module disabled" title="Actualiza tu plan para acceder a la comunidad">
+                                    <i class="fas fa-lock"></i>
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tarjeta de Actividad Reciente -->
+            <div class="dashboard-card activity-card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-history me-2"></i>
+                        Actividad Reciente
+                        @{
+                            var transactions = ViewBag.RecentTransactions as List<LifeHub.Models.Entities.FinancialTransaction>;
+                            var hasTransactions = transactions != null && transactions.Any();
+                            var transactionCountDebug = transactions?.Count ?? 0;
+                        }
+                        
+                        @if (hasTransactions)
+                        {
+                            <span class="badge bg-primary ms-2">@transactionCountDebug</span>
+                        }
+                    </h3>
+                    <a href="@Url.Action("Transactions", "Finance")" class="btn btn-link btn-sm">Ver Todo</a>
+                </div>
+                <div class="card-body">
+                    <div class="activity-list">
+                        @if (hasTransactions)
+                        {
+                            foreach (var transaction in transactions.Take(5))
+                            {
+                                <div class="activity-item">
+                                    <div class="activity-icon @(transaction.TransactionType == 0 ? "success" : "info")">
+                                        <i class="fas fa-@(transaction.TransactionType == 0 ? "arrow-up" : "arrow-down")"></i>
+                                    </div>
+                                    <div class="activity-content">
+                                        <p class="mb-1"><strong>@transaction.Description</strong></p>
+                                        <div class="activity-meta">
+                                            <span class="activity-amount @(transaction.TransactionType == 0 ? "text-success" : "text-info")">
+                                                @(transaction.TransactionType == 0 ? "+" : "-")@transaction.Amount.ToString("C")
+                                            </span>
+                                            <span class="activity-category">• @(transaction.Category ?? "General")</span>
+                                            <span class="activity-date">• @transaction.TransactionDate.ToString("dd/MM HH:mm")</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else if (financeSummary?.TotalTransactions > 0)
+                        {
+                            <div class="no-data">
+                                <i class="fas fa-exclamation-triangle fa-2x mb-2 text-warning"></i>
+                                <h6>Problema al cargar transacciones</h6>
+                                <p class="small text-muted mb-2">
+                                    El resumen reporta @financeSummary.TotalTransactions transacciones, pero no se pudieron cargar los detalles.
+                                </p>
+                                <div class="mt-2">
+                                    <a href="@Url.Action("Transactions", "Finance")" class="btn btn-primary btn-sm me-2">
+                                        <i class="fas fa-exchange-alt me-1"></i>Ver Transacciones
+                                    </a>
+                                    <a href="@Url.Action("CreateTransaction", "Finance")" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-plus me-1"></i>Nueva Transacción
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="no-data">
+                                <i class="fas fa-history fa-2x mb-2"></i>
+                                <h6>No hay actividad reciente</h6>
+                                <p class="small text-muted mb-3">
+                                    Comienza registrando tus primeras transacciones financieras
+                                </p>
+                                <a href="@Url.Action("CreateTransaction", "Finance")" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus me-1"></i>Crear Primera Transacción
+                                </a>
+                            </div>
+                        }
+                    </div>
+                    
+                    @if (hasTransactions)
+                    {
+                        <div class="text-center mt-3">
+                            <a href="@Url.Action("Transactions", "Finance")" class="btn btn-outline-primary btn-sm me-2">
+                                <i class="fas fa-exchange-alt me-1"></i>Ver Todas las Transacciones
+                            </a>
+                            <a href="@Url.Action("CreateTransaction", "Finance")" class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-plus me-1"></i>Nueva Transacción
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- ✅ NUEVA UBICACIÓN: Sección de Hábitos Favoritos en Dashboard -->
+            <div class="dashboard-card favorites-dashboard-card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-star me-2"></i>
+                        Hábitos Favoritos
+                    </h3>
+                    <a href="@Url.Action("Index", "Habits")" class="btn btn-link btn-sm">Ver Todos</a>
+                </div>
+                <div class="card-body">
+                    <div class="favorites-dashboard-grid" id="dashboardFavorites">
+                        <!-- Los favoritos se cargarán con JavaScript -->
+                    </div>
+                    <div class="no-favorites-dashboard" id="noDashboardFavorites">
+                        <i class="fas fa-star fa-2x mb-2"></i>
+                        <p>No tienes hábitos favoritos</p>
+                        <a href="@Url.Action("Index", "Habits")" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-plus me-1"></i>Gestionar Hábitos
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        /* Contenedor Principal */
+        .dashboard-container {
+            min-height: 100vh;
+            background: #f8fafc;
+            padding: 2rem;
+        }
+
+        /* Header del Dashboard */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 0 1rem;
+        }
+
+        .header-content {
+            flex: 1;
+        }
+
+        .dashboard-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .dashboard-subtitle {
+            font-size: 1.2rem;
+            color: #64748b;
+            margin: 0;
+        }
+
+        .user-badge {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            background: white;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .user-badge i {
+            color: #4361ee;
+            font-size: 1.2rem;
+        }
+
+        /* ✅ NUEVO: Estilos para Favoritos en Dashboard */
+        .favorites-dashboard-card {
+            margin-bottom: 2rem;
+        }
+
+        .favorites-dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .favorite-dashboard-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: #fffbf0;
+            border: 2px solid #fef3c7;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .favorite-dashboard-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.15);
+        }
+
+        .favorite-dashboard-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .favorite-dashboard-content {
+            flex: 1;
+        }
+
+        .favorite-dashboard-content h5 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.25rem;
+        }
+
+        .favorite-dashboard-streak {
+            font-size: 0.8rem;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .favorite-dashboard-streak.completed {
+            color: #10b981;
+        }
+
+        .btn-complete-dashboard {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+        }
+
+        .btn-complete-dashboard:hover {
+            transform: scale(1.05);
+        }
+
+        .no-favorites-dashboard {
+            text-align: center;
+            padding: 2rem;
+            color: #64748b;
+        }
+
+        .no-favorites-dashboard i {
+            color: #fbbf24;
+            margin-bottom: 1rem;
+        }
+        /* Contenedor Principal */
+        .dashboard-container {
+            min-height: 100vh;
+            background: #f8fafc;
+            padding: 2rem;
+        }
+
+        /* Header del Dashboard */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 0 1rem;
+        }
+
+        .header-content {
+            flex: 1;
+        }
+
+        .dashboard-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .dashboard-subtitle {
+            font-size: 1.2rem;
+            color: #64748b;
+            margin: 0;
+        }
+
+        .user-badge {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            background: white;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .user-badge i {
+            color: #4361ee;
+            font-size: 1.2rem;
+        }
+
+        /* Alertas */
+        .alert-dashboard {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 2rem;
+            color: #065f46;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15);
+        }
+
+        .alert-content {
+            display: flex;
+            align-items: center;
+        }
+
+        .alert-close {
+            background: none;
+            border: none;
+            color: #065f46;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .alert-close:hover {
+            background: rgba(6, 95, 70, 0.1);
+        }
+
+        /* Layout del Contenido */
+        .dashboard-content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+        }
+
+        /* Tarjetas */
+        .dashboard-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            border: 1px solid #f1f5f9;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .card-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #f1f5f9;
+            background: #f8fafc;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .card-title i {
+            color: #4361ee;
+        }
+
+        .card-body {
+            padding: 2rem;
+        }
+
+        .card-footer {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #f1f5f9;
+            background: #f8fafc;
+        }
+
+        /* Tarjeta de Plan - CORREGIDA */
+        .plan-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            color: white;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .plan-price {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .plan-price small {
+            font-size: 1rem;
+            color: #64748b;
+            font-weight: 400;
+        }
+
+        .plan-features {
+            space-y: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #f1f5f9;
+        }
+
+        .feature-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .feature-content {
+            flex: 1;
+        }
+
+        .feature-value {
+            display: block;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .feature-label {
+            display: block;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .plan-status {
+            space-y: 1rem;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .status-value {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .badge-active {
+            background: #10b981;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .days-count {
+            color: #f59e0b;
+            font-weight: 700;
+        }
+
+        .days-count.warning {
+            color: #ef4444;
+            font-weight: 700;
+        }
+
+        .no-plan {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .no-plan-icon {
+            width: 80px;
+            height: 80px;
+            background: #fef3c7;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            color: #f59e0b;
+            font-size: 2rem;
+        }
+
+        .no-plan h4 {
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .no-plan p {
+            color: #64748b;
+            margin: 0;
+        }
+
+        /* Estadísticas */
+        .stats-grid {
+            space-y: 1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #f1f5f9;
+            transition: all 0.3s ease;
+        }
+
+        .stat-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .stat-icon.income { background: linear-gradient(135deg, #10b981, #059669); }
+        .stat-icon.expense { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .stat-icon.balance-positive { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+        .stat-icon.balance-negative { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+        .stat-number {
+            display: block;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .stat-label {
+            display: block;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .stat-trend {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 0.25rem;
+        }
+
+        .stat-trend.positive {
+            color: #10b981;
+        }
+
+        .stat-trend.negative {
+            color: #ef4444;
+        }
+
+        /* Progress Bars */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0.5rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill.positive { background: linear-gradient(135deg, #10b981, #059669); }
+        .progress-fill.negative { background: linear-gradient(135deg, #ef4444, #dc2626); }
+
+        /* Uso del Plan */
+        .usage-stats {
+            space-y: 1rem;
+        }
+
+        .usage-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .usage-label {
+            display: flex;
+            align-items: center;
+            width: 120px;
+            font-weight: 500;
+            color: #64748b;
+        }
+
+        .usage-bar {
+            flex: 1;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .usage-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .usage-fill.warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+        }
+
+        .usage-value {
+            width: 80px;
+            text-align: right;
+            font-size: 0.9rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        /* Módulos */
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .module-item {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: #f8fafc;
+            border-radius: 16px;
+            border: 1px solid #f1f5f9;
+            transition: all 0.3s ease;
+        }
+
+        .module-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border-color: #4361ee;
+        }
+
+        .module-item.module-disabled {
+            opacity: 0.6;
+            background: #f1f5f9;
+        }
+
+        .module-item.module-disabled:hover {
+            transform: none;
+            box-shadow: none;
+            border-color: #f1f5f9;
+        }
+
+        .module-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.8rem;
+            flex-shrink: 0;
+        }
+
+        .habit-icon { background: linear-gradient(135deg, #4361ee, #3a0ca3); }
+        .finance-icon { background: linear-gradient(135deg, #10b981, #059669); }
+        .health-icon { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .community-icon { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+        .module-content {
+            flex: 1;
+        }
+
+        .module-content h4 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .module-content p {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .module-stats {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.75rem;
+        }
+
+        .module-stats .stat {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        .module-stats .stat i {
+            color: #10b981;
+        }
+
+        .premium-badge {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .module-progress {
+            margin-top: 0.5rem;
+        }
+
+        .progress-text {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-bottom: 0.25rem;
+        }
+
+        .btn-module {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            text-decoration: none;
+        }
+
+        .btn-module:hover {
+            background: #4361ee;
+            border-color: #4361ee;
+            color: white;
+            transform: translateX(4px);
+        }
+
+        .btn-module.disabled {
+            background: #e2e8f0;
+            border-color: #cbd5e1;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .btn-module.disabled:hover {
+            transform: none;
+            background: #e2e8f0;
+            border-color: #cbd5e1;
+            color: #94a3b8;
+        }
+
+        /* Actividad Reciente */
+        .activity-list {
+            space-y: 1rem;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #f1f5f9;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            flex-shrink: 0;
+            margin-top: 0.25rem;
+        }
+
+        .activity-icon.success { background: #10b981; }
+        .activity-icon.info { background: #3b82f6; }
+        .activity-icon.warning { background: #f59e0b; }
+        .activity-icon.secondary { background: #64748b; }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-content p {
+            margin: 0 0 0.25rem 0;
+            color: #1e293b;
+        }
+
+        .activity-time {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        /* Metas */
+        .goals-list {
+            space-y: 1.5rem;
+        }
+
+        .goal-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #f1f5f9;
+        }
+
+        .goal-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .goal-content {
+            flex: 1;
+        }
+
+        .goal-content h5 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .goal-content p {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .goal-progress {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .goal-progress .progress-bar {
+            flex: 1;
+            margin: 0;
+        }
+
+        .goal-progress span {
+            font-size: 0.8rem;
+            color: #64748b;
+            font-weight: 500;
+            min-width: 80px;
+        }
+
+        /* Estados sin datos */
+        .no-data {
+            text-align: center;
+            padding: 2rem;
+            color: #64748b;
+        }
+
+        .no-data i {
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .no-data p {
+            margin-bottom: 1rem;
+        }
+
+        .no-data .small {
+            font-size: 0.9rem;
+        }
+
+        /* Botones */
+        .btn-block {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 2rem;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.3);
+            color: white;
+            text-decoration: none;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+        }
+
+        .btn-link.btn-sm {
+            font-size: 0.8rem;
+            padding: 0;
+        }
+
+        /* Responsive */
+        @@media (max-width: 1200px) {
+            .dashboard-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-sidebar {
+                order: 2;
+            }
+            
+            .dashboard-main {
+                order: 1;
+            }
+        }
+
+        @@media (max-width: 768px) {
+            .dashboard-container {
+                padding: 1rem;
+            }
+            
+            .dashboard-header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+            
+            .dashboard-title {
+                font-size: 2rem;
+            }
+            
+            .modules-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .module-item {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .module-stats {
+                justify-content: center;
+            }
+
+            .usage-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .usage-label {
+                width: 100%;
+            }
+
+            .usage-bar {
+                width: 100%;
+            }
+
+            .usage-value {
+                width: 100%;
+                text-align: left;
+            }
+        }
+
+        @@media (max-width: 480px) {
+            .dashboard-title {
+                font-size: 1.8rem;
+            }
+            
+            .card-body {
+                padding: 1.5rem;
+            }
+            
+            .feature-item, .stat-item, .activity-item, .goal-item {
+                flex-direction: column;
+                text-align: center;
+                gap: 0.75rem;
+            }
+
+            .module-item {
+                padding: 1rem;
+            }
+
+            .module-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+        }
+     /* Layout del Contenido */
+        .dashboard-content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+        }
+
+        /* Tarjetas */
+        .dashboard-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            border: 1px solid #f1f5f9;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .card-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #f1f5f9;
+            background: #f8fafc;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .card-title i {
+            color: #4361ee;
+        }
+
+        .card-body {
+            padding: 2rem;
+        }
+
+        .card-footer {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #f1f5f9;
+            background: #f8fafc;
+        }
+
+        /* Tarjeta de Plan */
+        .plan-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 50px;
+            color: white;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .plan-price {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .plan-price small {
+            font-size: 1rem;
+            color: #64748b;
+            font-weight: 400;
+        }
+
+        .plan-features {
+            space-y: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #f1f5f9;
+        }
+
+        .feature-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .feature-content {
+            flex: 1;
+        }
+
+        .feature-value {
+            display: block;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .feature-label {
+            display: block;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .plan-status {
+            space-y: 1rem;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .status-value {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .badge-active {
+            background: #10b981;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .days-count {
+            color: #f59e0b;
+            font-weight: 700;
+        }
+
+        .days-count.warning {
+            color: #ef4444;
+            font-weight: 700;
+        }
+
+        .no-plan {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .no-plan-icon {
+            width: 80px;
+            height: 80px;
+            background: #fef3c7;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            color: #f59e0b;
+            font-size: 2rem;
+        }
+
+        .no-plan h4 {
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .no-plan p {
+            color: #64748b;
+            margin: 0;
+        }
+
+        /* Estadísticas */
+        .stats-grid {
+            space-y: 1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #f1f5f9;
+            transition: all 0.3s ease;
+        }
+
+        .stat-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .stat-icon.income { background: linear-gradient(135deg, #10b981, #059669); }
+        .stat-icon.expense { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .stat-icon.balance-positive { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+        .stat-icon.balance-negative { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+        .stat-number {
+            display: block;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .stat-label {
+            display: block;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .stat-trend {
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 0.25rem;
+        }
+
+        .stat-trend.positive {
+            color: #10b981;
+        }
+
+        .stat-trend.negative {
+            color: #ef4444;
+        }
+
+        /* Progress Bars */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 0.5rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill.positive { background: linear-gradient(135deg, #10b981, #059669); }
+        .progress-fill.negative { background: linear-gradient(135deg, #ef4444, #dc2626); }
+
+        /* Uso del Plan */
+        .usage-stats {
+            space-y: 1rem;
+        }
+
+        .usage-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .usage-label {
+            display: flex;
+            align-items: center;
+            width: 120px;
+            font-weight: 500;
+            color: #64748b;
+        }
+
+        .usage-bar {
+            flex: 1;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .usage-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .usage-fill.warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+        }
+
+        .usage-value {
+            width: 80px;
+            text-align: right;
+            font-size: 0.9rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        /* Módulos */
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .module-item {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 1.5rem;
+            background: #f8fafc;
+            border-radius: 16px;
+            border: 1px solid #f1f5f9;
+            transition: all 0.3s ease;
+        }
+
+        .module-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            border-color: #4361ee;
+        }
+
+        .module-item.module-disabled {
+            opacity: 0.6;
+            background: #f1f5f9;
+        }
+
+        .module-item.module-disabled:hover {
+            transform: none;
+            box-shadow: none;
+            border-color: #f1f5f9;
+        }
+
+        .module-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.8rem;
+            flex-shrink: 0;
+        }
+
+        .habit-icon { background: linear-gradient(135deg, #4361ee, #3a0ca3); }
+        .finance-icon { background: linear-gradient(135deg, #10b981, #059669); }
+        .health-icon { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .community-icon { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+        .module-content {
+            flex: 1;
+        }
+
+        .module-content h4 {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .module-content p {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            line-height: 1.4;
+        }
+
+        .module-stats {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.75rem;
+        }
+
+        .module-stats .stat {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        .module-stats .stat i {
+            color: #10b981;
+        }
+
+        .premium-badge {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .module-progress {
+            margin-top: 0.5rem;
+        }
+
+        .progress-text {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin-bottom: 0.25rem;
+        }
+
+        .btn-module {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            text-decoration: none;
+        }
+
+        .btn-module:hover {
+            background: #4361ee;
+            border-color: #4361ee;
+            color: white;
+            transform: translateX(4px);
+        }
+
+        .btn-module.disabled {
+            background: #e2e8f0;
+            border-color: #cbd5e1;
+            color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        .btn-module.disabled:hover {
+            transform: none;
+            background: #e2e8f0;
+            border-color: #cbd5e1;
+            color: #94a3b8;
+        }
+
+        /* Actividad Reciente */
+        .activity-list {
+            space-y: 1rem;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #f1f5f9;
+        }
+
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            flex-shrink: 0;
+            margin-top: 0.25rem;
+        }
+
+        .activity-icon.success { background: #10b981; }
+        .activity-icon.info { background: #3b82f6; }
+        .activity-icon.warning { background: #f59e0b; }
+        .activity-icon.secondary { background: #64748b; }
+
+        .activity-content {
+            flex: 1;
+        }
+
+        .activity-content p {
+            margin: 0 0 0.25rem 0;
+            color: #1e293b;
+        }
+
+        .activity-time {
+            font-size: 0.8rem;
+            color: #64748b;
+        }
+
+        /* Metas */
+        .goals-list {
+            space-y: 1.5rem;
+        }
+
+        .goal-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #f1f5f9;
+        }
+
+        .goal-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .goal-content {
+            flex: 1;
+        }
+
+        .goal-content h5 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .goal-content p {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .goal-progress {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .goal-progress .progress-bar {
+            flex: 1;
+            margin: 0;
+        }
+
+        .goal-progress span {
+            font-size: 0.8rem;
+            color: #64748b;
+            font-weight: 500;
+            min-width: 80px;
+        }
+
+        /* Estados sin datos */
+        .no-data {
+            text-align: center;
+            padding: 2rem;
+            color: #64748b;
+        }
+
+        .no-data i {
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .no-data p {
+            margin-bottom: 1rem;
+        }
+
+        .no-data .small {
+            font-size: 0.9rem;
+        }
+
+        /* Botones */
+        .btn-block {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 2rem;
+            color: white;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.3);
+            color: white;
+            text-decoration: none;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+        }
+
+        .btn-link.btn-sm {
+            font-size: 0.8rem;
+            padding: 0;
+        }
+
+        /* Responsive */
+        @@media (max-width: 1200px) {
+            .dashboard-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-sidebar {
+                order: 2;
+            }
+            
+            .dashboard-main {
+                order: 1;
+            }
+        }
+
+        @@media (max-width: 768px) {
+            .dashboard-container {
+                padding: 1rem;
+            }
+            
+            .dashboard-header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+            
+            .dashboard-title {
+                font-size: 2rem;
+            }
+            
+            .modules-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .module-item {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .module-stats {
+                justify-content: center;
+            }
+
+            .usage-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .usage-label {
+                width: 100%;
+            }
+
+            .usage-bar {
+                width: 100%;
+            }
+
+            .usage-value {
+                width: 100%;
+                text-align: left;
+            }
+
+            .favorites-dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @@media (max-width: 480px) {
+            .dashboard-title {
+                font-size: 1.8rem;
+            }
+            
+            .card-body {
+                padding: 1.5rem;
+            }
+            
+            .feature-item, .stat-item, .activity-item, .goal-item {
+                flex-direction: column;
+                text-align: center;
+                gap: 0.75rem;
+            }
+
+            .module-item {
+                padding: 1rem;
+            }
+
+            .module-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+
+            .favorite-dashboard-item {
+                flex-direction: column;
+                text-align: center;
+                gap: 0.75rem;
+            }
+        }
+        /* Contenedor Principal */
+        .dashboard-container {
+            min-height: 100vh;
+            background: #f8fafc;
+            padding: 2rem;
+        }
+
+        /* Header del Dashboard */
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding: 0 1rem;
+        }
+
+        .header-content {
+            flex: 1;
+        }
+
+        .dashboard-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .dashboard-subtitle {
+            font-size: 1.2rem;
+            color: #64748b;
+            margin: 0;
+        }
+
+        .user-badge {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            background: white;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .user-badge i {
+            color: #4361ee;
+            font-size: 1.2rem;
+        }
+
+        /* ✅ MEJORADO: Estilos para Favoritos en Dashboard */
+        .favorites-dashboard-card {
+            margin-bottom: 0;
+        }
+
+        .favorites-dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .favorite-dashboard-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.25rem;
+            background: #fffbf0;
+            border: 2px solid #fef3c7;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .favorite-dashboard-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(245, 158, 11, 0.15);
+            border-color: #f59e0b;
+        }
+
+        .favorite-dashboard-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #f59e0b, #d97706);
+        }
+
+        .favorite-dashboard-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .favorite-dashboard-content {
+            flex: 1;
+        }
+
+        .favorite-dashboard-content h5 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .favorite-dashboard-streak {
+            font-size: 0.85rem;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+
+        .favorite-dashboard-streak.completed {
+            color: #10b981;
+        }
+
+        .btn-complete-dashboard {
+            background: linear-gradient(135deg, #10b981, #059669);
+            border: none;
+            border-radius: 10px;
+            padding: 0.75rem;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-complete-dashboard:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .no-favorites-dashboard {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: #64748b;
+        }
+
+        .no-favorites-dashboard i {
+            color: #fbbf24;
+            margin-bottom: 1rem;
+            opacity: 0.6;
+        }
+
+        .no-favorites-dashboard p {
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+        }
+
+        /* El resto del CSS permanece igual... */
+        /* Alertas */
+        .alert-dashboard {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            border: none;
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 2rem;
+            color: #065f46;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.15);
+        }
+
+        .alert-content {
+            display: flex;
+            align-items: center;
+        }
+
+        .alert-close {
+            background: none;
+            border: none;
+            color: #065f46;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .alert-close:hover {
+            background: rgba(6, 95, 70, 0.1);
+        }
+
+        /* Layout del Contenido */
+        .dashboard-content {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 2rem;
+        }
+
+        /* Tarjetas */
+        .dashboard-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            border: 1px solid #f1f5f9;
+            overflow: hidden;
+            margin-bottom: 2rem;
+        }
+
+        .card-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #f1f5f9;
+            background: #f8fafc;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .card-title i {
+            color: #4361ee;
+        }
+
+        .card-body {
+            padding: 2rem;
+        }
+
+        .card-footer {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #f1f5f9;
+            background: #f8fafc;
+        }
+
+        /* ... (el resto del CSS permanece igual) ... */
+
+        /* Responsive */
+        @@media (max-width: 1200px) {
+            .dashboard-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-sidebar {
+                order: 2;
+            }
+            
+            .dashboard-main {
+                order: 1;
+            }
+        }
+
+        @@media (max-width: 768px) {
+            .dashboard-container {
+                padding: 1rem;
+            }
+            
+            .dashboard-header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+            
+            .dashboard-title {
+                font-size: 2rem;
+            }
+            
+            .modules-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .module-item {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .module-stats {
+                justify-content: center;
+            }
+
+            .favorites-dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .favorite-dashboard-item {
+                flex-direction: column;
+                text-align: center;
+                gap: 1rem;
+                padding: 1.5rem;
+            }
+        }
+
+        @@media (max-width: 480px) {
+            .dashboard-title {
+                font-size: 1.8rem;
+            }
+            
+            .card-body {
+                padding: 1.5rem;
+            }
+            
+            .feature-item, .stat-item, .activity-item {
+                flex-direction: column;
+                text-align: center;
+                gap: 0.75rem;
+            }
+
+            .module-item {
+                padding: 1rem;
+            }
+
+            .module-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        // Cargar favoritos en el dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/Habits/GetFavorites')
+                .then(response => response.json())
+                .then(favorites => {
+                    const container = document.getElementById('dashboardFavorites');
+                    const noFavorites = document.getElementById('noDashboardFavorites');
+
+                    if (favorites.length > 0) {
+                        container.innerHTML = favorites.map(habit => `
+                            <div class="favorite-dashboard-item">
+                                <div class="favorite-dashboard-icon" style="background: ${habit.color}">
+                                    ${habit.icon}
+                                </div>
+                                <div class="favorite-dashboard-content">
+                                    <h5>${habit.name}</h5>
+                                    <div class="favorite-dashboard-streak ${habit.completedToday ? 'completed' : ''}">
+                                        <i class="fas fa-fire"></i> ${habit.streak} días
+                                    </div>
+                                </div>
+                                <button class="btn-complete-dashboard" data-habit-id="${habit.id}">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </div>
+                        `).join('');
+
+                        noFavorites.style.display = 'none';
+
+                        // Agregar eventos a los botones de completar
+                        document.querySelectorAll('.btn-complete-dashboard').forEach(button => {
+                            button.addEventListener('click', function() {
+                                const habitId = this.dataset.habitId;
+                                const today = new Date().toISOString().split('T')[0];
+                                fetch(`/Habits/ToggleCompletion/${habitId}?date=${today}`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value,
+                                        'Content-Type': 'application/json'
+                                    }
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        location.reload();
+                                    }
+                                });
+                            });
+                        });
+
+                    } else {
+                        container.style.display = 'none';
+                        noFavorites.style.display = 'block';
+                    }
+                });
+        });
+    </script>
+}
+
+@functions {
+    private bool ShouldShowCommunity(LifeHub.Models.UserSubscription subscription)
+    {
+        if (subscription?.Plan == null) return false;
+        
+        // Forzar comunidad activa para planes "Vida Máxima" o que tengan HasCommunityAccess = true
+        return subscription.Plan.HasCommunityAccess || 
+               subscription.Plan.Name?.Contains("Máxima") == true ||
+               subscription.Plan.Name?.Contains("Premium") == true;
+    }
+}
