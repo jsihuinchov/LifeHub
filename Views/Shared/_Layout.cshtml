@@ -1,57 +1,928 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - LifeHub</title>
-    <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/LifeHub.styles.css" asp-append-version="true" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Tu CSS personalizado -->
+    <link rel="stylesheet" href="~/css/lifehub.css" asp-append-version="true" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="~/js/chartManager.js" asp-append-version="true"></script>
+    <style>
+        /* ===== DROPDOWN CORREGIDO ===== */
+        .user-dropdown {
+            position: relative;
+        }
 
+        .user-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            cursor: pointer;
+            border: none;
+        }
+
+        .user-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            color: white;
+        }
+
+        .user-avatar.admin {
+            background: linear-gradient(45deg, #EF4444, #DC2626);
+        }
+
+        .user-name {
+            font-size: 0.9rem;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .dropdown-arrow {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            transition: transform 0.3s ease;
+        }
+
+        .user-toggle.show .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        /* DROPDOWN MENU - ESTILOS CORREGIDOS */
+        .user-dropdown .dropdown-menu {
+            background: white !important;
+            border: none !important;
+            border-radius: 16px !important;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.2) !important;
+            padding: 0 !important;
+            min-width: 280px;
+            margin-top: 10px !important;
+            z-index: 9999 !important;
+            display: none;
+        }
+
+        .user-dropdown .dropdown-menu.show {
+            display: block !important;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .user-avatar-large {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: white;
+        }
+
+        .user-avatar-large.admin {
+            background: linear-gradient(45deg, #EF4444, #DC2626);
+        }
+
+        .user-details {
+            flex: 1;
+        }
+
+        .user-email {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .user-status {
+            font-size: 0.8rem;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            display: inline-block;
+        }
+
+        .user-status.admin {
+            background: #EF4444;
+        }
+
+        .user-status.user {
+            background: #10B981;
+        }
+
+        /* ITEMS DEL DROPDOWN - VISIBLES */
+        .user-dropdown .dropdown-item {
+            display: flex !important;
+            align-items: center !important;
+            gap: 12px !important;
+            padding: 12px 20px !important;
+            color: #374151 !important;
+            font-weight: 500 !important;
+            transition: all 0.2s ease !important;
+            border: none !important;
+            background: white !important;
+            text-decoration: none !important;
+            font-size: 0.9rem !important;
+        }
+
+        .user-dropdown .dropdown-item i {
+            width: 18px !important;
+            color: #6B7280 !important;
+            font-size: 0.9rem !important;
+            text-align: center !important;
+        }
+
+        .user-dropdown .dropdown-item:hover {
+            background: var(--primary) !important;
+            color: white !important;
+        }
+
+        .user-dropdown .dropdown-item:hover i {
+            color: white !important;
+        }
+
+        .user-dropdown .admin-menu-item {
+            color: #EF4444 !important;
+        }
+
+        .user-dropdown .admin-menu-item:hover {
+            background: #EF4444 !important;
+            color: white !important;
+        }
+
+        .user-dropdown .logout-btn {
+            color: #EF4444 !important;
+            background: white !important;
+            border: none !important;
+            width: 100% !important;
+            text-align: left !important;
+        }
+
+        .user-dropdown .logout-btn:hover {
+            background: #EF4444 !important;
+            color: white !important;
+        }
+
+        .user-dropdown .dropdown-divider {
+            margin: 0 !important;
+            border-color: #f1f5f9 !important;
+        }
+
+        /* Botones de login/register */
+        .lh-btn-login, .lh-btn-register {
+            display: flex;
+            align-items: center;
+            padding: 8px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .lh-btn-login {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+
+        .lh-btn-login:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .lh-btn-register {
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            border: none;
+            color: white;
+        }
+
+        .lh-btn-register:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.4);
+            color: white;
+        }
+
+        .admin-badge {
+            background: #EF4444;
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 8px;
+            margin-left: 8px;
+        }
+
+        /* ===== DROPDOWN DEL FORMULARIO MEJORADO ===== */
+        .form-select-custom {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+            color: white !important;
+            border-radius: 12px !important;
+            padding: 12px 16px !important;
+            transition: all 0.3s ease !important;
+            font-size: 0.9rem !important;
+            backdrop-filter: blur(10px) !important;
+            appearance: none !important;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E") !important;
+            background-repeat: no-repeat !important;
+            background-position: right 16px center !important;
+            background-size: 16px !important;
+        }
+
+        .form-select-custom:focus {
+            background: rgba(255, 255, 255, 0.15) !important;
+            border-color: white !important;
+            color: white !important;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1) !important;
+            outline: none !important;
+        }
+
+        .form-select-custom option {
+            background: #1e293b !important;
+            color: white !important;
+            padding: 12px !important;
+        }
+
+        /* Placeholder personalizado */
+        .form-select-custom option[value=""] {
+            color: rgba(255, 255, 255, 0.6) !important;
+        }
+
+        /* ===== FOOTER ELEGANTE Y MODERNO ===== */
+        .lh-footer {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #e2e8f0;
+            padding: 4rem 0 2rem;
+            margin-top: 5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Efecto de partículas sutiles en el fondo */
+        .lh-footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, rgba(67, 97, 238, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(67, 97, 238, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .footer-main-title {
+            color: white;
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 0.8rem;
+            text-align: center;
+            background: linear-gradient(45deg, #fff, #a5b4fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .footer-main-subtitle {
+            color: #94a3b8;
+            text-align: center;
+            margin-bottom: 3rem;
+            font-size: 1.1rem;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+        }
+
+        /* Contenedor del Formulario Elegante */
+        .contact-form-footer {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 2.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            height: 100%;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .contact-form-footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+        }
+
+        .contact-form-footer:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .form-title {
+            color: white;
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 1.8rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .form-title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: 2px;
+        }
+
+        /* Grupos de formulario mejorados */
+        .contact-form-main .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+
+        .contact-form-main label {
+            color: #cbd5e1;
+            font-weight: 500;
+            margin-bottom: 0.6rem;
+            display: block;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        .contact-form-main .form-control {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            border-radius: 12px;
+            padding: 14px 16px;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .contact-form-main .form-control:focus {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--primary);
+            color: white;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15);
+            outline: none;
+            transform: translateY(-1px);
+        }
+
+        .contact-form-main .form-control::placeholder {
+            color: #94a3b8;
+        }
+
+        /* Botón de enviar elegante */
+        .contact-form-main .btn-send {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none;
+            border-radius: 12px;
+            padding: 14px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            width: 100%;
+            font-size: 1rem;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .contact-form-main .btn-send::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .contact-form-main .btn-send:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(67, 97, 238, 0.4);
+        }
+
+        .contact-form-main .btn-send:hover::before {
+            left: 100%;
+        }
+
+        /* Información de Contacto Elegante */
+        .contact-info-footer {
+            padding: 0 1rem;
+        }
+
+        .info-title {
+            color: white;
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .info-title::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: 2px;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1.2rem;
+            margin-bottom: 1.8rem;
+            padding: 1.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        .contact-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .contact-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+        }
+
+        .contact-details h5 {
+            color: white;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+            font-size: 1.05rem;
+        }
+
+        .contact-details p {
+            color: #e2e8f0;
+            margin-bottom: 0.3rem;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .contact-details small {
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+
+        /* Sección de Redes Sociales Elegante */
+        .social-section {
+            margin: 2.5rem 0 1rem;
+            padding: 1.8rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+        }
+
+        .social-section h5 {
+            color: white;
+            font-weight: 600;
+            margin-bottom: 1.2rem;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .social-icons-footer {
+            display: flex;
+            gap: 0.8rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .social-icon {
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #cbd5e1;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 1.1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .social-icon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .social-icon:hover {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.3);
+            border-color: transparent;
+        }
+
+        .social-icon:hover::before {
+            left: 100%;
+        }
+
+        /* Línea divisoria sutil */
+        .footer-divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            margin: 3rem 0 2rem;
+        }
+
+        /* Footer Bottom Elegante */
+        .footer-bottom {
+            padding: 2rem 0 0;
+        }
+
+        .legal-links {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .legal-links a {
+            color: #94a3b8;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            position: relative;
+        }
+
+        .legal-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 1px;
+            background: var(--primary);
+            transition: width 0.3s ease;
+        }
+
+        .legal-links a:hover {
+            color: white;
+        }
+
+        .legal-links a:hover::after {
+            width: 100%;
+        }
+
+        .copyright {
+            text-align: center;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .version {
+            background: rgba(255, 255, 255, 0.1);
+            color: #a5b4fc;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            margin-left: 0.5rem;
+        }
+
+        /* Responsive */
+        @@media (max-width: 768px) {
+            .lh-footer {
+                padding: 3rem 0 1.5rem;
+                margin-top: 4rem;
+            }
+
+            .footer-main-title {
+                font-size: 1.8rem;
+            }
+
+            .contact-form-footer {
+                padding: 2rem;
+                margin-bottom: 2rem;
+            }
+
+            .contact-info-footer {
+                padding: 0;
+            }
+
+            .contact-item {
+                padding: 1.2rem;
+                margin-bottom: 1.2rem;
+            }
+
+            .social-section {
+                margin: 2rem 0 1rem;
+                padding: 1.5rem;
+            }
+
+            .footer-divider {
+                margin: 2rem 0 1.5rem;
+            }
+
+            .legal-links {
+                gap: 1.5rem;
+            }
+
+            /* Dropdown responsive */
+            .user-dropdown .dropdown-menu {
+                position: fixed !important;
+                left: 50% !important;
+                transform: translateX(-50%) !important;
+                min-width: 250px;
+            }
+        }
+
+        @@media (max-width: 576px) {
+            .contact-form-footer {
+                padding: 1.5rem;
+            }
+
+            .contact-item {
+                flex-direction: column;
+                text-align: center;
+                gap: 1rem;
+            }
+
+            .contact-icon {
+                align-self: center;
+            }
+
+            .legal-links {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: center;
+            }
+
+            .social-icons-footer {
+                gap: 0.6rem;
+            }
+
+            .social-icon {
+                width: 40px;
+                height: 40px;
+            }
+        }
+    </style>
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
-    <header>
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm px-3">
-  <a class="navbar-brand fw-bold text-primary" href="#">LifeHub</a>
-
-  <!-- Botón hamburguesa -->
-  <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarLifehub" aria-controls="navbarLifehub" aria-expanded="false" aria-label="Toggle navigation">
-    <span class="navbar-toggler-icon"></span>
-  </button>
-
-  <!-- Links colapsables -->
-  <div class="collapse navbar-collapse" id="navbarLifehub">
-      <ul class="navbar-nav mx-auto">
-          <li class="nav-item"><a class="nav-link" href="#">Inicio</a></li>
-          <li class="nav-item"><a class="nav-link" href="#">Funcionalidades</a></li>
-          <li class="nav-item"><a class="nav-link" href="#">Beneficios</a></li>
-          <li class="nav-item"><a class="nav-link" href="#">Contacto</a></li>
-      </ul>
-      <div class="d-flex">
-          <a href="#" class="btn btn-outline-primary me-2">Iniciar Sesión</a>
-          <a href="#" class="btn btn-primary">Registrarse</a>
-      </div>
-  </div>
-</nav>
-
+<header>
+    <nav class="lh-navbar">
+        <div class="lh-nav-container">
+            <a class="lh-nav-brand" asp-controller="Home" asp-action="Index">
+                <i class="fas fa-leaf me-2"></i> LifeHub
+            </a>
+            
+            <button class="lh-nav-toggler" type="button" id="navbarToggler">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            
+            <div class="lh-nav-collapse" id="navbarNav">
+                <ul class="lh-nav-nav">
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        <!-- Verificar si es Admin -->
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <!-- Menú para Administradores -->
+                            <li class="lh-nav-item">
+                                <a class="lh-nav-link" asp-controller="Admin" asp-action="Index">
+                                    <i class="fas fa-tachometer-alt me-1"></i>Dashboard Admin
+                                </a>
+                            </li>
+                            <li class="lh-nav-item">
+                                <a class="lh-nav-link" asp-controller="Admin" asp-action="Users">
+                                    <i class="fas fa-users me-1"></i>Gestión de Usuarios
+                                </a>
+                            </li>
+                            <li class="lh-nav-item">
+                                <a class="lh-nav-link" asp-controller="Admin" asp-action="Stats">
+                                    <i class="fas fa-chart-bar me-1"></i>Estadísticas
+                                </a>
+                            </li>
+                            <li class="lh-nav-item">
+                                <a class="lh-nav-link" asp-controller="Dashboard" asp-action="Index">
+                                    <i class="fas fa-home me-1"></i>Ir al Sitio
+                                </a>
+                            </li>
+                        }
+                        else
+                        {
+                            <!-- Menú para usuarios normales -->
+                            <li class="lh-nav-item">
+                                <a class="lh-nav-link" asp-controller="Dashboard" asp-action="Index">
+                                    <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                                </a>
+                            </li>
+                            <li class="lh-nav-item">
+                                <a class="lh-nav-link" asp-controller="Plans" asp-action="Index">
+                                    <i class="fas fa-crown me-1"></i>Mis Planes
+                                </a>
+                            </li>
+                            <li class="lh-nav-item">
+                                <a class="lh-nav-link" href="#">
+                                    <i class="fas fa-tasks me-1"></i>Hábitos
+                                </a>
+                            </li>
+                            <li class="lh-nav-item">
+                                <a class="lh-nav-link" href="#">
+                                    <i class="fas fa-wallet me-1"></i>Finanzas
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Health" ? "active" : "")" 
+                                href="@Url.Action("Index", "Health")">
+                                    <i class="fas fa-heartbeat me-2"></i>Salud
+                                </a>
+                            </li>
+                        }
+                    }
+                    else
+                    {
+                        <!-- Menú para usuarios no logueados -->
+                        <li class="lh-nav-item">
+                            <a class="lh-nav-link" asp-controller="Home" asp-action="Index">Inicio</a>
+                        </li>
+                        <li class="lh-nav-item">
+                            <a class="lh-nav-link" href="#beneficios">Beneficios</a>
+                        </li>
+                        <li class="lh-nav-item">
+                            <a class="lh-nav-link" href="#funcionalidades">Funcionalidades</a>
+                        </li>
+                        <li class="lh-nav-item">
+                            <a class="lh-nav-link" href="#planes">Planes</a>
+                        </li>
+                    }
+                </ul>
+                
+                <div class="lh-nav-buttons">
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        <div class="user-dropdown">
+                            <button class="user-toggle" type="button" data-bs-toggle="dropdown">
+                                <div class="user-avatar @(User.IsInRole("Admin") ? "admin" : "")">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <span class="user-name">
+                                    @User.Identity.Name
+                                    @if (User.IsInRole("Admin"))
+                                    {
+                                        <span class="admin-badge">ADMIN</span>
+                                    }
+                                </span>
+                                <i class="fas fa-chevron-down dropdown-arrow"></i>
+                            </button>
+                            <div class="dropdown-menu user-menu">
+                                <div class="user-info">
+                                    <div class="user-avatar-large @(User.IsInRole("Admin") ? "admin" : "")">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <div class="user-details">
+                                        <div class="user-email">@User.Identity.Name</div>
+                                        <div class="user-status @(User.IsInRole("Admin") ? "admin" : "user")">
+                                            @(User.IsInRole("Admin") ? "Administrador" : "Usuario")
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="dropdown-divider"></div>
+                                
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <a class="dropdown-item admin-menu-item" asp-controller="Admin" asp-action="Index">
+                                        <i class="fas fa-tachometer-alt"></i>
+                                        Panel Admin
+                                    </a>
+                                    <a class="dropdown-item admin-menu-item" asp-controller="Admin" asp-action="Users">
+                                        <i class="fas fa-users"></i>
+                                        Gestión de Usuarios
+                                    </a>
+                                    <div class="dropdown-divider"></div>
+                                }
+                                
+                                <a class="dropdown-item" asp-controller="Dashboard" asp-action="Index">
+                                    <i class="fas fa-home"></i>
+                                    Dashboard
+                                </a>
+                                <a class="dropdown-item" asp-controller="Plans" asp-action="Index">
+                                    <i class="fas fa-crown"></i>
+                                    Mis Planes
+                                </a>
+                                <a class="dropdown-item" href="#">
+                                    <i class="fas fa-cog"></i>
+                                    Configuración
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="dropdown-item logout-btn">
+                                        <i class="fas fa-sign-out-alt"></i>
+                                        Cerrar Sesión
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <a class="lh-btn-login" asp-controller="Account" asp-action="Login">
+                            <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
+                        </a>
+                        <a class="lh-btn-register" asp-controller="Account" asp-action="Register" asp-route-planId="1">
+                            <i class="fas fa-user-plus me-2"></i>Registrarse
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </nav>
 </header>
 
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
+    <!-- Contenido principal con padding para el navbar fijo -->
+    <main role="main" class="lh-main-content">
+        @RenderBody()
+    </main>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2025 - LifeHub - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await Html.PartialAsync("_Footer", new LifeHub.Models.ViewModels.ContactViewModel())
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/lifehub.js" asp-append-version="true"></script>
+    
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
