@@ -1,0 +1,2267 @@
+@using LifeHub.Services
+@inject IFinanceService FinanceService
+@inject ISubscriptionService SubscriptionService
+@{
+    ViewData["Title"] = "Dashboard Financiero";
+    var summary = ViewBag.FinanceSummary as FinanceSummary;
+    var recentTransactions = ViewBag.RecentTransactions as List<LifeHub.Models.Entities.FinancialTransaction>;
+    var budgetStatus = ViewBag.BudgetStatus as List<BudgetStatus>;
+    
+    // Gráficos desde C#
+    var monthlyTrendChart = ViewBag.MonthlyTrendChart as ChartData;
+    var expenseDistributionChart = ViewBag.ExpenseDistributionChart as ChartData;
+    var incomeDistributionChart = ViewBag.IncomeDistributionChart as ChartData;
+    var budgetProgressChart = ViewBag.BudgetProgressChart as ChartData;
+    
+    // Información del plan del usuario
+    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var userSubscription = await SubscriptionService.GetUserSubscriptionAsync(userId);
+    var userPlan = userSubscription?.Plan;
+    var canCreateTransaction = await SubscriptionService.CanUserCreateTransactionAsync(userId);
+    var hasAdvancedAnalytics = await SubscriptionService.UserHasFeatureAccessAsync(userId, "analytics");
+    var hasAIFeatures = await SubscriptionService.UserHasFeatureAccessAsync(userId, "ai");
+
+    // Obtener consejo del día
+    var dailyAdvice = await FinanceService.GetDailyAdviceAsync();
+}
+
+<div class="finance-container">
+    <!-- Navegación Horizontal -->
+    <div class="finance-nav">
+        <div class="nav-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Index" ? "active" : "")">
+            <a href="@Url.Action("Index", "Finance")">
+                <i class="fas fa-chart-line"></i>
+                <span>Dashboard</span>
+            </a>
+        </div>
+        
+        <div class="nav-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Transactions" ? "active" : "")">
+            <a href="@Url.Action("Transactions", "Finance")">
+                <i class="fas fa-exchange-alt"></i>
+                <span>Transacciones</span>
+                @if (userPlan != null)
+                {
+                    <small class="plan-badge">@(userPlan.MaxTransactions)/mes</small>
+                }
+            </a>
+        </div>
+        
+        <div class="nav-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Budgets" ? "active" : "")">
+            <a href="@Url.Action("Budgets", "Finance")">
+                <i class="fas fa-wallet"></i>
+                <span>Presupuestos</span>
+            </a>
+        </div>
+        
+        <div class="nav-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Reports" ? "active" : "")">
+            <a href="@Url.Action("Reports", "Finance")">
+                <i class="fas fa-chart-bar"></i>
+                <span>Reportes</span>
+                @if (!hasAdvancedAnalytics)
+                {
+                    <small class="plan-badge premium">PREMIUM</small>
+                }
+            </a>
+        </div>
+    </div>
+
+    <!-- Contenido Principal -->
+    <div class="finance-main-content">
+        <!-- Header con información del plan -->
+        <div class="finance-header">
+            <div class="header-content">
+                <h1 class="finance-title">
+                    <i class="fas fa-chart-line me-3"></i>Dashboard Financiero
+                </h1>
+                <p class="finance-subtitle">Resumen completo de tu situación financiera</p>
+                
+                @if (userPlan != null)
+                {
+                    <div class="current-plan-badge">
+                        <span class="badge" style="background: @userPlan.ColorCode; color: white;">
+                            <i class="fas fa-crown me-1"></i>Plan @userPlan.Name
+                            @if (userSubscription?.DaysRemaining <= 7)
+                            {
+                                <span class="ms-1">• Renueva en @userSubscription.DaysRemaining días</span>
+                            }
+                        </span>
+                    </div>
+                }
+            </div>
+            <div class="header-actions">
+                @if (canCreateTransaction)
+                {
+                    <a href="@Url.Action("CreateTransaction", "Finance")" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Nueva Transacción
+                    </a>
+                }
+                else
+                {
+                    <button class="btn btn-primary" disabled title="Límite de transacciones alcanzado en tu plan actual">
+                        <i class="fas fa-plus me-2"></i>Nueva Transacción
+                    </button>
+                }
+                <a href="@Url.Action("CreateBudget", "Finance")" class="btn btn-outline-primary">
+                    <i class="fas fa-wallet me-2"></i>Crear Presupuesto
+                </a>
+            </div>
+        </div>
+
+        <!-- Alerta de límite de transacciones -->
+        @if (!canCreateTransaction && userPlan != null)
+        {
+            <div class="alert alert-warning">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Límite de transacciones alcanzado</strong> - Has usado las @userPlan.MaxTransactions transacciones de tu plan @userPlan.Name
+                    </div>
+                    <a href="@Url.Action("Index", "Plans")" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-rocket me-1"></i>Mejorar Plan
+                    </a>
+                </div>
+            </div>
+        }
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+            </div>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>@TempData["ErrorMessage"]
+            </div>
+        }
+
+        <!-- Métricas Principales -->
+        <div class="metrics-grid">
+            <div class="metric-card income">
+                <div class="metric-icon">
+                    <i class="fas fa-arrow-up"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@summary?.TotalIncome.ToString("C")</h3>
+                    <p class="metric-label">Ingresos Totales</p>
+                    <div class="metric-trend positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>@(summary?.IncomeGrowth.ToString("N1") ?? "0")% vs mes anterior</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card expense">
+                <div class="metric-icon">
+                    <i class="fas fa-arrow-down"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@summary?.TotalExpenses.ToString("C")</h3>
+                    <p class="metric-label">Gastos Totales</p>
+                    <div class="metric-trend @(summary?.ExpenseGrowth > 0 ? "negative" : "positive")">
+                        <i class="fas fa-arrow-@(summary?.ExpenseGrowth > 0 ? "up" : "down")"></i>
+                        <span>@(Math.Abs(summary?.ExpenseGrowth ?? 0).ToString("N1"))% vs mes anterior</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card balance @(summary?.NetAmount >= 0 ? "positive" : "negative")">
+                <div class="metric-icon">
+                    <i class="fas fa-balance-scale"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@summary?.NetAmount.ToString("C")</h3>
+                    <p class="metric-label">Balance Neto</p>
+                    <div class="metric-trend @(summary?.NetAmount >= 0 ? "positive" : "negative")">
+                        <i class="fas fa-@(summary?.NetAmount >= 0 ? "smile" : "frown")"></i>
+                        <span>@(summary?.NetAmount >= 0 ? "Positivo" : "Negativo") este mes</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="metric-card savings">
+                <div class="metric-icon">
+                    <i class="fas fa-piggy-bank"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@summary?.SavingsRate.ToString("N1")%</h3>
+                    <p class="metric-label">Tasa de Ahorro</p>
+                    <div class="metric-trend @(summary?.SavingsRate >= 20 ? "positive" : summary?.SavingsRate >= 10 ? "warning" : "negative")">
+                        <i class="fas fa-@(summary?.SavingsRate >= 20 ? "trophy" : summary?.SavingsRate >= 10 ? "check" : "exclamation")"></i>
+                        <span>@(summary?.SavingsRate >= 20 ? "Excelente" : summary?.SavingsRate >= 10 ? "Bueno" : "Mejorable")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Segunda fila de métricas -->
+        <div class="metrics-grid secondary">
+            <div class="metric-card transactions">
+                <div class="metric-icon">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@summary?.TotalTransactions</h3>
+                    <p class="metric-label">Total Transacciones</p>
+                    @if (userPlan != null)
+                    {
+                        <div class="metric-trend info">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>@(summary?.TotalTransactions ?? 0)/@userPlan.MaxTransactions este mes</span>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="metric-card avg-transaction">
+                <div class="metric-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@summary?.AverageTransaction.ToString("C")</h3>
+                    <p class="metric-label">Transacción Promedio</p>
+                </div>
+            </div>
+
+            <div class="metric-card budgets">
+                <div class="metric-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@budgetStatus?.Count</h3>
+                    <p class="metric-label">Presupuestos Activos</p>
+                </div>
+            </div>
+
+            <div class="metric-card goals">
+                <div class="metric-icon">
+                    <i class="fas fa-bullseye"></i>
+                </div>
+                <div class="metric-content">
+                    <h3 class="metric-value">@summary?.MonthlyGoalProgress.ToString("N0")%</h3>
+                    <p class="metric-label">Progreso Meta Mensual</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="finance-content">
+            <!-- Columna Izquierda - AHORA CON MÁS CONTENIDO -->
+            <div class="finance-main">
+                <!-- Gráfico de Tendencia -->
+                <div class="finance-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-chart-line me-2"></i>
+                            Tendencia Financiera (Últimos 6 Meses)
+                        </h3>
+                        <div class="chart-legend">
+                            <div class="legend-item">
+                                <span class="legend-color income"></span>
+                                <span>Ingresos</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color expense"></span>
+                                <span>Gastos</span>
+                            </div>
+                            <div class="legend-item">
+                                <span class="legend-color savings"></span>
+                                <span>Ahorro</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="monthlyTrendChart" 
+                                    data-chart-data='@Json.Serialize(monthlyTrendChart)'>
+                            </canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Distribución de Gastos - MOVIDA A LA IZQUIERDA -->
+                <div class="finance-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-chart-pie me-2"></i>
+                            Distribución de Gastos por Categoría
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="charts-row">
+                            <div class="chart-wrapper">
+                                <canvas id="expenseChart"
+                                        data-chart-data='@Json.Serialize(expenseDistributionChart)'>
+                                </canvas>
+                            </div>
+                            <div class="categories-details">
+                                @if (expenseDistributionChart?.Datasets?.FirstOrDefault()?.Data != null)
+                                {
+                                    <div class="categories-list">
+                                        @for (int i = 0; i < expenseDistributionChart.Labels.Length; i++)
+                                        {
+                                            <div class="category-item">
+                                                <div class="category-info">
+                                                    <span class="category-color" 
+                                                          style="background-color: @expenseDistributionChart.Datasets[0].BackgroundColor[i]"></span>
+                                                    <span class="category-name">@expenseDistributionChart.Labels[i]</span>
+                                                </div>
+                                                <div class="category-stats">
+                                                    <span class="category-amount">@expenseDistributionChart.Datasets[0].Data[i].ToString("C")</span>
+                                                    <span class="category-percentage">
+                                                        @{
+                                                            var total = expenseDistributionChart.Datasets[0].Data.Sum();
+                                                            var percentage = total > 0 ? (expenseDistributionChart.Datasets[0].Data[i] / total) * 100 : 0;
+                                                        }
+                                                        @percentage.ToString("N1")%
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="empty-state">
+                                        <i class="fas fa-chart-pie fa-2x mb-2"></i>
+                                        <p>No hay datos de gastos este mes</p>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Insights y Recomendaciones - MOVIDA A LA IZQUIERDA -->
+                <div class="finance-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-chart-line me-2"></i>
+                            Insights Financieros
+                            @if (hasAIFeatures)
+                            {
+                                <span class="badge bg-purple ms-1" style="background: #8b5cf6;">AI</span>
+                            }
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="insights-list">
+                            <!-- Insight de Balance -->
+                            @if (summary?.NetAmount < 0)
+                            {
+                                <div class="insight-item negative">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <div class="insight-content">
+                                        <strong>Balance Negativo</strong>
+                                        <p>Tus gastos superan tus ingresos. Revisa tus presupuestos.</p>
+                                    </div>
+                                </div>
+                            }
+                            else if (summary?.NetAmount > 0)
+                            {
+                                <div class="insight-item positive">
+                                    <i class="fas fa-check-circle"></i>
+                                    <div class="insight-content">
+                                        <strong>Balance Positivo</strong>
+                                        <p>¡Buen trabajo! Estás ahorrando @summary.NetAmount.ToString("C") este mes.</p>
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Insight de Ahorro -->
+                            @if (summary?.SavingsRate < 10)
+                            {
+                                <div class="insight-item warning">
+                                    <i class="fas fa-piggy-bank"></i>
+                                    <div class="insight-content">
+                                        <strong>Tasa de Ahorro Baja</strong>
+                                        <p>Tu tasa de ahorro es del @summary.SavingsRate.ToString("N1")%. Objetivo: 20%.</p>
+                                    </div>
+                                </div>
+                            }
+                            else if (summary?.SavingsRate >= 20)
+                            {
+                                <div class="insight-item positive">
+                                    <i class="fas fa-trophy"></i>
+                                    <div class="insight-content">
+                                        <strong>¡Excelente Ahorro!</strong>
+                                        <p>Tu tasa de ahorro del @summary.SavingsRate.ToString("N1")% es excelente.</p>
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Insight de Presupuestos -->
+                            @if (budgetStatus?.Any(b => b.IsOverBudget) == true)
+                            {
+                                <div class="insight-item negative">
+                                    <i class="fas fa-wallet"></i>
+                                    <div class="insight-content">
+                                        <strong>Presupuestos Excedidos</strong>
+                                        <p>@budgetStatus.Count(b => b.IsOverBudget) categorías sobrepasaron su límite.</p>
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Insight de Transacciones -->
+                            @if (summary?.TotalTransactions > 0)
+                            {
+                                <div class="insight-item info">
+                                    <i class="fas fa-chart-bar"></i>
+                                    <div class="insight-content">
+                                        <strong>Actividad Financiera</strong>
+                                        <p>@summary.TotalTransactions transacciones este mes.</p>
+                                        @if (userPlan != null && summary.TotalTransactions >= userPlan.MaxTransactions * 0.8)
+                                        {
+                                            <div class="mt-1" style="font-size: 0.8rem; color: #f59e0b;">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                                Has usado el @((summary.TotalTransactions * 100 / userPlan.MaxTransactions))% de tu límite
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Insight de Plan -->
+                            @if (userPlan != null && userPlan.MaxTransactions <= 50)
+                            {
+                                <div class="insight-item info">
+                                    <i class="fas fa-rocket"></i>
+                                    <div class="insight-content">
+                                        <strong>Plan Básico</strong>
+                                        <p>Límite: @userPlan.MaxTransactions transacciones/mes. <a href="@Url.Action("Index", "Plans")">Mejorar</a></p>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transacciones Recientes -->
+                <div class="finance-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-history me-2"></i>
+                            Transacciones Recientes
+                        </h3>
+                        <a href="@Url.Action("Transactions", "Finance")" class="btn btn-link">Ver todas</a>
+                    </div>
+                    <div class="card-body">
+                        @if (recentTransactions != null && recentTransactions.Any())
+                        {
+                            <div class="transactions-list">
+                                @foreach (var transaction in recentTransactions.Take(8))
+                                {
+                                    <div class="transaction-item">
+                                        <div class="transaction-icon @(transaction.TransactionType == 0 ? "income" : "expense")">
+                                            <i class="fas fa-@(transaction.TransactionType == 0 ? "arrow-up" : "arrow-down")"></i>
+                                        </div>
+                                        <div class="transaction-details">
+                                            <div class="transaction-description">@transaction.Description</div>
+                                            <div class="transaction-meta">
+                                                <span class="transaction-category">@transaction.Category</span>
+                                                @if (!string.IsNullOrEmpty(transaction.Subcategory))
+                                                {
+                                                    <span class="transaction-subcategory">• @transaction.Subcategory</span>
+                                                }
+                                                <span class="transaction-date">@transaction.TransactionDate.ToString("dd/MM/yyyy")</span>
+                                            </div>
+                                        </div>
+                                        <div class="transaction-amount @(transaction.TransactionType == 0 ? "income" : "expense")">
+                                            @(transaction.TransactionType == 0 ? "+" : "-")@transaction.Amount.ToString("C")
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="empty-state">
+                                <i class="fas fa-receipt fa-3x mb-3"></i>
+                                <h4>No hay transacciones recientes</h4>
+                                <p>Comienza registrando tus primeros ingresos y gastos</p>
+                                @if (canCreateTransaction)
+                                {
+                                    <a href="@Url.Action("CreateTransaction", "Finance")" class="btn btn-primary mt-2">
+                                        <i class="fas fa-plus me-2"></i>Crear primera transacción
+                                    </a>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-warning mt-2">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Límite de transacciones alcanzado en tu plan actual
+                                        <a href="@Url.Action("Index", "Plans")" class="btn btn-sm btn-outline-primary ms-2">
+                                            Mejorar Plan
+                                        </a>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna Derecha - AHORA MÁS LIVIANA -->
+            <div class="finance-sidebar">
+                <!-- Cuadro de Consejos Financieros Compacto -->
+                <div class="finance-card advice-card compact" id="advice-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            Consejo del Día
+                        </h3>
+                        <div class="advice-actions">
+                            <button id="new-advice-btn" class="btn-advice" title="Nuevo Consejo">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div id="financial-advice-container">
+                            <div class="advice-content-wrapper">
+                                <div class="advice-text">
+                                    @dailyAdvice.Advice
+                                </div>
+                                <div class="advice-footer">
+                                    <span class="advice-category">@dailyAdvice.Category</span>
+                                    <span class="advice-difficulty badge @GetDifficultyClass(dailyAdvice.Difficulty)">
+                                        @dailyAdvice.Difficulty
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estado de Presupuestos -->
+                <div class="finance-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-wallet me-2"></i>
+                            Estado de Presupuestos
+                        </h3>
+                        <a href="@Url.Action("Budgets", "Finance")" class="btn btn-link">Gestionar</a>
+                    </div>
+                    <div class="card-body">
+                        @if (budgetStatus != null && budgetStatus.Any())
+                        {
+                            <div class="budgets-list">
+                                @foreach (var budget in budgetStatus.Take(5))
+                                {
+                                    var isSavings = budget.Budget.BudgetType == 0;
+                                    <div class="budget-item @(isSavings ? "savings" : "expense")">
+                                        <div class="budget-header">
+                                            <div class="budget-category">
+                                                <span class="budget-type-icon">
+                                                    <i class="fas fa-@(isSavings ? "piggy-bank" : "chart-line")"></i>
+                                                </span>
+                                                <span class="budget-name">@budget.Budget.Category</span>
+                                            </div>
+                                            <span class="budget-amount">@budget.Budget.MonthlyAmount.ToString("C")</span>
+                                        </div>
+                                        <div class="budget-progress">
+                                            <div class="progress-info">
+                                                <span class="progress-label">
+                                                    @(isSavings ? "Ahorrado:" : "Gastado:")
+                                                </span>
+                                                <span class="progress-amount">@budget.SpentAmount.ToString("C")</span>
+                                            </div>
+                                            <div class="progress-bar">
+                                                <div class="progress-fill @(budget.IsOverBudget ? "over-budget" : budget.UsagePercentage >= 80 ? "warning" : isSavings ? "savings" : "expense")" 
+                                                     style="width: @(Math.Min(budget.UsagePercentage, 100))%">
+                                                </div>
+                                            </div>
+                                            <div class="progress-stats">
+                                                <span class="progress-percentage">@budget.UsagePercentage.ToString("N0")%</span>
+                                                <span class="progress-remaining">
+                                                    @(isSavings ? "Falta: " : "Restante: ")@budget.RemainingAmount.ToString("C")
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="budget-status">
+                                            @if (budget.IsOverBudget)
+                                            {
+                                                <span class="status-badge over-budget">
+                                                    <i class="fas fa-exclamation-circle me-1"></i>
+                                                    @(isSavings ? "Meta superada" : "Límite excedido")
+                                                </span>
+                                            }
+                                            else if (budget.UsagePercentage >= 80)
+                                            {
+                                                <span class="status-badge warning">
+                                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                                    @(isSavings ? "Cerca de la meta" : "Cerca del límite")
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="status-badge @(isSavings ? "savings-good" : "expense-good")">
+                                                    <i class="fas fa-check-circle me-1"></i>
+                                                    @(isSavings ? "En progreso" : "Bajo control")
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                            <div class="budget-summary">
+                                <div class="summary-item">
+                                    <span class="summary-label">
+                                        <i class="fas fa-check-circle text-success me-1"></i>Bien
+                                    </span>
+                                    <span class="summary-value">@budgetStatus.Count(b => !b.IsOverBudget && b.UsagePercentage < 80)</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">
+                                        <i class="fas fa-exclamation-triangle text-warning me-1"></i>Alerta
+                                    </span>
+                                    <span class="summary-value">@budgetStatus.Count(b => b.UsagePercentage >= 80 && !b.IsOverBudget)</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="summary-label">
+                                        <i class="fas fa-exclamation-circle text-danger me-1"></i>Excedido
+                                    </span>
+                                    <span class="summary-value">@budgetStatus.Count(b => b.IsOverBudget)</span>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="empty-state">
+                                <i class="fas fa-wallet fa-3x mb-3"></i>
+                                <h4>No hay presupuestos</h4>
+                                <p>Crea tu primer presupuesto para controlar tus finanzas</p>
+                                <a href="@Url.Action("CreateBudget", "Finance")" class="btn btn-outline-primary mt-2">
+                                    <i class="fas fa-plus me-2"></i>Crear presupuesto
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Ingresos por Categoría -->
+                <div class="finance-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-arrow-up me-2"></i>
+                            Ingresos por Categoría
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        @if (incomeDistributionChart?.Datasets?.FirstOrDefault()?.Data != null)
+                        {
+                            <div class="income-categories">
+                                @for (int i = 0; i < incomeDistributionChart.Labels.Length; i++)
+                                {
+                                    <div class="income-item">
+                                        <div class="income-category">
+                                            <span class="income-color" 
+                                                  style="background-color: @incomeDistributionChart.Datasets[0].BackgroundColor[i]"></span>
+                                            <span class="income-name">@incomeDistributionChart.Labels[i]</span>
+                                        </div>
+                                        <div class="income-stats">
+                                            <span class="income-amount">@incomeDistributionChart.Datasets[0].Data[i].ToString("C")</span>
+                                            <span class="income-percentage">
+                                                @{
+                                                    var total = incomeDistributionChart.Datasets[0].Data.Sum();
+                                                    var percentage = total > 0 ? (incomeDistributionChart.Datasets[0].Data[i] / total) * 100 : 0;
+                                                }
+                                                @percentage.ToString("N1")%
+                                            </span>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="empty-state">
+                                <i class="fas fa-arrow-up fa-2x mb-2"></i>
+                                <p>No hay ingresos este mes</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Upsell de Planes -->
+                @if (userPlan != null && userPlan.Price == 0)
+                {
+                    <div class="finance-card upsell-card" style="border: 2px solid #8b5cf6; background: linear-gradient(135deg, #f8fafc, #f0f4ff);">
+                        <div class="card-body text-center">
+                            <i class="fas fa-rocket fa-2x mb-3" style="color: #8b5cf6;"></i>
+                            <h5 style="color: #1e293b; margin-bottom: 0.5rem;">¿Necesitas más transacciones?</h5>
+                            <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1rem;">
+                                Actualiza a un plan superior para más límites y características avanzadas
+                            </p>
+                            <a href="@Url.Action("Index", "Plans")" class="btn btn-primary btn-sm">
+                                <i class="fas fa-crown me-1"></i>Ver Planes
+                            </a>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="~/js/chartManager.js"></script>
+    
+    <script>
+        // Sistema de Consejos Financieros
+        document.addEventListener('DOMContentLoaded', function() {
+            const newAdviceBtn = document.getElementById('new-advice-btn');
+            if (newAdviceBtn) {
+                newAdviceBtn.addEventListener('click', async function() {
+                    try {
+                        const response = await fetch('/Finance/Advice/Random');
+                        if (response.ok) {
+                            const advice = await response.json();
+                            document.querySelector('.advice-text').textContent = advice.advice;
+                            document.querySelector('.advice-category').textContent = advice.category;
+                            document.querySelector('.advice-difficulty').textContent = advice.difficulty;
+                            document.querySelector('.advice-difficulty').className = 'advice-difficulty badge ' + 
+                                (advice.difficulty.toLowerCase() === 'beginner' ? 'bg-success' : 
+                                 advice.difficulty.toLowerCase() === 'intermediate' ? 'bg-warning' : 'bg-danger');
+                        }
+                    } catch (error) {
+                        console.error('Error al cargar nuevo consejo:', error);
+                    }
+                });
+            }
+        });
+    </script>
+}
+
+@functions {
+    private string GetDifficultyClass(string difficulty)
+    {
+        return difficulty.ToLower() switch
+        {
+            "beginner" => "bg-success",
+            "intermediate" => "bg-warning", 
+            "advanced" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+}
+
+<style>
+    /* === VARIABLES Y ESTILOS BASE === */
+    :root {
+        --primary-green: #10b981;
+        --primary-green-dark: #059669;
+        --primary-red: #ef4444;
+        --primary-blue: #3b82f6;
+        --primary-purple: #8b5cf6;
+        --primary-orange: #f59e0b;
+        --primary-cyan: #06b6d4;
+        
+        --gray-50: #f8fafc;
+        --gray-100: #f1f5f9;
+        --gray-200: #e2e8f0;
+        --gray-300: #cbd5e1;
+        --gray-400: #94a3b8;
+        --gray-500: #64748b;
+        --gray-600: #475569;
+        --gray-700: #334155;
+        --gray-800: #1e293b;
+        --gray-900: #0f172a;
+        
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --info: #3b82f6;
+        
+        --border-radius: 16px;
+        --border-radius-sm: 12px;
+        --border-radius-xs: 8px;
+        
+        --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+        --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
+        --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12);
+        --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.15);
+        
+        --transition: all 0.3s ease;
+    }
+
+    /* === ESTILOS BASE DEL DASHBOARD === */
+    .finance-container {
+        padding: 2rem;
+        background: var(--gray-50);
+        min-height: 100vh;
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        line-height: 1.6;
+    }
+
+    /* === NAVEGACIÓN HORIZONTAL - MEJORADA === */
+    .finance-nav {
+        display: flex;
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 1rem;
+        box-shadow: var(--shadow-md);
+        margin-bottom: 2rem;
+        border: 1px solid var(--gray-200);
+        gap: 0.5rem;
+        backdrop-filter: blur(10px);
+    }
+
+    .nav-item {
+        flex: 1;
+        position: relative;
+    }
+
+    .nav-item a {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 1rem;
+        text-decoration: none;
+        color: var(--gray-500);
+        border-radius: var(--border-radius-sm);
+        transition: var(--transition);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .nav-item a::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        transition: left 0.5s ease;
+    }
+
+    .nav-item a:hover::before {
+        left: 100%;
+    }
+
+    .nav-item a:hover {
+        background: var(--gray-50);
+        color: var(--gray-700);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .nav-item.active a {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--primary-green);
+        font-weight: 600;
+        box-shadow: 0 2px 10px rgba(16, 185, 129, 0.1);
+    }
+
+    .nav-item i {
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+        transition: var(--transition);
+    }
+
+    .nav-item.active i {
+        transform: scale(1.1);
+    }
+
+    .nav-item span {
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: var(--transition);
+    }
+
+    .plan-badge {
+        font-size: 0.6em;
+        background: var(--primary-purple);
+        color: white;
+        padding: 1px 4px;
+        border-radius: 4px;
+        margin-top: 2px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+
+    .plan-badge.premium {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    }
+
+    /* === HEADER PRINCIPAL - MEJORADO === */
+    .finance-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: white;
+        padding: 2rem;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--gray-200);
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .finance-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--primary-green), var(--primary-blue), var(--primary-purple));
+    }
+
+    .header-content {
+        flex: 1;
+    }
+
+    .finance-title {
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: var(--gray-800);
+        margin-bottom: 0.5rem;
+        background: linear-gradient(135deg, var(--primary-green), var(--primary-green-dark));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        letter-spacing: -0.5px;
+    }
+
+    .finance-subtitle {
+        color: var(--gray-500);
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 500;
+    }
+
+    .current-plan-badge {
+        margin-top: 0.75rem;
+    }
+
+    .current-plan-badge .badge {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.8rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .plan-limits {
+        font-size: 0.8rem;
+        color: var(--gray-500);
+        text-align: right;
+        line-height: 1.4;
+    }
+
+    .plan-limits div {
+        margin-bottom: 0.25rem;
+    }
+
+    .plan-limits strong {
+        color: var(--gray-700);
+    }
+
+    /* === SISTEMA DE MÉTRICAS - REORGANIZADO === */
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .metrics-grid.secondary {
+        margin-bottom: 0;
+    }
+
+    .metrics-grid.secondary .metric-card {
+        padding: 1.5rem;
+    }
+
+    .metric-card {
+        background: white;
+        border-radius: var(--border-radius);
+        padding: 2rem;
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--gray-200);
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+    }
+
+    .metric-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        transition: var(--transition);
+    }
+
+    .metric-card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+        transition: left 0.5s ease;
+    }
+
+    .metric-card:hover::after {
+        left: 100%;
+    }
+
+    .metric-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-hover);
+    }
+
+    /* Colores de las métricas */
+    .metric-card.income::before { background: var(--primary-green); }
+    .metric-card.expense::before { background: var(--primary-red); }
+    .metric-card.positive::before { background: var(--primary-blue); }
+    .metric-card.negative::before { background: var(--primary-orange); }
+    .metric-card.savings::before { background: var(--primary-purple); }
+    .metric-card.transactions::before { background: var(--primary-cyan); }
+    .metric-card.avg-transaction::before { background: #ec4899; }
+    .metric-card.budgets::before { background: #84cc16; }
+    .metric-card.goals::before { background: #f97316; }
+
+    .metric-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: var(--border-radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+        flex-shrink: 0;
+        transition: var(--transition);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .metric-card:hover .metric-icon {
+        transform: scale(1.05);
+    }
+
+    /* Colores de íconos */
+    .metric-card.income .metric-icon { background: var(--primary-green); }
+    .metric-card.expense .metric-icon { background: var(--primary-red); }
+    .metric-card.positive .metric-icon { background: var(--primary-blue); }
+    .metric-card.negative .metric-icon { background: var(--primary-orange); }
+    .metric-card.savings .metric-icon { background: var(--primary-purple); }
+    .metric-card.transactions .metric-icon { background: var(--primary-cyan); }
+    .metric-card.avg-transaction .metric-icon { background: #ec4899; }
+    .metric-card.budgets .metric-icon { background: #84cc16; }
+    .metric-card.goals .metric-icon { background: #f97316; }
+
+    .metric-content {
+        flex: 1;
+    }
+
+    .metric-value {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: var(--gray-800);
+        margin-bottom: 0.5rem;
+        line-height: 1;
+        letter-spacing: -0.5px;
+    }
+
+    .metric-label {
+        color: var(--gray-500);
+        margin: 0;
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .metric-trend {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+        margin-top: 0.5rem;
+        font-weight: 600;
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        background: var(--gray-100);
+        width: fit-content;
+    }
+
+    .metric-trend.positive { 
+        color: var(--success);
+        background: rgba(16, 185, 129, 0.1);
+    }
+    .metric-trend.negative { 
+        color: var(--danger);
+        background: rgba(239, 68, 68, 0.1);
+    }
+    .metric-trend.warning { 
+        color: var(--warning);
+        background: rgba(245, 158, 11, 0.1);
+    }
+    .metric-trend.info { 
+        color: var(--info);
+        background: rgba(59, 130, 246, 0.1);
+    }
+
+    /* === LAYOUT PRINCIPAL - ESTRUCTURA MEJORADA === */
+    .finance-main-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .finance-content {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+        align-items: start;
+    }
+
+    .finance-main {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+    }
+
+    .finance-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        position: sticky;
+        top: 2rem;
+    }
+
+    /* === COMPONENTES DE TARJETAS - UNIFICADOS === */
+    .finance-card {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--gray-200);
+        overflow: hidden;
+        transition: var(--transition);
+    }
+
+    .finance-card:hover {
+        box-shadow: var(--shadow-hover);
+        transform: translateY(-2px);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid var(--gray-200);
+        background: var(--gray-50);
+    }
+
+    .card-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--gray-800);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        letter-spacing: -0.25px;
+    }
+
+    .card-body {
+        padding: 2rem;
+    }
+
+    /* === COMPONENTES DE GRÁFICOS - MEJORADOS === */
+    .chart-container {
+        height: 300px;
+        position: relative;
+        background: white;
+        border-radius: var(--border-radius-xs);
+        padding: 1rem;
+    }
+
+    .chart-legend {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        color: var(--gray-600);
+        font-weight: 500;
+    }
+
+    .legend-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 2px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .legend-color.income { background-color: var(--primary-green); }
+    .legend-color.expense { background-color: var(--primary-red); }
+    .legend-color.savings { background-color: var(--primary-purple); }
+
+    .charts-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        align-items: start;
+    }
+
+    .chart-wrapper {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 250px;
+    }
+
+    /* === COMPONENTES DE LISTAS - ESTILOS UNIFICADOS === */
+    .transactions-list,
+    .categories-list,
+    .budgets-list,
+    .insights-list,
+    .income-categories {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    /* Transacciones */
+    .transaction-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: var(--border-radius-xs);
+        border: 1px solid var(--gray-200);
+        transition: var(--transition);
+        background: white;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .transaction-item::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: var(--gray-300);
+        transition: var(--transition);
+    }
+
+    .transaction-item.income::before { background: var(--primary-green); }
+    .transaction-item.expense::before { background: var(--primary-red); }
+
+    .transaction-item:hover {
+        background: var(--gray-50);
+        border-color: var(--gray-300);
+        transform: translateX(4px);
+    }
+
+    .transaction-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1rem;
+        flex-shrink: 0;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .transaction-icon.income { background: var(--primary-green); }
+    .transaction-icon.expense { background: var(--primary-red); }
+
+    .transaction-details {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .transaction-description {
+        font-weight: 600;
+        color: var(--gray-800);
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .transaction-meta {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.85rem;
+        color: var(--gray-500);
+        flex-wrap: wrap;
+    }
+
+    .transaction-category,
+    .transaction-subcategory,
+    .transaction-date {
+        font-weight: 500;
+    }
+
+    .transaction-amount {
+        font-weight: 700;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        background: var(--gray-100);
+    }
+
+    .transaction-amount.income { 
+        color: var(--primary-green);
+        background: rgba(16, 185, 129, 0.1);
+    }
+    .transaction-amount.expense { 
+        color: var(--primary-red);
+        background: rgba(239, 68, 68, 0.1);
+    }
+
+    /* Categorías */
+    .categories-details {
+        max-height: 300px;
+        overflow-y: auto;
+        padding-right: 0.5rem;
+    }
+
+    .category-item,
+    .income-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        border-radius: var(--border-radius-xs);
+        background: var(--gray-50);
+        border: 1px solid var(--gray-200);
+        transition: var(--transition);
+    }
+
+    .category-item:hover,
+    .income-item:hover {
+        background: var(--gray-100);
+        border-color: var(--gray-300);
+    }
+
+    .category-info,
+    .income-category {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex: 1;
+    }
+
+    .category-color,
+    .income-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        flex-shrink: 0;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .category-name,
+    .income-name {
+        font-weight: 600;
+        color: var(--gray-700);
+        font-size: 0.9rem;
+    }
+
+    .category-stats,
+    .income-stats {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .category-amount,
+    .income-amount {
+        font-weight: 700;
+        color: var(--gray-800);
+        font-size: 0.9rem;
+    }
+
+    .category-percentage,
+    .income-percentage {
+        background: var(--gray-200);
+        color: var(--gray-600);
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        min-width: 60px;
+        text-align: center;
+    }
+
+    /* === SISTEMA DE PRESUPUESTOS - MEJORADO === */
+    .budget-item {
+        padding: 1.25rem;
+        border-radius: var(--border-radius-sm);
+        border: 1px solid var(--gray-200);
+        background: var(--gray-50);
+        transition: var(--transition);
+        position: relative;
+    }
+
+    .budget-item:hover {
+        background: var(--gray-100);
+        border-color: var(--gray-300);
+    }
+
+    .budget-item.savings {
+        border-left: 4px solid var(--primary-purple);
+    }
+
+    .budget-item.expense {
+        border-left: 4px solid var(--primary-orange);
+    }
+
+    .budget-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .budget-category {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-weight: 600;
+        color: var(--gray-800);
+    }
+
+    .budget-type-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.9rem;
+    }
+
+    .budget-item.savings .budget-type-icon { background: var(--primary-purple); }
+    .budget-item.expense .budget-type-icon { background: var(--primary-orange); }
+
+    .budget-amount {
+        font-weight: 700;
+        color: var(--gray-700);
+        font-size: 1rem;
+    }
+
+    .budget-progress {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .progress-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+        color: var(--gray-600);
+    }
+
+    .progress-label {
+        font-weight: 500;
+    }
+
+    .progress-amount {
+        font-weight: 600;
+        color: var(--gray-700);
+    }
+
+    .progress-bar {
+        height: 8px;
+        background: var(--gray-200);
+        border-radius: 4px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .progress-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.5s ease;
+        position: relative;
+    }
+
+    .progress-fill.expense { background: var(--primary-orange); }
+    .progress-fill.savings { background: var(--primary-purple); }
+    .progress-fill.warning { background: var(--warning); }
+    .progress-fill.over-budget { background: var(--danger); }
+
+    .progress-stats {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.8rem;
+        color: var(--gray-500);
+    }
+
+    .progress-percentage {
+        font-weight: 700;
+        color: var(--gray-700);
+    }
+
+    .progress-remaining {
+        font-weight: 500;
+    }
+
+    .budget-status {
+        margin-top: 0.75rem;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .status-badge.over-budget {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+    }
+
+    .status-badge.warning {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--warning);
+    }
+
+    .status-badge.savings-good {
+        background: rgba(139, 92, 246, 0.1);
+        color: var(--primary-purple);
+    }
+
+    .status-badge.expense-good {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--primary-orange);
+    }
+
+    .budget-summary {
+        border-top: 1px solid var(--gray-200);
+        padding-top: 1rem;
+        margin-top: 1rem;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+    }
+
+    .summary-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 0.25rem;
+    }
+
+    .summary-label {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+        font-weight: 500;
+    }
+
+    .summary-value {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: var(--gray-800);
+    }
+
+    /* === SISTEMA DE INSIGHTS - MEJORADO === */
+    .insight-item {
+        display: flex;
+        gap: 1rem;
+        padding: 1.25rem;
+        border-radius: var(--border-radius-xs);
+        border-left: 4px solid;
+        transition: var(--transition);
+        background: white;
+        border: 1px solid var(--gray-200);
+    }
+
+    .insight-item:hover {
+        transform: translateX(4px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .insight-item.positive {
+        background: rgba(16, 185, 129, 0.05);
+        border-left-color: var(--success);
+        color: #065f46;
+    }
+
+    .insight-item.negative {
+        background: rgba(239, 68, 68, 0.05);
+        border-left-color: var(--danger);
+        color: #7f1d1d;
+    }
+
+    .insight-item.warning {
+        background: rgba(245, 158, 11, 0.05);
+        border-left-color: var(--warning);
+        color: #92400e;
+    }
+
+    .insight-item.info {
+        background: rgba(59, 130, 246, 0.05);
+        border-left-color: var(--info);
+        color: #1e40af;
+    }
+
+    .insight-item i {
+        font-size: 1.2rem;
+        margin-top: 0.2rem;
+        flex-shrink: 0;
+    }
+
+    .insight-content {
+        flex: 1;
+    }
+
+    .insight-content strong {
+        display: block;
+        color: inherit;
+        font-size: 0.95rem;
+        margin-bottom: 0.5rem;
+        font-weight: 700;
+    }
+
+    .insight-content p {
+        color: inherit;
+        font-size: 0.85rem;
+        margin: 0;
+        line-height: 1.5;
+        opacity: 0.9;
+    }
+
+    /* === COMPONENTES DE CONSEJOS - MEJORADOS === */
+    .advice-card.compact {
+        background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
+        border: 1px solid var(--gray-200);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 1.5rem;
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .advice-card.compact::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--primary-green), var(--primary-purple));
+    }
+
+    .advice-card.compact:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--gray-300);
+    }
+
+    .advice-card.compact .card-header {
+        background: var(--gray-100);
+        border-bottom: 1px solid var(--gray-200);
+        padding: 1rem 1.25rem;
+    }
+
+    .advice-card.compact .card-title {
+        color: var(--gray-700);
+        font-size: 0.95rem;
+        font-weight: 700;
+    }
+
+    .advice-card.compact .card-body {
+        padding: 1.25rem;
+    }
+
+    .advice-content-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .advice-card.compact .advice-text {
+        font-size: 0.9rem;
+        line-height: 1.5;
+        color: var(--gray-700);
+        text-align: left;
+        margin: 0;
+        font-weight: 500;
+    }
+
+    .advice-card.compact .advice-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--gray-200);
+        font-size: 0.8rem;
+    }
+
+    .advice-card.compact .advice-category {
+        background: var(--gray-200);
+        color: var(--gray-600);
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 0.75rem;
+    }
+
+    .advice-card.compact .advice-difficulty {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .advice-card.compact .advice-difficulty.bg-success { 
+        background: var(--success) !important; 
+        color: white;
+    }
+    .advice-card.compact .advice-difficulty.bg-warning { 
+        background: var(--warning) !important; 
+        color: white;
+    }
+    .advice-card.compact .advice-difficulty.bg-danger { 
+        background: var(--danger) !important; 
+        color: white;
+    }
+
+    .advice-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn-advice {
+        background: white;
+        border: 1px solid var(--gray-300);
+        color: var(--gray-500);
+        padding: 0.4rem;
+        border-radius: 6px;
+        font-size: 0.8rem;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--transition);
+        cursor: pointer;
+    }
+
+    .btn-advice:hover {
+        background: var(--gray-50);
+        border-color: var(--gray-400);
+        color: var(--gray-700);
+        transform: rotate(90deg);
+    }
+
+    /* === COMPONENTES DE ALERTAS Y ESTADOS === */
+    .alert {
+        border-radius: var(--border-radius-sm);
+        border: none;
+        padding: 1rem 1.5rem;
+        margin-bottom: 2rem;
+        border-left: 4px solid;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .alert-success {
+        background: rgba(16, 185, 129, 0.1);
+        color: #065f46;
+        border-left-color: var(--success);
+    }
+
+    .alert-warning {
+        background: rgba(245, 158, 11, 0.1);
+        color: #92400e;
+        border-left-color: var(--warning);
+    }
+
+    .alert-danger {
+        background: rgba(239, 68, 68, 0.1);
+        color: #7f1d1d;
+        border-left-color: var(--danger);
+    }
+
+    .alert-info {
+        background: rgba(59, 130, 246, 0.1);
+        color: #1e40af;
+        border-left-color: var(--info);
+    }
+
+    /* === BOTONES - SISTEMA UNIFICADO === */
+    .btn {
+        border-radius: var(--border-radius-xs);
+        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        transition: var(--transition);
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+        transition: left 0.5s ease;
+    }
+
+    .btn:hover::before {
+        left: 100%;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary-green), var(--primary-green-dark));
+        color: white;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .btn-outline-primary {
+        border: 2px solid var(--primary-green);
+        color: var(--primary-green);
+        background: transparent;
+    }
+
+    .btn-outline-primary:hover {
+        background: var(--primary-green);
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    .btn-link {
+        color: var(--info);
+        text-decoration: none;
+        font-weight: 600;
+        background: none;
+        border: none;
+        padding: 0.5rem;
+    }
+
+    .btn-link:hover {
+        color: #1d4ed8;
+        text-decoration: underline;
+        transform: none;
+        background: none;
+    }
+
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+    }
+
+    /* === ESTADOS VACÍOS - MEJORADOS === */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: var(--gray-500);
+    }
+
+    .empty-state i {
+        margin-bottom: 1rem;
+        opacity: 0.3;
+        font-size: 3rem;
+    }
+
+    .empty-state h4 {
+        color: var(--gray-600);
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+
+    .empty-state p {
+        margin-bottom: 1.5rem;
+        font-size: 0.9rem;
+    }
+
+    /* === COMPONENTES ADICIONALES === */
+    .upsell-card {
+        border: 2px solid var(--primary-purple);
+        background: linear-gradient(135deg, var(--gray-50), #f0f4ff);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .upsell-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, var(--primary-purple), #7c3aed);
+    }
+
+    .bg-purple {
+        background: var(--primary-purple) !important;
+    }
+
+    /* === SCROLLBARS PERSONALIZADOS === */
+    .categories-details::-webkit-scrollbar,
+    .transactions-list::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .categories-details::-webkit-scrollbar-track,
+    .transactions-list::-webkit-scrollbar-track {
+        background: var(--gray-100);
+        border-radius: 3px;
+    }
+
+    .categories-details::-webkit-scrollbar-thumb,
+    .transactions-list::-webkit-scrollbar-thumb {
+        background: var(--gray-300);
+        border-radius: 3px;
+    }
+
+    .categories-details::-webkit-scrollbar-thumb:hover,
+    .transactions-list::-webkit-scrollbar-thumb:hover {
+        background: var(--gray-400);
+    }
+
+    /* === RESPONSIVE DESIGN - MEJORADO === */
+    @@media (max-width: 1200px) {
+        .charts-row {
+            grid-template-columns: 1fr;
+        }
+        
+        .finance-content {
+            grid-template-columns: 1fr;
+        }
+        
+        .finance-sidebar {
+            position: static;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .finance-container {
+            padding: 1rem;
+        }
+
+        .finance-nav {
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .nav-item {
+            flex: 1 0 calc(50% - 0.5rem);
+            margin-bottom: 0.5rem;
+        }
+        
+        .nav-item a {
+            padding: 0.75rem 0.5rem;
+        }
+        
+        .nav-item i {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .nav-item span {
+            font-size: 0.8rem;
+        }
+
+        .finance-header {
+            flex-direction: column;
+            gap: 1.5rem;
+            text-align: center;
+            padding: 1.5rem;
+        }
+
+        .header-actions {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .metrics-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .metric-card {
+            padding: 1.5rem;
+        }
+        
+        .card-header {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start;
+            padding: 1.25rem;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .transaction-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        
+        .transaction-details {
+            width: 100%;
+        }
+        
+        .transaction-meta {
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .budget-summary {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+
+        .summary-item {
+            flex-direction: row;
+            justify-content: space-between;
+            text-align: left;
+        }
+
+        /* Ajustes específicos para móviles */
+        .finance-main-content {
+            gap: 1.5rem;
+        }
+
+        .advice-card.compact .card-header {
+            padding: 1rem;
+        }
+
+        .advice-card.compact .card-body {
+            padding: 1rem;
+        }
+
+        .advice-card.compact .advice-text {
+            font-size: 0.85rem;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .nav-item {
+            flex: 1 0 100%;
+        }
+        
+        .metric-card {
+            flex-direction: column;
+            text-align: center;
+            gap: 1rem;
+        }
+        
+        .metric-content {
+            width: 100%;
+        }
+        
+        .header-actions {
+            flex-direction: column;
+        }
+        
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    /* === ANIMACIONES Y MEJORAS VISUALES === */
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .finance-card,
+    .metric-card {
+        animation: fadeInUp 0.5s ease-out;
+    }
+
+    .finance-card:nth-child(1) { animation-delay: 0.1s; }
+    .finance-card:nth-child(2) { animation-delay: 0.2s; }
+    .finance-card:nth-child(3) { animation-delay: 0.3s; }
+    .metric-card:nth-child(1) { animation-delay: 0.1s; }
+    .metric-card:nth-child(2) { animation-delay: 0.15s; }
+    .metric-card:nth-child(3) { animation-delay: 0.2s; }
+    .metric-card:nth-child(4) { animation-delay: 0.25s; }
+
+    /* === MEJORAS DE ACCESIBILIDAD === */
+    @@media (prefers-reduced-motion: reduce) {
+        * {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+        }
+    }
+
+    /* Focus styles para accesibilidad */
+    .btn:focus-visible,
+    .nav-item a:focus-visible {
+        outline: 2px solid var(--primary-blue);
+        outline-offset: 2px;
+    }
+
+    /* High contrast support */
+    @@media (prefers-contrast: high) {
+        .finance-card {
+            border: 2px solid var(--gray-800);
+        }
+        
+        .metric-card::before {
+            height: 6px;
+        }
+    }
+
+    /* === ESTRUCTURA MEJORADA === */
+    .metrics-section {
+        margin-bottom: 2rem;
+    }
+
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--gray-800);
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--gray-200);
+    }
+
+    .analysis-section {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .analysis-section .finance-card {
+        margin-bottom: 0;
+    }
+
+    /* Métricas Secundarias */
+    .secondary-metrics {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+
+    .secondary-metric {
+        text-align: center;
+        padding: 1rem;
+        border-radius: var(--border-radius-xs);
+        background: var(--gray-50);
+        border: 1px solid var(--gray-200);
+    }
+
+    .secondary-metric .metric-label {
+        font-size: 0.8rem;
+        color: var(--gray-500);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+    }
+
+    .secondary-metric .metric-value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--gray-800);
+        margin-bottom: 0.75rem;
+    }
+
+    .metric-progress {
+        margin-top: 0.5rem;
+    }
+
+    .progress-text {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+        margin-top: 0.25rem;
+        font-weight: 600;
+    }
+
+    /* Ajustes responsivos para la nueva estructura */
+    @@media (max-width: 1200px) {
+        .analysis-section {
+            grid-template-columns: 1fr;
+        }
+        
+        .secondary-metrics {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .analysis-section {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .metrics-section .metrics-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
