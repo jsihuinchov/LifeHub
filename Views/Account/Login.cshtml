@@ -1,0 +1,551 @@
+@model LifeHub.Models.ViewModels.LoginViewModel
+
+@{
+    ViewData["Title"] = "Iniciar Sesión";
+}
+
+<div class="auth-container">
+    <div class="auth-card">
+        <!-- Header con logo y título -->
+        <div class="auth-header">
+            <div class="auth-logo">
+                <i class="fas fa-gem"></i>
+            </div>
+            <h1 class="auth-title">Bienvenido de vuelta</h1>
+            <p class="auth-subtitle">Ingresa a tu cuenta LifeHub para continuar</p>
+        </div>
+
+        <!-- ✅ Mostrar mensajes de error -->
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <!-- ✅ Mostrar mensajes de éxito -->
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i>
+                @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <!-- Formulario -->
+        <form method="post" class="auth-form">
+            @Html.AntiForgeryToken()
+            
+            @if (!string.IsNullOrEmpty(ViewData["ReturnUrl"] as string))
+            {
+                <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+            }
+
+            <!-- Campo Email -->
+            <div class="form-group">
+                <label asp-for="Email" class="form-label">
+                    <i class="fas fa-envelope me-2"></i>Email
+                </label>
+                <div class="input-group">
+                    <input asp-for="Email" class="form-control" placeholder="tu@email.com" />
+                    <div class="input-icon">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+                <span asp-validation-for="Email" class="text-danger validation-message"></span>
+            </div>
+
+            <!-- Campo Contraseña -->
+            <div class="form-group">
+                <label asp-for="Password" class="form-label">
+                    <i class="fas fa-lock me-2"></i>Contraseña
+                </label>
+                <div class="input-group">
+                    <input asp-for="Password" type="password" class="form-control" placeholder="Tu contraseña" id="passwordInput" />
+                    <div class="input-icon">
+                        <i class="fas fa-key"></i>
+                    </div>
+                    <button type="button" class="password-toggle" onclick="togglePassword()">
+                        <i class="fas fa-eye" id="passwordIcon"></i>
+                    </button>
+                </div>
+                <span asp-validation-for="Password" class="text-danger validation-message"></span>
+            </div>
+
+            <!-- Opciones -->
+            <div class="form-options">
+                <div class="form-check">
+                    <input asp-for="RememberMe" class="form-check-input" />
+                    <label asp-for="RememberMe" class="form-check-label">
+                        <i class="fas fa-check-circle me-1"></i>
+                        Recordarme
+                    </label>
+                </div>
+                <a href="@Url.Action("ForgotPassword", "Account")" class="forgot-password">
+                    ¿Olvidaste tu contraseña?
+                </a>
+            </div>
+
+            <!-- Botón de envío -->
+            <button type="submit" class="btn btn-primary btn-auth">
+                <i class="fas fa-sign-in-alt me-2"></i>
+                Iniciar Sesión
+            </button>
+        </form>
+
+        <!-- Separador -->
+        <div class="auth-separator">
+            <span>o continúa con</span>
+        </div>
+
+        <!-- Login Social -->
+        <div class="social-login">
+            <!-- ✅ SOLO LOGIN - No puede crear usuarios -->
+            <a href="@Url.Action("GoogleLogin", "Account", new { returnUrl = ViewData["ReturnUrl"] })" 
+               class="btn btn-social btn-google">
+                <i class="fab fa-google me-2"></i>
+                Iniciar sesión con Google
+            </a>
+        </div>
+
+        <!-- Footer -->
+        <div class="auth-footer">
+            <p class="text-center mb-0">
+                ¿No tienes cuenta? 
+                <a href="@Url.Action("Register", "Account")" class="auth-link">
+                    Regístrate gratis
+                </a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+    function togglePassword() {
+        const passwordInput = document.getElementById('passwordInput');
+        const passwordIcon = document.getElementById('passwordIcon');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            passwordIcon.className = 'fas fa-eye-slash';
+        } else {
+            passwordInput.type = 'password';
+            passwordIcon.className = 'fas fa-eye';
+        }
+    }
+
+    // Efectos de interacción
+    document.addEventListener('DOMContentLoaded', function() {
+        const inputs = document.querySelectorAll('.form-control');
+        
+        inputs.forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.classList.add('focused');
+            });
+            
+            input.addEventListener('blur', function() {
+                if (this.value === '') {
+                    this.parentElement.classList.remove('focused');
+                }
+            });
+            
+            if (input.value !== '') {
+                input.parentElement.classList.add('focused');
+            }
+        });
+
+        // Auto-cerrar alertas después de 5 segundos
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 5000);
+        });
+    });
+</script>
+
+<style>
+    /* Contenedor principal */
+    .auth-container {
+        min-height: 100vh;
+        background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .auth-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.1" d="M0,128L48,117.3C96,107,192,85,288,112C384,139,480,213,576,218.7C672,224,768,160,864,138.7C960,117,1056,139,1152,149.3C1248,160,1344,160,1392,160L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
+        background-size: cover;
+        background-position: center bottom;
+    }
+
+    /* Tarjeta de autenticación */
+    .auth-card {
+        background: white;
+        border-radius: 24px;
+        padding: 3rem;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+        width: 100%;
+        max-width: 450px;
+        position: relative;
+        z-index: 2;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+    }
+
+    /* Header */
+    .auth-header {
+        text-align: center;
+        margin-bottom: 2.5rem;
+    }
+
+    .auth-logo {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #4361ee, #3a0ca3);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        color: white;
+        font-size: 2rem;
+        box-shadow: 0 10px 25px rgba(67, 97, 238, 0.3);
+    }
+
+    .auth-title {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+    }
+
+    .auth-subtitle {
+        color: #64748b;
+        font-size: 1.1rem;
+        margin: 0;
+    }
+
+    /* ✅ NUEVO: Estilos para alertas */
+    .alert {
+        border: none;
+        border-radius: 12px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .alert-danger {
+        background: linear-gradient(135deg, #fef2f2, #fecaca);
+        border-left: 4px solid #ef4444;
+        color: #b91c1c;
+    }
+
+    .alert-success {
+        background: linear-gradient(135deg, #f0fdf4, #bbf7d0);
+        border-left: 4px solid #22c55e;
+        color: #15803d;
+    }
+
+    .alert .btn-close {
+        padding: 0.75rem;
+    }
+
+    /* Formulario */
+    .auth-form {
+        margin-bottom: 2rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: flex;
+        align-items: center;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+    }
+
+    .form-label i {
+        color: #4361ee;
+        width: 16px;
+    }
+
+    .input-group {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 1rem 3rem 1rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: #f8fafc;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #4361ee;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .input-icon {
+        position: absolute;
+        right: 1rem;
+        color: #64748b;
+        pointer-events: none;
+    }
+
+    .password-toggle {
+        position: absolute;
+        right: 1rem;
+        background: none;
+        border: none;
+        color: #64748b;
+        cursor: pointer;
+        padding: 0.25rem;
+        border-radius: 4px;
+        transition: all 0.3s ease;
+    }
+
+    .password-toggle:hover {
+        color: #4361ee;
+        background: rgba(67, 97, 238, 0.1);
+    }
+
+    /* Opciones del formulario */
+    .form-options {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 1.5rem 0;
+    }
+
+    .form-check {
+        display: flex;
+        align-items: center;
+        margin: 0;
+    }
+
+    .form-check-input {
+        width: 18px;
+        height: 18px;
+        margin-right: 0.5rem;
+        border: 2px solid #d1d5db;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .form-check-input:checked {
+        background-color: #4361ee;
+        border-color: #4361ee;
+    }
+
+    .form-check-label {
+        display: flex;
+        align-items: center;
+        color: #374151;
+        font-weight: 500;
+        font-size: 0.9rem;
+        cursor: pointer;
+        margin: 0;
+    }
+
+    .form-check-label i {
+        color: #4361ee;
+        font-size: 0.8rem;
+        margin-right: 0.25rem;
+    }
+
+    .forgot-password {
+        color: #4361ee;
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .forgot-password:hover {
+        color: #3a0ca3;
+        text-decoration: underline;
+    }
+
+    /* Botón de envío */
+    .btn-auth {
+        width: 100%;
+        padding: 1rem 2rem;
+        background: linear-gradient(135deg, #4361ee, #3a0ca3);
+        border: none;
+        border-radius: 12px;
+        color: white;
+        font-weight: 600;
+        font-size: 1.1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 8px 20px rgba(67, 97, 238, 0.3);
+    }
+
+    .btn-auth:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 25px rgba(67, 97, 238, 0.4);
+        background: linear-gradient(135deg, #3a0ca3, #4361ee);
+    }
+
+    .btn-auth:active {
+        transform: translateY(-1px);
+    }
+
+    /* Separador */
+    .auth-separator {
+        text-align: center;
+        margin: 2rem 0;
+        position: relative;
+    }
+
+    .auth-separator::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: #e2e8f0;
+    }
+
+    .auth-separator span {
+        background: white;
+        padding: 0 1rem;
+        color: #64748b;
+        font-size: 0.9rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Login Social */
+    .social-login {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .btn-social {
+        padding: 0.75rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        background: white;
+        color: #374151;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-social:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        border-color: #db4437;
+        color: #db4437;
+    }
+
+    /* Footer */
+    .auth-footer {
+        border-top: 1px solid #f1f5f9;
+        padding-top: 1.5rem;
+    }
+
+    .auth-link {
+        color: #4361ee;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+    }
+
+    .auth-link:hover {
+        color: #3a0ca3;
+        text-decoration: underline;
+    }
+
+    /* Mensajes de validación */
+    .validation-message {
+        display: block;
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+    }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .auth-card {
+            padding: 2rem 1.5rem;
+            margin: 1rem;
+        }
+
+        .auth-title {
+            font-size: 1.8rem;
+        }
+
+        .social-login {
+            grid-template-columns: 1fr;
+        }
+
+        .form-options {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .forgot-password {
+            align-self: flex-end;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .auth-container {
+            padding: 1rem 0.5rem;
+        }
+
+        .auth-card {
+            padding: 1.5rem 1rem;
+        }
+
+        .auth-title {
+            font-size: 1.6rem;
+        }
+
+        .auth-logo {
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+        }
+
+        .alert {
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+        }
+    }
+</style>

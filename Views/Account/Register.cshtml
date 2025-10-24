@@ -1,0 +1,636 @@
+@model LifeHub.Models.ViewModels.RegisterViewModel
+
+@{
+    ViewData["Title"] = "Registro";
+    var isFreePlan = Model.SelectedPlanId == 1;
+}
+
+<div class="auth-container">
+    <div class="auth-card">
+        <!-- Header con logo y título -->
+        <div class="auth-header">
+            <div class="auth-logo">
+                <i class="fas fa-gem"></i>
+            </div>
+            <h1 class="auth-title">Crear Cuenta</h1>
+            
+            @if (!isFreePlan)
+            {
+                <div class="plan-indicator">
+                    <i class="fas fa-crown me-2"></i>
+                    <span>Te estás registrando con el plan: <strong>@Model.SelectedPlanName</strong></span>
+                </div>
+            }
+            else
+            {
+                <p class="auth-subtitle">Comienza tu viaje hacia una vida más organizada</p>
+            }
+        </div>
+
+        <!-- ✅ NUEVO: Mostrar mensajes de error generales -->
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <!-- Formulario -->
+        <form method="post" class="auth-form">
+            @Html.AntiForgeryToken()
+            
+            <input type="hidden" asp-for="SelectedPlanId" />
+            <input type="hidden" asp-for="SelectedPlanName" />
+
+            <!-- Campo Email -->
+            <div class="form-group">
+                <label asp-for="Email" class="form-label">
+                    <i class="fas fa-envelope me-2"></i>Email
+                </label>
+                <div class="input-group">
+                    <input asp-for="Email" class="form-control" placeholder="tu@email.com" />
+                    <div class="input-icon">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+                <span asp-validation-for="Email" class="text-danger validation-message"></span>
+            </div>
+
+            <!-- Campo Contraseña -->
+            <div class="form-group">
+                <label asp-for="Password" class="form-label">
+                    <i class="fas fa-lock me-2"></i>Contraseña
+                </label>
+                <div class="input-group">
+                    <input asp-for="Password" type="password" class="form-control" placeholder="Mínimo 6 caracteres" id="passwordInput" />
+                    <div class="input-icon">
+                        <i class="fas fa-key"></i>
+                    </div>
+                    <button type="button" class="password-toggle" onclick="togglePassword('passwordInput', 'passwordIcon')">
+                        <i class="fas fa-eye" id="passwordIcon"></i>
+                    </button>
+                </div>
+                <span asp-validation-for="Password" class="text-danger validation-message"></span>
+            </div>
+
+            <!-- Campo Confirmar Contraseña -->
+            <div class="form-group">
+                <label asp-for="ConfirmPassword" class="form-label">
+                    <i class="fas fa-lock me-2"></i>Confirmar Contraseña
+                </label>
+                <div class="input-group">
+                    <input asp-for="ConfirmPassword" type="password" class="form-control" placeholder="Repite tu contraseña" id="confirmPasswordInput" />
+                    <div class="input-icon">
+                        <i class="fas fa-key"></i>
+                    </div>
+                    <button type="button" class="password-toggle" onclick="togglePassword('confirmPasswordInput', 'confirmPasswordIcon')">
+                        <i class="fas fa-eye" id="confirmPasswordIcon"></i>
+                    </button>
+                </div>
+                <span asp-validation-for="ConfirmPassword" class="text-danger validation-message"></span>
+            </div>
+
+            <!-- ✅ CORREGIDO: Términos y Condiciones -->
+            <div class="form-group terms-group">
+                <div class="terms-check">
+                    <input asp-for="AcceptTerms" class="form-check-input" type="checkbox" id="termsCheck">
+                    <label class="form-check-label" for="termsCheck">
+                        Acepto los <a href="#" class="terms-link">Términos de Servicio</a> y la <a href="#" class="terms-link">Política de Privacidad</a>
+                    </label>
+                </div>
+                <span asp-validation-for="AcceptTerms" class="text-danger validation-message"></span>
+            </div>
+
+            <!-- Botón de envío -->
+            <button type="submit" class="btn btn-primary btn-auth" id="submitBtn">
+                <i class="fas fa-user-plus me-2"></i>
+                Crear Cuenta
+            </button>
+        </form>
+
+        <!-- Mostrar errores de validación -->
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger mt-3">
+                <div class="alert-header">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <h5>Errores de validación</h5>
+                </div>
+                <ul class="alert-list">
+                    @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        <li>@error.ErrorMessage</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <!-- Separador -->
+        <div class="auth-separator">
+            <span>o regístrate con</span>
+        </div>
+
+        <!-- Registro Social -->
+        <div class="social-login">
+            <!-- ✅ SOLO REGISTRO -->
+            <a href="@Url.Action("GoogleRegister", "Account", new { returnUrl = ViewData["ReturnUrl"] })" 
+            class="btn btn-social btn-google">
+                <i class="fab fa-google me-2"></i>
+                Registrarse con Google
+            </a>
+        </div>
+
+        <!-- Footer -->
+        <div class="auth-footer">
+            <p class="text-center mb-0">
+                ¿Ya tienes cuenta? 
+                <a href="@Url.Action("Login", "Account")" class="auth-link">Iniciar Sesión</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<script>
+    function togglePassword(inputId, iconId) {
+        const passwordInput = document.getElementById(inputId);
+        const passwordIcon = document.getElementById(iconId);
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            passwordIcon.className = 'fas fa-eye-slash';
+        } else {
+            passwordInput.type = 'password';
+            passwordIcon.className = 'fas fa-eye';
+        }
+    }
+
+    // Validación de términos y condiciones
+    document.addEventListener('DOMContentLoaded', function() {
+        const termsCheck = document.getElementById('termsCheck');
+        const submitBtn = document.getElementById('submitBtn');
+
+        function updateSubmitButton() {
+            if (termsCheck.checked) {
+                submitBtn.style.opacity = '1';
+                submitBtn.style.cursor = 'pointer';
+            } else {
+                submitBtn.style.opacity = '0.8';
+            }
+        }
+
+        termsCheck.addEventListener('change', updateSubmitButton);
+        updateSubmitButton();
+
+        // Efectos de interacción en inputs
+        const inputs = document.querySelectorAll('.form-control');
+        
+        inputs.forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.classList.add('focused');
+            });
+            
+            input.addEventListener('blur', function() {
+                if (this.value === '') {
+                    this.parentElement.classList.remove('focused');
+                }
+            });
+            
+            if (input.value !== '') {
+                input.parentElement.classList.add('focused');
+            }
+        });
+
+        // Validación de coincidencia de contraseñas
+        const passwordInput = document.getElementById('passwordInput');
+        const confirmPasswordInput = document.getElementById('confirmPasswordInput');
+
+        function validatePasswords() {
+            if (passwordInput.value && confirmPasswordInput.value) {
+                if (passwordInput.value !== confirmPasswordInput.value) {
+                    confirmPasswordInput.style.borderColor = '#ef4444';
+                } else {
+                    confirmPasswordInput.style.borderColor = '#10b981';
+                }
+            }
+        }
+
+        passwordInput.addEventListener('input', validatePasswords);
+        confirmPasswordInput.addEventListener('input', validatePasswords);
+    });
+</script>
+    <style>
+        /* Contenedor principal */
+        .auth-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #4361ee 0%, #3a0ca3 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23ffffff" fill-opacity="0.1" d="M0,128L48,117.3C96,107,192,85,288,112C384,139,480,213,576,218.7C672,224,768,160,864,138.7C960,117,1056,139,1152,149.3C1248,160,1344,160,1392,160L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
+            background-size: cover;
+            background-position: center bottom;
+        }
+
+        /* Tarjeta de autenticación */
+        .auth-card {
+            background: white;
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 480px;
+            position: relative;
+            z-index: 2;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Header */
+        .auth-header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .auth-logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            color: white;
+            font-size: 2rem;
+            box-shadow: 0 10px 25px rgba(67, 97, 238, 0.3);
+        }
+
+        .auth-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .auth-subtitle {
+            color: #64748b;
+            font-size: 1.1rem;
+            margin: 0;
+        }
+
+        /* Indicador de plan */
+        .plan-indicator {
+            background: linear-gradient(135deg, #8B5CF6, #A78BFA);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            margin-top: 1rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.3);
+        }
+
+        .plan-indicator i {
+            font-size: 1.1rem;
+        }
+
+        /* Formulario */
+        .auth-form {
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: flex;
+            align-items: center;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .form-label i {
+            color: #4361ee;
+            width: 16px;
+        }
+
+        .input-group {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 1rem 3rem 1rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #4361ee;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .input-icon {
+            position: absolute;
+            right: 1rem;
+            color: #64748b;
+            pointer-events: none;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: #64748b;
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .password-toggle:hover {
+            color: #4361ee;
+            background: rgba(67, 97, 238, 0.1);
+        }
+
+        /* Términos y condiciones CORREGIDO */
+        .terms-group {
+            margin: 1.5rem 0;
+        }
+
+        .terms-check {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .form-check-input {
+            width: 18px;
+            height: 18px;
+            margin-top: 0.2rem;
+            border: 2px solid #d1d5db;
+            border-radius: 4px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .form-check-input:checked {
+            background-color: #4361ee;
+            border-color: #4361ee;
+        }
+
+        .form-check-label {
+            color: #374151;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            cursor: pointer;
+            margin: 0;
+            flex: 1;
+        }
+
+        .terms-link {
+            color: #4361ee;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .terms-link:hover {
+            text-decoration: underline;
+        }
+
+        /* Botón de envío */
+        .btn-auth {
+            width: 100%;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #4361ee, #3a0ca3);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(67, 97, 238, 0.3);
+        }
+
+        .btn-auth:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 25px rgba(67, 97, 238, 0.4);
+            background: linear-gradient(135deg, #3a0ca3, #4361ee);
+        }
+
+        .btn-auth:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-auth:active:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        /* Alertas de error */
+        .alert {
+            border: none;
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .alert-danger {
+            background: linear-gradient(135deg, #fef2f2, #fecaca);
+            border-left: 4px solid #ef4444;
+        }
+
+        .alert-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            color: #dc2626;
+        }
+
+        .alert-header h5 {
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .alert-list {
+            margin: 0;
+            padding-left: 1.5rem;
+            color: #b91c1c;
+        }
+
+        .alert-list li {
+            margin-bottom: 0.25rem;
+        }
+
+        /* Separador */
+        .auth-separator {
+            text-align: center;
+            margin: 2rem 0;
+            position: relative;
+        }
+
+        .auth-separator::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #e2e8f0;
+        }
+
+        .auth-separator span {
+            background: white;
+            padding: 0 1rem;
+            color: #64748b;
+            font-size: 0.9rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Login Social */
+        .social-login {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .btn-social {
+            padding: 0.75rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background: white;
+            color: #374151;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-social:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-google:hover {
+            border-color: #db4437;
+            color: #db4437;
+        }
+
+        .btn-facebook:hover {
+            border-color: #4267b2;
+            color: #4267b2;
+        }
+
+        /* Footer */
+        .auth-footer {
+            border-top: 1px solid #f1f5f9;
+            padding-top: 1.5rem;
+        }
+
+        .auth-link {
+            color: #4361ee;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .auth-link:hover {
+            color: #3a0ca3;
+            text-decoration: underline;
+        }
+
+        /* Mensajes de validación */
+        .validation-message {
+            display: block;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #ef4444;
+        }
+
+        /* Responsive */
+        @@media (max-width: 768px) {
+            .auth-card {
+                padding: 2rem 1.5rem;
+                margin: 1rem;
+            }
+
+            .auth-title {
+                font-size: 1.8rem;
+            }
+
+            .social-login {
+                grid-template-columns: 1fr;
+            }
+
+            .plan-indicator {
+                font-size: 0.9rem;
+                padding: 10px 16px;
+            }
+        }
+
+        @@media (max-width: 480px) {
+            .auth-container {
+                padding: 1rem 0.5rem;
+            }
+
+            .auth-card {
+                padding: 1.5rem 1rem;
+            }
+
+            .auth-title {
+                font-size: 1.6rem;
+            }
+
+            .auth-logo {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+
+            .terms-check {
+                padding: 0.75rem;
+                gap: 0.5rem;
+            }
+
+            .form-check-label {
+                font-size: 0.85rem;
+            }
+        }
+    </style>
