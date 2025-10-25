@@ -1,0 +1,415 @@
+@model List<LifeHub.Models.SubscriptionPlan>
+
+@{
+    ViewData["Title"] = "Planes de Suscripción";
+}
+
+<div class="plans-container">
+    <div class="plans-header">
+        <h1 class="plans-title">Planes de Suscripción</h1>
+        <p class="plans-subtitle">Elige el plan que mejor se adapte a tus necesidades</p>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>
+            @TempData["SuccessMessage"]
+        </div>
+    }
+
+    <div class="plans-grid">
+        @foreach (var plan in Model.OrderBy(p => p.Price))
+        {
+            <div class="plan-card @(plan.IsFeatured ? "featured" : "")">
+                <div class="plan-header" style="background: linear-gradient(135deg, @plan.ColorCode 0%, #@(plan.ColorCode.Substring(1))88 100%);">
+                    @if (plan.IsFeatured)
+                    {
+                        <div class="plan-badge">Recomendado</div>
+                    }
+                    <h3 class="plan-name">@plan.Name</h3>
+                    <div class="plan-price">
+                        <span class="price-amount">@plan.FormattedPrice</span>
+                        <span class="price-period">/@plan.Period</span>
+                    </div>
+                    <p class="plan-description">@plan.ShortDescription</p>
+                </div>
+
+                <div class="plan-features">
+                    <div class="feature">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        <span>@plan.MaxHabits hábitos @(plan.MaxHabits >= 999 ? "ilimitados" : "")</span>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        <span>@plan.MaxTransactions transacciones/mes</span>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-check-circle text-success me-2"></i>
+                        <span>@plan.StorageMB MB almacenamiento</span>
+                    </div>
+                    @if (plan.HasCommunityAccess)
+                    {
+                        <div class="feature">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <span>Comunidad LifeHub</span>
+                        </div>
+                    }
+                    @if (plan.HasAIFeatures)
+                    {
+                        <div class="feature">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <span>Análisis con IA</span>
+                        </div>
+                    }
+                </div>
+
+                <div class="plan-actions">
+                    @if (plan.Price == 0)
+                    {
+                        <!-- Plan Gratis - Cambio directo -->
+                        <form method="post" asp-action="ChangePlan">
+                            <input type="hidden" name="planId" value="@plan.Id" />
+                            <button type="submit" class="btn btn-outline-primary btn-plan">
+                                <i class="fas fa-sync-alt me-2"></i>
+                                Cambiar a Gratis
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <!-- TEMPORAL: Redirigir a página de pago en lugar de modal -->
+                        <a href="@Url.Action("Payment", "Plans", new { planId = plan.Id })" 
+                        class="btn @(plan.IsFeatured ? "btn-primary" : "btn-outline-primary") btn-plan">
+                            <i class="fas fa-credit-card me-2"></i>
+                            Cambiar Plan
+                        </a>
+                    }
+                    <a href="@Url.Action("Details", "Plans", new { id = plan.Id })" class="btn btn-link btn-sm">
+                        Ver detalles
+                    </a>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Modal de Pago para todos los planes de pago -->
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true" style="z-index: 1060;">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="z-index: 1061;">
+            <div class="modal-header">
+                <h5 class="modal-title" id="paymentModalLabel">Completar Cambio de Plan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="paymentForm" method="post" asp-action="ChangePlan">
+                    <input type="hidden" name="planId" id="selectedPlanId" />
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Información de Pago</h6>
+                            <div class="mb-3">
+                                <label class="form-label">Número de Tarjeta</label>
+                                <input type="text" class="form-control" name="cardNumber" placeholder="1234 5678 9012 3456" required>
+                            </div>
+                            <div class="row">
+                                <div class="col-6">
+                                    <label class="form-label">Fecha Exp.</label>
+                                    <input type="text" class="form-control" name="expiryDate" placeholder="MM/AA" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">CVV</label>
+                                    <input type="text" class="form-control" name="cvv" placeholder="123" required>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Nombre en la Tarjeta</label>
+                                <input type="text" class="form-control" name="cardName" placeholder="Juan Pérez" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Resumen del Cambio</h6>
+                            <div class="summary-card">
+                                <div class="summary-item">
+                                    <span>Nuevo Plan:</span>
+                                    <strong id="summary-plan-name">-</strong>
+                                </div>
+                                <div class="summary-item">
+                                    <span>Precio:</span>
+                                    <strong id="summary-plan-price">-</strong>
+                                </div>
+                                <div class="summary-item">
+                                    <span>Próxima Facturación:</span>
+                                    <strong>@DateTime.Now.AddDays(30).ToString("dd/MM/yyyy")</strong>
+                                </div>
+                                <hr>
+                                <div class="summary-total">
+                                    <span>Total a Pagar Hoy:</span>
+                                    <strong id="summary-total-price">-</strong>
+                                </div>
+                            </div>
+                            
+                            <div class="form-check mt-3">
+                                <input class="form-check-input" type="checkbox" id="termsCheck" required>
+                                <label class="form-check-label" for="termsCheck">
+                                    Acepto los <a href="#">términos y condiciones</a>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" form="paymentForm" class="btn btn-primary" id="confirmPaymentBtn">
+                    <i class="fas fa-lock me-2"></i>
+                    Confirmar Pago
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Configurar modal con datos del plan seleccionado
+        document.addEventListener('DOMContentLoaded', function() {
+            const paymentModal = document.getElementById('paymentModal');
+            
+            paymentModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const planId = button.getAttribute('data-plan-id');
+                const planName = button.getAttribute('data-plan-name');
+                const planPrice = button.getAttribute('data-plan-price');
+                
+                // Actualizar el formulario con los datos del plan
+                document.getElementById('selectedPlanId').value = planId;
+                document.getElementById('summary-plan-name').textContent = planName;
+                document.getElementById('summary-plan-price').textContent = planPrice;
+                document.getElementById('summary-total-price').textContent = planPrice;
+            });
+
+            // Validación básica del formulario
+            const paymentForm = document.getElementById('paymentForm');
+            const confirmPaymentBtn = document.getElementById('confirmPaymentBtn');
+            
+            paymentForm.addEventListener('submit', function(e) {
+                const termsCheck = document.getElementById('termsCheck');
+                if (!termsCheck.checked) {
+                    e.preventDefault();
+                    alert('Debes aceptar los términos y condiciones para continuar.');
+                    return;
+                }
+                
+                // Simular procesamiento de pago
+                confirmPaymentBtn.disabled = true;
+                confirmPaymentBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Procesando...';
+            });
+        });
+    </script>
+}
+
+@section Styles {
+    <style>
+        .plans-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .plans-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .plans-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .plans-subtitle {
+            font-size: 1.1rem;
+            color: #64748b;
+        }
+
+        .plans-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .plan-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid #f1f5f9;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .plan-card.featured {
+            transform: scale(1.05);
+            border: 2px solid #8B5CF6;
+        }
+
+        .plan-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        }
+
+        .plan-card.featured:hover {
+            transform: scale(1.05) translateY(-5px);
+        }
+
+        .plan-header {
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .plan-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+        }
+
+        .plan-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .plan-price {
+            margin-bottom: 1rem;
+        }
+
+        .price-amount {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .price-period {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+
+        .plan-description {
+            opacity: 0.9;
+            margin: 0;
+        }
+
+        .plan-features {
+            padding: 2rem;
+        }
+
+        .feature {
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .feature:last-child {
+            border-bottom: none;
+        }
+
+        .plan-actions {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #f1f5f9;
+            text-align: center;
+        }
+
+        .btn-plan {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-card {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            color: #374151;
+        }
+
+        .summary-total {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #1e293b;
+        }
+
+        @@media (max-width: 768px) {
+            .plans-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .plan-card.featured {
+                transform: none;
+            }
+            
+            .plan-card.featured:hover {
+                transform: translateY(-5px);
+            }
+        }
+        /* Estilos específicos para el modal */
+        .modal {
+            z-index: 1060; /* Mayor que el backdrop */
+        }
+
+        .modal-backdrop {
+            z-index: 1050; /* Detrás del modal */
+        }
+
+        .modal-content {
+            border: none;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1.5rem;
+        }
+
+        .modal-title {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        .modal-footer {
+            border-top: 1px solid #e2e8f0;
+            padding: 1rem 1.5rem;
+        }
+
+        /* Asegurar que los inputs sean interactuables */
+        .form-control:focus {
+            z-index: 1;
+            position: relative;
+        }
+
+        /* El backdrop debe cubrir toda la pantalla */
+        .modal-backdrop.show {
+            opacity: 0.5;
+        }
+    </style>
+}
