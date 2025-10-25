@@ -1,0 +1,12 @@
+# ARCHIVOS CRÍTICOS DE TU PROYECTO - NUNCA SUBIR
+appsettings.Development.json
+app.db
+app.db-shm
+app.db-wal
+secrets.json
+
+# COMPILACIÓN .NET
+bin/
+obj/
+[Tt]emp/
+[Ll]og/
