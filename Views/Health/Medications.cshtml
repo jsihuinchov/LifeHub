@@ -1,0 +1,209 @@
+@model List<LifeHub.Models.Entities.Medication>
+@{
+    ViewData["Title"] = "Medicamentos";
+    
+    // Función helper para truncar texto
+    string Truncate(string text, int length)
+    {
+        if (string.IsNullOrEmpty(text)) return text;
+        return text.Length <= length ? text : text.Substring(0, length) + "...";
+    }
+}
+
+<div class="health-container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="dashboard-title">
+                <i class="fas fa-pills me-2"></i>Medicamentos
+            </h1>
+            <p class="dashboard-subtitle">Gestiona todos tus medicamentos</p>
+        </div>
+        <a href="@Url.Action("CreateMedication")" class="btn btn-success">
+            <i class="fas fa-plus me-1"></i>Nuevo Medicamento
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Filtrar por estado:</label>
+                    <select class="form-select" id="statusFilter">
+                        <option value="all">Todos</option>
+                        <option value="active">Activos</option>
+                        <option value="inactive">Inactivos</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Buscar por nombre:</label>
+                    <input type="text" class="form-control" id="nameFilter" placeholder="Nombre del medicamento...">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">&nbsp;</label>
+                    <button class="btn btn-outline-secondary w-100" id="clearFilters">
+                        <i class="fas fa-times me-1"></i>Limpiar Filtros
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Medicamentos -->
+    <div class="card">
+        <div class="card-body">
+            @if (Model.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover" id="medicationsTable">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Dosis</th>
+                                <th>Frecuencia</th>
+                                <th>Fecha Inicio</th>
+                                <th>Fecha Fin</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var medication in Model)
+                            {
+                                <tr class="@(medication.IsActive ? "table-success" : "table-secondary")">
+                                    <td>
+                                        <strong>@medication.Name</strong>
+                                        @if (!string.IsNullOrEmpty(medication.Notes))
+                                        {
+                                            <br>
+                                            <small class="text-muted">@Truncate(medication.Notes, 50)</small>
+                                        }
+                                    </td>
+                                    <td>@(medication.Dosage ?? "No especificada")</td>
+                                    <td>@(medication.Frequency ?? "No especificada")</td>
+                                    <td>@(medication.StartDate?.ToString("dd/MM/yyyy") ?? "No especificada")</td>
+                                    <td>@(medication.EndDate?.ToString("dd/MM/yyyy") ?? "No especificada")</td>
+                                    <td>
+                                        <span class="badge @(medication.IsActive ? "bg-success" : "bg-secondary")">
+                                            @(medication.IsActive ? "Activo" : "Inactivo")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <form method="post" action="@Url.Action("ToggleMedicationStatus", new { id = medication.Id })" 
+                                                  class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn @(medication.IsActive ? "btn-warning" : "btn-success")" 
+                                                        title="@(medication.IsActive ? "Desactivar" : "Activar")">
+                                                    <i class="fas fa-power-off"></i>
+                                                </button>
+                                            </form>
+                                            <a href="@Url.Action("EditMedication", new { id = medication.Id })" 
+                                               class="btn btn-outline-primary" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <form method="post" action="@Url.Action("DeleteMedication", new { id = medication.Id })" 
+                                                  class="d-inline" onsubmit="return confirm('¿Estás seguro de que quieres eliminar este medicamento?');">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-outline-danger" title="Eliminar">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-pills fa-3x text-muted mb-3"></i>
+                    <h4>No hay medicamentos registrados</h4>
+                    <p class="text-muted mb-4">Comienza agregando tu primer medicamento</p>
+                    <a href="@Url.Action("CreateMedication")" class="btn btn-success btn-lg">
+                        <i class="fas fa-plus me-2"></i>Agregar Primer Medicamento
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Filtro por estado
+            $('#statusFilter').change(function () {
+                filterMedications();
+            });
+
+            // Filtro por nombre
+            $('#nameFilter').on('input', function () {
+                filterMedications();
+            });
+
+            // Limpiar filtros
+            $('#clearFilters').click(function () {
+                $('#statusFilter').val('all');
+                $('#nameFilter').val('');
+                filterMedications();
+            });
+
+            function filterMedications() {
+                var status = $('#statusFilter').val();
+                var name = $('#nameFilter').val().toLowerCase();
+
+                $('#medicationsTable tbody tr').each(function () {
+                    var $row = $(this);
+                    var isActive = $row.hasClass('table-success');
+                    var medicationName = $row.find('td:eq(0) strong').text().toLowerCase();
+                    
+                    var statusMatch = true;
+                    var nameMatch = true;
+
+                    // Filtro por estado
+                    if (status === 'active') {
+                        statusMatch = isActive;
+                    } else if (status === 'inactive') {
+                        statusMatch = !isActive;
+                    }
+
+                    // Filtro por nombre
+                    if (name) {
+                        nameMatch = medicationName.includes(name);
+                    }
+
+                    if (statusMatch && nameMatch) {
+                        $row.show();
+                    } else {
+                        $row.hide();
+                    }
+                });
+            }
+        });
+    </script>
+
+    <style>
+        .health-container {
+            padding: 20px;
+        }
+
+        .table th {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            font-weight: 600;
+        }
+
+        .badge {
+            font-size: 0.75rem;
+        }
+
+        .btn-group-sm > .btn {
+            padding: 0.25rem 0.5rem;
+        }
+    </style>
+}
