@@ -1,0 +1,393 @@
+@model LifeHub.Models.ViewModels.MedicationViewModel
+@{
+    ViewData["Title"] = "Nuevo Medicamento";
+}
+
+<div class="health-container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-pills me-2"></i>Nuevo Medicamento
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form asp-action="CreateMedication" method="post" id="medicationForm">
+                        @Html.AntiForgeryToken()
+                        
+                        <!-- Búsqueda RxNorm -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Buscar en Base de Datos Global RxNorm</label>
+                            <div class="input-group mb-2">
+                                <input type="text" class="form-control" id="medicationSearch" 
+                                       placeholder="Ej: paracetamol, ibuprofeno, metformina...">
+                                <button type="button" class="btn btn-primary" onclick="searchMedications()">
+                                    <i class="fas fa-search me-1"></i>Buscar en RxNorm
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="clearSearch()">
+                                    <i class="fas fa-times me-1"></i>Limpiar
+                                </button>
+                            </div>
+                            <small class="text-muted">
+                                <i class="fas fa-database me-1"></i>Base de datos con 20,000+ medicamentos globales. 
+                                Prueba con: <strong>aspirin, ibuprofen, metformin, paracetamol</strong>
+                            </small>
+                            
+                            <!-- Información de Búsqueda -->
+                            <div class="mt-3 p-3 border rounded bg-light">
+                                <h6><i class="fas fa-info-circle me-1"></i>Información de Búsqueda:</h6>
+                                <div id="searchInfo" class="small">
+                                    Busca cualquier medicamento en español o inglés...
+                                </div>
+                            </div>
+                            
+                            <!-- Resultados -->
+                            <div id="searchResults" class="mt-3" style="display: none;">
+                                <h6><i class="fas fa-pills me-1"></i>Medicamentos encontrados en RxNorm:</h6>
+                                <div id="resultsList" class="list-group mt-2"></div>
+                            </div>
+                        </div>
+
+                        <!-- Campos del formulario -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Name" class="form-label">Nombre del Medicamento *</label>
+                                    <input asp-for="Name" class="form-control" id="medicationName" required>
+                                    <span asp-validation-for="Name" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Dosage" class="form-label">Dosis</label>
+                                    <input asp-for="Dosage" class="form-control" id="medicationDosage" 
+                                           placeholder="Se completará automáticamente...">
+                                    <span asp-validation-for="Dosage" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Frequency" class="form-label">Frecuencia</label>
+                                    <select asp-for="Frequency" class="form-select" id="medicationFrequency">
+                                        <option value="">Seleccionar frecuencia...</option>
+                                        <option value="Una vez al día">Una vez al día</option>
+                                        <option value="Cada 12 horas">Cada 12 horas</option>
+                                        <option value="Cada 8 horas">Cada 8 horas</option>
+                                        <option value="Cada 6 horas">Cada 6 horas</option>
+                                        <option value="Antes de las comidas">Antes de las comidas</option>
+                                        <option value="Después de las comidas">Después de las comidas</option>
+                                        <option value="Al acostarse">Al acostarse</option>
+                                        <option value="Cuando sea necesario">Cuando sea necesario</option>
+                                    </select>
+                                    <span asp-validation-for="Frequency" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Estado</label>
+                                    <div class="form-check form-switch mt-2">
+                                        <input asp-for="IsActive" class="form-check-input" type="checkbox" checked>
+                                        <label asp-for="IsActive" class="form-check-label">Medicamento activo</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="StartDate" class="form-label">Fecha de Inicio</label>
+                                    <input asp-for="StartDate" type="date" class="form-control">
+                                    <span asp-validation-for="StartDate" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="EndDate" class="form-label">Fecha de Fin (Opcional)</label>
+                                    <input asp-for="EndDate" type="date" class="form-control">
+                                    <span asp-validation-for="EndDate" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Notes" class="form-label">Notas Adicionales</label>
+                            <textarea asp-for="Notes" class="form-control" rows="3" 
+                                      placeholder="Instrucciones especiales, efectos secundarios, contraindicaciones..."></textarea>
+                            <span asp-validation-for="Notes" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="@Url.Action("Index")" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Volver al Dashboard
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-1"></i>Crear Medicamento
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        // Función de búsqueda mejorada
+        function searchMedications() {
+            const searchTerm = document.getElementById('medicationSearch').value.trim();
+            const searchInfo = document.getElementById('searchInfo');
+            
+            if (!searchTerm) {
+                showMessage('Por favor ingresa un término de búsqueda', 'warning');
+                return;
+            }
+
+            searchInfo.innerHTML = `<div class="text-info">
+                <i class="fas fa-spinner fa-spin me-1"></i>Buscando en RxNorm: "<strong>${searchTerm}</strong>"...
+            </div>`;
+            
+            console.log('🔍 Iniciando búsqueda RxNorm:', searchTerm);
+            
+            // Mostrar loading en resultados
+            const resultsList = document.getElementById('resultsList');
+            resultsList.innerHTML = `<div class="text-center py-3">
+                <div class="spinner-border text-success" role="status">
+                    <span class="visually-hidden">Buscando...</span>
+                </div>
+                <div class="mt-2">Buscando medicamentos...</div>
+            </div>`;
+            document.getElementById('searchResults').style.display = 'block';
+            
+            // Hacer la petición
+            fetch(`/Health/SearchMedications?term=${encodeURIComponent(searchTerm)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`Error HTTP: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('✅ Respuesta RxNorm:', data);
+                    
+                    if (data.success) {
+                        searchInfo.innerHTML = `<div class="text-success">
+                            <i class="fas fa-check me-1"></i>RxNorm encontró <strong>${data.count}</strong> medicamentos
+                            <br><small>Fuente: ${data.source}</small>
+                        </div>`;
+                        
+                        if (data.results && data.results.length > 0) {
+                            showResults(data.results);
+                        } else {
+                            showResults([]);
+                            showMessage('No se encontraron medicamentos. Intenta con otro término.', 'info');
+                        }
+                    } else {
+                        searchInfo.innerHTML = `<div class="text-danger">
+                            <i class="fas fa-times me-1"></i>Error en la búsqueda: ${data.error || 'Error desconocido'}
+                        </div>`;
+                        showMessage('Error al buscar medicamentos', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('❌ Error en búsqueda:', error);
+                    searchInfo.innerHTML = `<div class="text-danger">
+                        <i class="fas fa-times me-1"></i>Error de conexión: ${error.message}
+                    </div>`;
+                    showMessage('Error de conexión con RxNorm', 'danger');
+                });
+        }
+        
+        function showResults(results) {
+            const resultsList = document.getElementById('resultsList');
+            const searchResults = document.getElementById('searchResults');
+            
+            if (results.length === 0) {
+                resultsList.innerHTML = `
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-search fa-2x mb-2"></i>
+                        <p>No se encontraron medicamentos</p>
+                        <small>Intenta con otro término de búsqueda</small>
+                    </div>
+                `;
+                searchResults.style.display = 'block';
+                return;
+            }
+            
+            resultsList.innerHTML = '';
+            
+            results.forEach(med => {
+                const item = document.createElement('div');
+                item.className = 'list-group-item list-group-item-action';
+                item.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <strong class="text-success">${escapeHtml(med.name)}</strong>
+                            ${med.strength ? `<div class="badge bg-success ms-2">${escapeHtml(med.strength)}</div>` : ''}
+                            <span class="badge bg-info ms-1">${med.source || 'RxNorm'}</span>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        ${med.dosageForm ? `<span class="badge bg-secondary me-1">${escapeHtml(med.dosageForm)}</span>` : ''}
+                        ${med.route ? `<span class="badge bg-info me-1">${escapeHtml(med.route)}</span>` : ''}
+                        ${med.manufacturer ? `<small class="text-muted d-block mt-1"><i class="fas fa-industry me-1"></i>${escapeHtml(med.manufacturer)}</small>` : ''}
+                    </div>
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-sm btn-outline-primary" 
+                                onclick="selectMedication('${escapeHtml(med.name).replace(/'/g, "\\'")}', '${escapeHtml(med.strength || '')}')">
+                            <i class="fas fa-check me-1"></i>Seleccionar este medicamento
+                        </button>
+                    </div>
+                `;
+                resultsList.appendChild(item);
+            });
+            
+            searchResults.style.display = 'block';
+        }
+        
+        function selectMedication(name, strength) {
+            console.log('💊 Seleccionando medicamento:', name, strength);
+            
+            // Llenar los campos del formulario
+            document.getElementById('medicationName').value = name;
+            
+            if (strength && strength !== 'undefined' && strength !== 'null') {
+                document.getElementById('medicationDosage').value = strength;
+            }
+            
+            // Ocultar resultados después de seleccionar
+            document.getElementById('searchResults').style.display = 'none';
+            
+            // Limpiar campo de búsqueda
+            document.getElementById('medicationSearch').value = '';
+            
+            // Actualizar información
+            document.getElementById('searchInfo').innerHTML = `
+                <div class="text-success">
+                    <i class="fas fa-check me-1"></i>Medicamento seleccionado: <strong>${name}</strong>
+                </div>
+            `;
+            
+            showMessage(`✅ <strong>${name}</strong> seleccionado. Ahora completa el resto del formulario.`, 'success');
+            
+            // Enfocar el campo de dosis para continuar editando
+            setTimeout(() => {
+                document.getElementById('medicationDosage').focus();
+            }, 100);
+        }
+        
+        function clearSearch() {
+            document.getElementById('medicationSearch').value = '';
+            document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('searchInfo').innerHTML = 'Busca cualquier medicamento en español o inglés...';
+        }
+        
+        function showMessage(message, type) {
+            // Remover alertas anteriores
+            const existingAlerts = document.querySelectorAll('.alert');
+            existingAlerts.forEach(alert => alert.remove());
+            
+            // Crear nueva alerta
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type} alert-dismissible fade show mt-3`;
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.getElementById('medicationForm').prepend(alert);
+            
+            // Auto-remover después de 5 segundos
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+        
+        // Función para escapar HTML (seguridad)
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Búsqueda automática al escribir
+        let searchTimeout;
+        document.getElementById('medicationSearch').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.trim();
+            if (searchTerm.length >= 2) {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    searchMedications();
+                }, 800);
+            }
+        });
+        
+        // También buscar al presionar Enter
+        document.getElementById('medicationSearch').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchMedications();
+            }
+        });
+        
+        // Establecer fecha actual por defecto
+        document.getElementById('StartDate').value = new Date().toISOString().split('T')[0];
+        
+        console.log('✅ Script cargado - Listo para buscar medicamentos en RxNorm');
+    </script>
+
+    <style>
+        .health-container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            border-radius: 15px 15px 0 0 !important;
+            padding: 20px;
+        }
+
+        .list-group-item {
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+        }
+
+        .list-group-item:hover {
+            border-color: #28a745;
+            box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .btn {
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: #28a745;
+            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+        }
+
+        .badge {
+            font-size: 0.75em;
+        }
+    </style>
+}

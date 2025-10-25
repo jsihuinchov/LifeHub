@@ -1,0 +1,164 @@
+@model LifeHub.Models.ViewModels.MedicationViewModel
+@{
+    ViewData["Title"] = "Editar Medicamento";
+}
+
+<div class="health-container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-edit me-2"></i>Editar Medicamento
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form asp-action="EditMedication" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="Id" />
+                        
+                        <!-- Información de búsqueda (solo informativa en edición) -->
+                        <div class="mb-4 p-3 border rounded bg-light">
+                            <h6><i class="fas fa-info-circle me-1"></i>Información</h6>
+                            <p class="mb-0 small">
+                                Para buscar medicamentos en la base de datos global RxNorm, 
+                                <a href="@Url.Action("CreateMedication")" class="text-warning fw-bold">crea un nuevo medicamento</a> 
+                                y usa la función de búsqueda integrada.
+                            </p>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Name" class="form-label">Nombre del Medicamento *</label>
+                                    <input asp-for="Name" class="form-control" placeholder="Ej: Paracetamol, Ibuprofeno...">
+                                    <span asp-validation-for="Name" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Dosage" class="form-label">Dosis</label>
+                                    <input asp-for="Dosage" class="form-control" placeholder="Ej: 500mg, 1 comprimido...">
+                                    <span asp-validation-for="Dosage" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Frequency" class="form-label">Frecuencia</label>
+                                    <input asp-for="Frequency" class="form-control" placeholder="Ej: Cada 8 horas, 1 vez al día...">
+                                    <span asp-validation-for="Frequency" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="IsActive" class="form-label">Estado</label>
+                                    <div class="form-check form-switch mt-2">
+                                        <input asp-for="IsActive" class="form-check-input" type="checkbox" role="switch">
+                                        <label asp-for="IsActive" class="form-check-label">Medicamento activo</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="StartDate" class="form-label">Fecha de Inicio</label>
+                                    <input asp-for="StartDate" type="date" class="form-control">
+                                    <span asp-validation-for="StartDate" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="EndDate" class="form-label">Fecha de Fin (Opcional)</label>
+                                    <input asp-for="EndDate" type="date" class="form-control">
+                                    <span asp-validation-for="EndDate" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Notes" class="form-label">Notas Adicionales</label>
+                            <textarea asp-for="Notes" class="form-control" rows="4" 
+                                      placeholder="Instrucciones especiales, efectos secundarios, contraindicaciones..."></textarea>
+                            <span asp-validation-for="Notes" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="@Url.Action("Medications")" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Volver a Medicamentos
+                            </a>
+                            <div>
+                                <a href="@Url.Action("Medications")" class="btn btn-outline-danger me-2">Cancelar</a>
+                                <button type="submit" class="btn btn-warning">
+                                    <i class="fas fa-save me-1"></i>Actualizar Medicamento
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        $(document).ready(function () {
+            // Formatear fechas para los inputs date
+            @if (Model.StartDate.HasValue)
+            {
+                <text>
+                $('#StartDate').val('@Model.StartDate.Value.ToString("yyyy-MM-dd")');
+                </text>
+            }
+            
+            @if (Model.EndDate.HasValue)
+            {
+                <text>
+                $('#EndDate').val('@Model.EndDate.Value.ToString("yyyy-MM-dd")');
+                </text>
+            }
+        });
+    </script>
+
+    <style>
+        .health-container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            border-radius: 15px 15px 0 0 !important;
+            padding: 20px;
+        }
+
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            border-color: #ffc107;
+            box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
+        }
+
+        .form-check-input:checked {
+            background-color: #ffc107;
+            border-color: #ffc107;
+        }
+    </style>
+}
