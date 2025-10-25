@@ -1,0 +1,433 @@
+@model LifeHub.Models.ViewModels.HealthStatsViewModel
+@{
+    ViewData["Title"] = "Estadísticas de Salud";
+}
+
+<div class="health-container">
+    <div class="dashboard-header">
+        <div class="header-content">
+            <h1 class="dashboard-title">
+                <i class="fas fa-chart-bar me-2"></i>Estadísticas de Salud
+            </h1>
+            <p class="dashboard-subtitle">Resumen y análisis de tu historial médico</p>
+        </div>
+        <div class="header-actions">
+            <a href="@Url.Action("Index")" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-1"></i>Volver al Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Métricas Principales -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="stats-card health-stats">
+                <div class="stats-icon total-icon">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="stats-content">
+                    <h3>@Model.TotalAppointments</h3>
+                    <p>Citas Totales</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card health-stats">
+                <div class="stats-icon upcoming-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stats-content">
+                    <h3>@Model.UpcomingAppointments</h3>
+                    <p>Próximas Citas</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card health-stats">
+                <div class="stats-icon medication-icon">
+                    <i class="fas fa-pills"></i>
+                </div>
+                <div class="stats-content">
+                    <h3>@Model.ActiveMedications</h3>
+                    <p>Medicamentos Activos</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stats-card health-stats">
+                <div class="stats-icon completed-icon">
+                    <i class="fas fa-check-double"></i>
+                </div>
+                <div class="stats-content">
+                    <h3>@Model.CompletedAppointments</h3>
+                    <p>Citas Completadas</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Columna Izquierda - Estadísticas Detalladas -->
+        <div class="col-lg-6">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        Resumen de Actividad
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="stats-details">
+                        <div class="stat-detail-item">
+                            <div class="stat-detail-icon">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="stat-detail-content">
+                                <span class="stat-detail-label">Promedio mensual de citas</span>
+                                <span class="stat-detail-value">@Model.AverageAppointmentsPerMonth citas/mes</span>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-detail-item">
+                            <div class="stat-detail-icon">
+                                <i class="fas fa-stethoscope"></i>
+                            </div>
+                            <div class="stat-detail-content">
+                                <span class="stat-detail-label">Especialidad más frecuente</span>
+                                <span class="stat-detail-value">@Model.MostFrequentSpecialty</span>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-detail-item">
+                            <div class="stat-detail-icon">
+                                <i class="fas fa-pills"></i>
+                            </div>
+                            <div class="stat-detail-content">
+                                <span class="stat-detail-label">Medicación activa</span>
+                                <span class="stat-detail-value">@Model.ActiveMedications medicamentos</span>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-detail-item">
+                            <div class="stat-detail-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="stat-detail-content">
+                                <span class="stat-detail-label">Tasa de completación</span>
+                                <span class="stat-detail-value">
+                                    @{
+                                        var completionRate = Model.TotalAppointments > 0 ? 
+                                            (Model.CompletedAppointments * 100) / Model.TotalAppointments : 0;
+                                    }
+                                    @completionRate%
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Distribución de Citas -->
+            <div class="dashboard-card mt-4">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-chart-line me-2"></i>
+                        Tendencias Mensuales
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="text-center py-4">
+                        <i class="fas fa-chart-area fa-3x text-muted mb-3"></i>
+                        <h5>Gráfico de Tendencias</h5>
+                        <p class="text-muted">Próximamente: Evolución de citas por mes</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna Derecha - Insights y Recomendaciones -->
+        <div class="col-lg-6">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-lightbulb me-2"></i>
+                        Insights de Salud
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="insights-list">
+                        @if (Model.TotalAppointments == 0)
+                        {
+                            <div class="insight-item info">
+                                <div class="insight-icon">
+                                    <i class="fas fa-info-circle"></i>
+                                </div>
+                                <div class="insight-content">
+                                    <h6>Comienza tu historial médico</h6>
+                                    <p>Agrega tu primera cita médica para comenzar a trackear tu salud.</p>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            @if (Model.UpcomingAppointments > 0)
+                            {
+                                <div class="insight-item warning">
+                                    <div class="insight-icon">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                    </div>
+                                    <div class="insight-content">
+                                        <h6>Citas próximas</h6>
+                                        <p>Tienes @Model.UpcomingAppointments cita(s) programada(s). ¡No olvides asistir!</p>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (Model.ActiveMedications > 0)
+                            {
+                                <div class="insight-item success">
+                                    <div class="insight-icon">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                    <div class="insight-content">
+                                        <h6>Tratamiento activo</h6>
+                                        <p>Actualmente tienes @Model.ActiveMedications medicamento(s) en curso.</p>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (Model.AverageAppointmentsPerMonth > 2)
+                            {
+                                <div class="insight-item info">
+                                    <div class="insight-icon">
+                                        <i class="fas fa-chart-line"></i>
+                                    </div>
+                                    <div class="insight-content">
+                                        <h6>Frecuencia de visitas</h6>
+                                        <p>Visitas al médico con frecuencia regular. ¡Buen seguimiento!</p>
+                                    </div>
+                                </div>
+                            }
+
+                            <div class="insight-item primary">
+                                <div class="insight-icon">
+                                    <i class="fas fa-heartbeat"></i>
+                                </div>
+                                <div class="insight-content">
+                                    <h6>Historial consistente</h6>
+                                    <p>Has completado @Model.CompletedAppointments de @Model.TotalAppointments citas.</p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acciones Sugeridas -->
+            <div class="dashboard-card mt-4">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-bullseye me-2"></i>
+                        Acciones Sugeridas
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="suggested-actions">
+                        <a href="@Url.Action("CreateAppointment")" class="suggested-action">
+                            <div class="action-icon">
+                                <i class="fas fa-calendar-plus"></i>
+                            </div>
+                            <div class="action-content">
+                                <h6>Programar nueva cita</h6>
+                                <p>Agenda tu próximo control médico</p>
+                            </div>
+                        </a>
+                        
+                        <a href="@Url.Action("CreateMedication")" class="suggested-action">
+                            <div class="action-icon">
+                                <i class="fas fa-pills"></i>
+                            </div>
+                            <div class="action-content">
+                                <h6>Agregar medicamento</h6>
+                                <p>Registra un nuevo tratamiento</p>
+                            </div>
+                        </a>
+                        
+                        <a href="@Url.Action("Appointments")" class="suggested-action">
+                            <div class="action-icon">
+                                <i class="fas fa-list"></i>
+                            </div>
+                            <div class="action-content">
+                                <h6>Revisar citas</h6>
+                                <p>Revisa tu historial completo</p>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .health-container {
+        padding: 20px;
+    }
+
+    .health-stats .stats-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+    }
+
+    .total-icon { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .upcoming-icon { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
+    .medication-icon { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+    .completed-icon { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
+
+    .stats-details {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .stat-detail-item {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        transition: all 0.3s;
+    }
+
+    .stat-detail-item:hover {
+        background: #e9ecef;
+        transform: translateX(5px);
+    }
+
+    .stat-detail-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-size: 1.2rem;
+    }
+
+    .stat-detail-content {
+        flex: 1;
+    }
+
+    .stat-detail-label {
+        display: block;
+        font-size: 0.9rem;
+        color: #666;
+        margin-bottom: 5px;
+    }
+
+    .stat-detail-value {
+        display: block;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .insights-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .insight-item {
+        display: flex;
+        align-items: flex-start;
+        padding: 15px;
+        border-radius: 10px;
+        border-left: 4px solid;
+    }
+
+    .insight-item.info { border-color: #17a2b8; background: #d1ecf1; }
+    .insight-item.warning { border-color: #ffc107; background: #fff3cd; }
+    .insight-item.success { border-color: #28a745; background: #d4edda; }
+    .insight-item.primary { border-color: #007bff; background: #cce5ff; }
+
+    .insight-icon {
+        margin-right: 15px;
+        font-size: 1.2rem;
+    }
+
+    .insight-item.info .insight-icon { color: #17a2b8; }
+    .insight-item.warning .insight-icon { color: #ffc107; }
+    .insight-item.success .insight-icon { color: #28a745; }
+    .insight-item.primary .insight-icon { color: #007bff; }
+
+    .insight-content h6 {
+        margin: 0 0 5px 0;
+        font-weight: 600;
+    }
+
+    .insight-content p {
+        margin: 0;
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .suggested-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .suggested-action {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        text-decoration: none;
+        color: #333;
+        background: #f8f9fa;
+        border-radius: 10px;
+        transition: all 0.3s;
+        border: 2px solid transparent;
+    }
+
+    .suggested-action:hover {
+        text-decoration: none;
+        color: #333;
+        background: #e9ecef;
+        border-color: #007bff;
+        transform: translateY(-2px);
+    }
+
+    .suggested-action .action-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-size: 1.2rem;
+    }
+
+    .suggested-action .action-content h6 {
+        margin: 0 0 5px 0;
+        font-weight: 600;
+    }
+
+    .suggested-action .action-content p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #666;
+    }
+</style>
