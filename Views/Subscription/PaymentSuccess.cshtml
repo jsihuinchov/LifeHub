@@ -1,0 +1,39 @@
+@{
+    ViewData["Title"] = "Pago Exitoso";
+    var planId = ViewBag.PlanId as int? ?? 0;
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h3 class="card-title mb-0">¡Pago Exitoso!</h3>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <i class="fas fa-check-circle fa-5x text-success"></i>
+                    </div>
+                    
+                    <h4>¡Felicidades!</h4>
+                    <p class="lead">Tu suscripción ha sido activada correctamente.</p>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Ahora tienes acceso a todas las características premium de tu plan.
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <a href="@Url.Action("Index", "Dashboard")" class="btn btn-primary btn-lg">
+                            <i class="fas fa-tachometer-alt me-2"></i>Ir al Dashboard
+                        </a>
+                        
+                        <a href="@Url.Action("Index", "Home")" class="btn btn-outline-secondary">
+                            <i class="fas fa-home me-2"></i>Volver al Inicio
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
