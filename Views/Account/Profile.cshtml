@@ -1,0 +1,212 @@
+@model LifeHub.Models.ViewModels.AccountViewModels.ProfileViewModel
+@{
+    ViewData["Title"] = "Mi Perfil";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4"><i class="fas fa-user me-2"></i>Mi Perfil</h1>
+        </div>
+    </div>
+
+    <!-- Mensajes de alerta -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Información Principal -->
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Información Personal
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <strong>Email:</strong>
+                            <p>@Model.Email</p>
+                            @if (Model.EmailConfirmed)
+                            {
+                                <span class="badge bg-success">Email verificado</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning">Email no verificado</span>
+                            }
+                        </div>
+                        <div class="col-sm-6">
+                            <strong>Nombre de usuario:</strong>
+                            <p>@(Model.UserName ?? "No establecido")</p>
+                        </div>
+                    </div>
+                    
+                    @if (!string.IsNullOrEmpty(Model.Bio))
+                    {
+                        <div class="mt-3">
+                            <strong>Biografía:</strong>
+                            <p class="mt-1">@Model.Bio</p>
+                        </div>
+                    }
+
+                    <div class="row mt-3">
+                        @if (!string.IsNullOrEmpty(Model.Location))
+                        {
+                            <div class="col-sm-6">
+                                <strong><i class="fas fa-map-marker-alt me-1"></i>Ubicación:</strong>
+                                <p>@Model.Location</p>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.WebsiteUrl))
+                        {
+                            <div class="col-sm-6">
+                                <strong><i class="fas fa-globe me-1"></i>Sitio web:</strong>
+                                <p><a href="@Model.WebsiteUrl" target="_blank">@Model.WebsiteUrl</a></p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuraciones -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-cog me-2"></i>Configuraciones
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <strong>Notificaciones por email:</strong>
+                            <p>
+                                @if (Model.EmailNotifications)
+                                {
+                                    <span class="badge bg-success">Activadas</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Desactivadas</span>
+                                }
+                            </p>
+                        </div>
+                        <div class="col-sm-6">
+                            <strong>Notificaciones push:</strong>
+                            <p>
+                                @if (Model.PushNotifications)
+                                {
+                                    <span class="badge bg-success">Activadas</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Desactivadas</span>
+                                }
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-md-4">
+            <!-- Tarjeta de Suscripción -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-crown me-2"></i>Mi Suscripción
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="card-subtitle mb-2">@Model.CurrentPlan</h6>
+                    @if (Model.SubscriptionEndDate.HasValue)
+                    {
+                        <p class="card-text">
+                            <small class="text-muted">
+                                Vence: @Model.SubscriptionEndDate.Value.ToString("dd/MM/yyyy")
+                            </small>
+                        </p>
+                    }
+                    <a asp-controller="Plans" asp-action="Index" class="btn btn-outline-primary btn-sm">
+                        Gestionar Suscripción
+                    </a>
+                </div>
+            </div>
+
+            <!-- Tarjeta de Estadísticas -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line me-2"></i>Estadísticas
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p><i class="fas fa-calendar me-2"></i>Miembro desde: @Model.MemberSince.ToString("MMM yyyy")</p>
+                    <p><i class="fas fa-tasks me-2"></i>Hábitos: @Model.HabitsCount</p>
+                    <p><i class="fas fa-wallet me-2"></i>Transacciones: @Model.TransactionsCount</p>
+                </div>
+            </div>
+
+            <!-- Acciones Rápidas -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-bolt me-2"></i>Acciones
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a asp-action="EditProfile" class="btn btn-primary">
+                            <i class="fas fa-edit me-2"></i>Editar Perfil
+                        </a>
+                        <a asp-action="ChangePassword" class="btn btn-outline-secondary">
+                            <i class="fas fa-key me-2"></i>Cambiar Contraseña
+                        </a>
+                        @if (Model.IsAdmin)
+                        {
+                            <a asp-controller="Admin" asp-action="Index" class="btn btn-outline-danger">
+                                <i class="fas fa-tachometer-alt me-2"></i>Panel Admin
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border: none;
+        border-radius: 12px;
+    }
+    
+    .card-header {
+        border-radius: 12px 12px 0 0 !important;
+        border: none;
+    }
+    
+    .btn {
+        border-radius: 8px;
+        font-weight: 500;
+    }
+    
+    .badge {
+        font-size: 0.75rem;
+    }
+</style>

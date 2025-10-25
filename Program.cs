@@ -116,6 +116,8 @@ builder.Services.AddScoped<IHealthService, HealthService>();
 builder.Services.AddHttpClient<IMedicationApiService, RxNormService>();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IGoogleAuthService, GoogleAuthService>();
+builder.Services.AddScoped<IProfileService, ProfileService>();
+
 // Logging
 builder.Services.AddLogging();
 

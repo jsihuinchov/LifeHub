@@ -28,6 +28,9 @@ namespace LifeHub.Data
         // Añadir estos DbSets para que EF los reconozca
         public DbSet<UserSubscription> UserSubscriptions { get; set; }
         public DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
+        
+        // AGREGAR ESTE NUEVO DbSet:
+        public DbSet<UserProfile> UserProfiles { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -85,6 +88,31 @@ namespace LifeHub.Data
                 entity.Property(e => e.SortOrder).HasColumnName("sort_order");
                 entity.Property(e => e.CreatedAt).HasColumnName("created_at");
                 entity.Property(e => e.Features).HasColumnName("features");
+            });
+
+            // Configurar UserProfile
+            builder.Entity<UserProfile>(entity =>
+            {
+                entity.ToTable("user_profiles");
+                entity.HasKey(e => e.Id);
+                
+                // Mapeo de columnas
+                entity.Property(e => e.Id).HasColumnName("id");
+                entity.Property(e => e.UserId).HasColumnName("user_id");
+                entity.Property(e => e.Bio).HasColumnName("bio");
+                entity.Property(e => e.Location).HasColumnName("location");
+                entity.Property(e => e.WebsiteUrl).HasColumnName("website_url");
+                entity.Property(e => e.SocialLinks).HasColumnName("social_links");
+                entity.Property(e => e.PrivacySettings).HasColumnName("privacy_settings");
+                entity.Property(e => e.EmailNotifications).HasColumnName("email_notifications");
+                entity.Property(e => e.PushNotifications).HasColumnName("push_notifications");
+                entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
+                
+                // Relación con IdentityUser
+                entity.HasOne(up => up.User)
+                      .WithMany()
+                      .HasForeignKey(up => up.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
 
             // DATA SEEDING - Los planes se crearán automáticamente

@@ -1,10 +1,15 @@
 using LifeHub.Models.ViewModels;
+using LifeHub.Models.ViewModels.AccountViewModels;
 using LifeHub.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using LifeHub.Models;
+using LifeHub.Data;
+using Microsoft.EntityFrameworkCore;
+
 
 namespace LifeHub.Controllers
 {
@@ -15,19 +20,25 @@ namespace LifeHub.Controllers
         private readonly ISubscriptionService _subscriptionService;
         private readonly ILogger<AccountController> _logger;
         private readonly IGoogleAuthService _googleAuthService;
+        private readonly IProfileService _profileService;
+        private readonly ApplicationDbContext _context; // Agregar esta línea
 
         public AccountController(
             UserManager<IdentityUser> userManager,
             SignInManager<IdentityUser> signInManager,
             ISubscriptionService subscriptionService,
             ILogger<AccountController> logger,
-            IGoogleAuthService googleAuthService)
+            IGoogleAuthService googleAuthService,
+            IProfileService profileService,
+            ApplicationDbContext context) // Agregar este parámetro
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _subscriptionService = subscriptionService;
             _logger = logger;
             _googleAuthService = googleAuthService;
+            _profileService = profileService;
+            _context = context; // Agregar esta línea
         }
 
         // GET: /Account/Register
@@ -508,6 +519,220 @@ namespace LifeHub.Controllers
                 _logger.LogError(ex, "❌ Error inesperado en registro");
                 TempData["ErrorMessage"] = "Error inesperado creando la cuenta.";
                 return RedirectToAction("Register");
+            }
+        }
+
+        // MÉTODO HELPER SIMPLIFICADO PARA OBTENER SUSCRIPCIÓN
+        private async Task<(string PlanName, DateTime? EndDate)> GetUserSubscriptionInfoAsync(string userId)
+        {
+            try
+            {
+                // Intentar obtener la suscripción activa de la base de datos
+                var subscription = await _context.UserSubscriptions
+                    .Include(us => us.Plan)
+                    .Where(us => us.UserId == userId && us.IsActive && us.EndDate > DateTime.UtcNow)
+                    .OrderByDescending(us => us.StartDate)
+                    .FirstOrDefaultAsync();
+
+                if (subscription != null && subscription.Plan != null)
+                {
+                    return (subscription.Plan.Name, subscription.EndDate);
+                }
+
+                // Si no hay suscripción activa, devolver plan gratis por defecto
+                return ("Plan Gratis", DateTime.UtcNow.AddDays(30));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener información de suscripción del usuario {UserId}", userId);
+                // En caso de error, devolver plan gratis
+                return ("Plan Gratis", DateTime.UtcNow.AddDays(30));
+            }
+        }
+
+        // VER PERFIL
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> Profile()
+        {
+            try
+            {
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null)
+                {
+                    return RedirectToAction("Login");
+                }
+
+                var userProfile = await _profileService.GetUserProfileAsync(user.Id);
+                var (currentPlan, subscriptionEndDate) = await GetUserSubscriptionInfoAsync(user.Id);
+                var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+
+                var model = new LifeHub.Models.ViewModels.AccountViewModels.ProfileViewModel
+                {
+                    Email = user.Email ?? string.Empty,
+                    UserName = user.UserName,
+                    EmailConfirmed = user.EmailConfirmed,
+                    Bio = userProfile?.Bio,
+                    Location = userProfile?.Location,
+                    WebsiteUrl = userProfile?.WebsiteUrl,
+                    EmailNotifications = userProfile?.EmailNotifications ?? true,
+                    PushNotifications = userProfile?.PushNotifications ?? true,
+                    CurrentPlan = currentPlan,
+                    SubscriptionEndDate = subscriptionEndDate,
+                    IsAdmin = isAdmin,
+                    MemberSince = userProfile?.UpdatedAt ?? DateTime.UtcNow
+                };
+
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al cargar el perfil del usuario");
+                TempData["ErrorMessage"] = "Error al cargar el perfil.";
+                return RedirectToAction("Index", "Dashboard");
+            }
+        }
+
+        // EDITAR PERFIL - GET
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> EditProfile()
+        {
+            try
+            {
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null)
+                {
+                    return RedirectToAction("Login");
+                }
+
+                var userProfile = await _profileService.GetUserProfileAsync(user.Id);
+
+                var model = new LifeHub.Models.ViewModels.AccountViewModels.EditProfileViewModel
+                {
+                    Email = user.Email ?? string.Empty,
+                    UserName = user.UserName,
+                    Bio = userProfile?.Bio,
+                    Location = userProfile?.Location,
+                    WebsiteUrl = userProfile?.WebsiteUrl,
+                    EmailNotifications = userProfile?.EmailNotifications ?? true,
+                    PushNotifications = userProfile?.PushNotifications ?? true
+                };
+
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al cargar edición de perfil");
+                TempData["ErrorMessage"] = "Error al cargar el formulario de edición.";
+                return RedirectToAction("Profile");
+            }
+        }
+
+        // EDITAR PERFIL - POST
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditProfile(LifeHub.Models.ViewModels.AccountViewModels.EditProfileViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            try
+            {
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null)
+                {
+                    return RedirectToAction("Login");
+                }
+
+                var success = await _profileService.UpdateUserProfileAsync(user.Id, model);
+
+                if (success)
+                {
+                    TempData["SuccessMessage"] = "Perfil actualizado correctamente.";
+                    return RedirectToAction("Profile");
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = "Error al actualizar el perfil.";
+                    return View(model);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al actualizar perfil");
+                TempData["ErrorMessage"] = "Error inesperado al actualizar el perfil.";
+                return View(model);
+            }
+        }
+
+        // CAMBIAR CONTRASEÑA - GET
+        [HttpGet]
+        [Authorize]
+        public IActionResult ChangePassword()
+        {
+            return View();
+        }
+
+        // CAMBIAR CONTRASEÑA - POST
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangePassword(LifeHub.Models.ViewModels.AccountViewModels.ChangePasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            try
+            {
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null)
+                {
+                    return RedirectToAction("Login");
+                }
+
+                var success = await _profileService.ChangePasswordAsync(user.Id, model.OldPassword, model.NewPassword);
+
+                if (success)
+                {
+                    await _signInManager.SignOutAsync();
+                    TempData["SuccessMessage"] = "Contraseña cambiada correctamente. Por favor, inicia sesión nuevamente.";
+                    return RedirectToAction("Login");
+                }
+                else
+                {
+                    ModelState.AddModelError(string.Empty, "Error al cambiar la contraseña. Verifica tu contraseña actual.");
+                    return View(model);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al cambiar contraseña");
+                ModelState.AddModelError(string.Empty, "Error inesperado al cambiar la contraseña.");
+                return View(model);
+            }
+        }
+
+        // MÉTODO HELPER PARA OBTENER SUSCRIPCIÓN ACTIVA
+        private async Task<UserSubscription?> GetUserActiveSubscriptionAsync(string userId)
+        {
+            try
+            {
+                return await _context.UserSubscriptions
+                    .Include(us => us.Plan)
+                    .Where(us => us.UserId == userId && us.IsActive && us.EndDate > DateTime.UtcNow)
+                    .OrderByDescending(us => us.StartDate)
+                    .FirstOrDefaultAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener suscripción activa del usuario {UserId}", userId);
+                return null;
             }
         }
     }
