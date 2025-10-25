@@ -10,12 +10,11 @@
 using System;
 using System.Reflection;
 
-[assembly: Microsoft.AspNetCore.Identity.UI.UIFrameworkAttribute("Bootstrap5")]
 [assembly: Microsoft.Extensions.Configuration.UserSecrets.UserSecretsIdAttribute("f3e5a6b6-5aff-4045-88a5-366a637f5213")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("LifeHub")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+51879925b7026581d4a703880047393c320bf989")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4c314444d201ebf63d78520775c7b7f052cc13fa")]
 [assembly: System.Reflection.AssemblyProductAttribute("LifeHub")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LifeHub")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

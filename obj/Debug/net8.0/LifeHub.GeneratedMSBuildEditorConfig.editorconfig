@@ -32,6 +32,22 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWNjb3VudFxSZWdpc3Rlci5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/REPO OFI/LifeHub/Views/Admin/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cSW5kZXguY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/REPO OFI/LifeHub/Views/Admin/Stats.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cU3RhdHMuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/REPO OFI/LifeHub/Views/Admin/UserDetails.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cVXNlckRldGFpbHMuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/REPO OFI/LifeHub/Views/Admin/Users.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cVXNlcnMuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/REPO OFI/LifeHub/Views/Dashboard/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRGFzaGJvYXJkXEluZGV4LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
@@ -66,6 +82,58 @@ build_metadata.AdditionalFiles.CssScope =
 
 [C:/REPO OFI/LifeHub/Views/Finance/Transactions.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRmluYW5jZVxUcmFuc2FjdGlvbnMuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/REPO OFI/LifeHub/Views/Habits/Create.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSGFiaXRzXENyZWF0ZS5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/REPO OFI/LifeHub/Views/Habits/Edit.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSGFiaXRzXEVkaXQuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/REPO OFI/LifeHub/Views/Habits/HabitStats.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSGFiaXRzXEhhYml0U3RhdHMuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/REPO OFI/LifeHub/Views/Habits/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSGFiaXRzXEluZGV4LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/REPO OFI/LifeHub/Views/Habits/Stats.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSGFiaXRzXFN0YXRzLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/REPO OFI/LifeHub/Views/Health/Appointments.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSGVhbHRoXEFwcG9pbnRtZW50cy5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/REPO OFI/LifeHub/Views/Health/CreateAppointment.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSGVhbHRoXENyZWF0ZUFwcG9pbnRtZW50LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/REPO OFI/LifeHub/Views/Health/CreateMedication.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSGVhbHRoXENyZWF0ZU1lZGljYXRpb24uY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/REPO OFI/LifeHub/Views/Health/EditAppointment.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSGVhbHRoXEVkaXRBcHBvaW50bWVudC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/REPO OFI/LifeHub/Views/Health/EditMedication.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSGVhbHRoXEVkaXRNZWRpY2F0aW9uLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/REPO OFI/LifeHub/Views/Health/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSGVhbHRoXEluZGV4LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/REPO OFI/LifeHub/Views/Health/Medications.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSGVhbHRoXE1lZGljYXRpb25zLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/REPO OFI/LifeHub/Views/Health/Stats.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSGVhbHRoXFN0YXRzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/REPO OFI/LifeHub/Views/Home/Index.cshtml]
