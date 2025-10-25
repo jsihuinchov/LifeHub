@@ -1,0 +1,1767 @@
+@model LifeHub.Models.ViewModels.HabitDetailStatsViewModel
+@{
+    ViewData["Title"] = $"Estadísticas - {Model.HabitName}";
+}
+
+<div class="stats-container">
+    <!-- Header Mejorado -->
+    <div class="stats-header">
+        <div class="header-content">
+            <div class="habit-header">
+                <div class="habit-badge" style="background: @Model.HabitColor;">
+                    <span class="habit-icon">@Model.HabitIcon</span>
+                </div>
+                <div class="habit-info">
+                    <h1 class="stats-title">@Model.HabitName</h1>
+                    <p class="stats-subtitle">Estadísticas detalladas y análisis de progreso</p>
+                    <div class="habit-meta">
+                        <span class="meta-item">
+                            <i class="fas fa-calendar-plus me-1"></i>
+                            Desde @Model.StartDate.ToString("dd/MM/yyyy")
+                        </span>
+                        <span class="meta-item">
+                            <i class="fas fa-bullseye me-1"></i>
+                            @Model.Frequency veces por semana
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a href="@Url.Action("Index")" class="btn btn-back">
+                <i class="fas fa-arrow-left me-2"></i>Volver a Hábitos
+            </a>
+        </div>
+    </div>
+
+    <!-- Resumen Principal Mejorado -->
+    <div class="main-stats-grid">
+        <div class="main-stat-card streak-card">
+            <div class="card-glow"></div>
+            <div class="stat-content">
+                <div class="stat-icon">
+                    <i class="fas fa-fire"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value">@Model.CurrentStreak</span>
+                    <span class="stat-label">Racha Actual</span>
+                    <div class="stat-meta">
+                        <span class="stat-emoji">@Model.StreakEmoji</span>
+                        <span class="stat-detail">Máx: @Model.LongestStreak días</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-stat-card success-card">
+            <div class="card-glow"></div>
+            <div class="stat-content">
+                <div class="stat-icon">
+                    <i class="fas fa-percentage"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value">@Model.SuccessRateFormatted</span>
+                    <span class="stat-label">Tasa de Éxito</span>
+                    <div class="stat-meta">
+                        <span class="stat-level">@Model.ConsistencyLevel</span>
+                        <div class="consistency-badge @GetConsistencyClass(Model.SuccessRate)">
+                            <i class="fas @GetConsistencyIcon(Model.SuccessRate) me-1"></i>
+                            @GetConsistencyText(Model.SuccessRate)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-stat-card total-card">
+            <div class="card-glow"></div>
+            <div class="stat-content">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value">@Model.TotalCompletions</span>
+                    <span class="stat-label">Total Completados</span>
+                    <div class="stat-meta">
+                        <span class="stat-detail">@Model.WeekCompletions esta semana</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid de Estadísticas Detalladas Mejorado -->
+    <div class="detailed-stats-grid">
+        <!-- Estado Actual Mejorado -->
+        <div class="stat-section status-section">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fas fa-calendar-check me-2"></i>
+                    Estado Actual
+                </h3>
+                <div class="section-actions">
+                    <span class="status-badge @(Model.TodayCompleted ? "completed" : "pending")">
+                        @(Model.TodayCompleted ? "✅ Completado" : "⏳ Pendiente")
+                    </span>
+                </div>
+            </div>
+            <div class="status-grid">
+                <div class="status-item">
+                    <div class="status-icon today">
+                        <i class="fas fa-sun"></i>
+                    </div>
+                    <div class="status-info">
+                        <span class="status-value">@(Model.TodayCompleted ? "Completado" : "Pendiente")</span>
+                        <span class="status-label">Hoy</span>
+                    </div>
+                </div>
+                <div class="status-item">
+                    <div class="status-icon week">
+                        <i class="fas fa-calendar-week"></i>
+                    </div>
+                    <div class="status-info">
+                        <span class="status-value">@Model.WeekCompletions/@Model.Frequency</span>
+                        <span class="status-label">Esta Semana</span>
+                    </div>
+                </div>
+                <div class="status-item">
+                    <div class="status-icon month">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="status-info">
+                        <span class="status-value">@Model.MonthCompletions</span>
+                        <span class="status-label">Este Mes</span>
+                    </div>
+                </div>
+                <div class="status-item">
+                    <div class="status-icon record">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <div class="status-info">
+                        <span class="status-value">@Model.LongestStreak días</span>
+                        <span class="status-label">Récord Personal</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Métricas de Rendimiento Mejoradas -->
+        <div class="stat-section performance-section">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Rendimiento
+                </h3>
+            </div>
+            <div class="performance-stats">
+                <div class="performance-stat">
+                    <div class="performance-header">
+                        <span class="performance-label">Progreso Semanal</span>
+                        <span class="performance-value">@Model.WeekCompletions/@Model.Frequency</span>
+                    </div>
+                    <div class="performance-bar">
+                        <div class="performance-fill" style="width: @(Math.Min(Model.WeekCompletions * 100 / Model.Frequency, 100))%">
+                            <div class="performance-glow"></div>
+                        </div>
+                    </div>
+                    <span class="performance-target">Meta: @Model.Frequency/semana</span>
+                </div>
+                
+                <div class="performance-stat">
+                    <div class="performance-metric">
+                        <div class="metric-icon best-day">
+                            <i class="fas fa-calendar-star"></i>
+                        </div>
+                        <div class="metric-info">
+                            <span class="metric-label">Día Más Productivo</span>
+                            <span class="metric-value">@Model.BestDayOfWeek</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="performance-stat">
+                    <div class="performance-metric">
+                        <div class="metric-icon best-month">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <div class="metric-info">
+                            <span class="metric-label">Mes Más Productivo</span>
+                            <span class="metric-value">@Model.MostProductiveMonth</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Patrón Semanal Mejorado con Barras Horizontales -->
+        <div class="stat-section pattern-section">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fas fa-calendar-week me-2"></i>
+                    Patrón Semanal
+                </h3>
+                <div class="section-actions">
+                    <span class="pattern-summary">Total: @Model.DailyCompletionPattern.Values.Sum()</span>
+                </div>
+            </div>
+            <div class="weekly-pattern-horizontal">
+                @{
+                    var maxDaily = Model.DailyCompletionPattern.Values.Max();
+                    // CORREGIDO: Usar nombres en español que vienen del backend
+                    var dayNames = new Dictionary<string, string>
+                    {
+                        ["Lunes"] = "Lun",
+                        ["Martes"] = "Mar", 
+                        ["Miércoles"] = "Mié",
+                        ["Jueves"] = "Jue",
+                        ["Viernes"] = "Vie",
+                        ["Sábado"] = "Sáb",
+                        ["Domingo"] = "Dom"
+                    };
+                }
+                @foreach (var day in Model.DailyCompletionPattern)
+                {
+                    var percentage = maxDaily > 0 ? (day.Value * 100.0) / maxDaily : 0;
+                    var dayKey = day.Key;
+                    var shortName = dayNames.ContainsKey(dayKey) ? dayNames[dayKey] : dayKey.Substring(0, 3);
+                    
+                    <div class="day-stat-horizontal">
+                        <div class="day-info">
+                            <span class="day-name">@shortName</span>
+                            <span class="day-count">@day.Value</span>
+                        </div>
+                        <div class="day-bar-horizontal">
+                            <div class="day-fill-horizontal" style="width: @percentage%">
+                                <div class="day-glow"></div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Insights y Recomendaciones Mejorados -->
+        <div class="stat-section insights-section">
+            <div class="section-header">
+                <h3 class="section-title">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    Análisis y Recomendaciones
+                </h3>
+            </div>
+            <div class="insights-list">
+                @foreach (var insight in Model.Insights.Take(3))
+                {
+                    <div class="insight-item">
+                        <div class="insight-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="insight-content">
+                            <p>@insight</p>
+                        </div>
+                    </div>
+                }
+                @if (Model.Insights.Count > 3)
+                {
+                    <div class="insights-more">
+                        <span>+@(Model.Insights.Count - 3) recomendaciones más</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos Mejorados -->
+    <div class="charts-section">
+        <div class="section-header">
+            <h3 class="section-title main-title">
+                <i class="fas fa-chart-line me-2"></i>
+                Evolución Temporal
+            </h3>
+            <div class="chart-actions">
+                <button class="chart-btn active" data-chart="weekly">12 Semanas</button>
+                <button class="chart-btn" data-chart="monthly">6 Meses</button>
+            </div>
+        </div>
+        <div class="charts-grid">
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h4 class="chart-title">Tendencia Semanal</h4>
+                    <span class="chart-subtitle">Últimas 12 semanas</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="weeklyChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h4 class="chart-title">Progreso Mensual</h4>
+                    <span class="chart-subtitle">Últimos 6 meses</span>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="monthlyChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumen de Logros -->
+    <div class="achievements-section">
+        <div class="section-header">
+            <h3 class="section-title">
+                <i class="fas fa-award me-2"></i>
+                Logros Destacados
+            </h3>
+        </div>
+        <div class="achievements-grid">
+            @if (Model.LongestStreak >= 7)
+            {
+                <div class="achievement-card">
+                    <div class="achievement-icon streak">
+                        <i class="fas fa-fire"></i>
+                    </div>
+                    <div class="achievement-content">
+                        <h4>Racha de @Model.LongestStreak días</h4>
+                        <p>Tu período más consistente hasta ahora</p>
+                    </div>
+                </div>
+            }
+            
+            @if (Model.SuccessRate >= 80)
+            {
+                <div class="achievement-card">
+                    <div class="achievement-icon success">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <div class="achievement-content">
+                        <h4>@Model.SuccessRateFormatted de Éxito</h4>
+                        <p>Excelente nivel de consistencia</p>
+                    </div>
+                </div>
+            }
+            
+            @if (Model.TotalCompletions >= 50)
+            {
+                <div class="achievement-card">
+                    <div class="achievement-icon milestone">
+                        <i class="fas fa-flag-checkered"></i>
+                    </div>
+                    <div class="achievement-content">
+                        <h4>@Model.TotalCompletions Completados</h4>
+                        <p>Gran marca alcanzada</p>
+                    </div>
+                </div>
+            }
+            
+            <div class="achievement-card">
+                <div class="achievement-icon progress">
+                    <i class="fas fa-seedling"></i>
+                </div>
+                <div class="achievement-content">
+                    <h4>En progreso</h4>
+                    <p>Sigue construyendo tu hábito día a día</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        /* === VARIABLES MEJORADAS === */
+        :root {
+            --primary-green: #10b981;
+            --primary-green-dark: #059669;
+            --primary-blue: #3b82f6;
+            --primary-blue-dark: #2563eb;
+            --primary-purple: #8b5cf6;
+            --primary-purple-dark: #7c3aed;
+            --primary-orange: #f59e0b;
+            --primary-orange-dark: #d97706;
+            --primary-red: #ef4444;
+            --primary-cyan: #06b6d4;
+            
+            --gradient-primary: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
+            --gradient-secondary: linear-gradient(135deg, var(--primary-purple), var(--primary-cyan));
+            --gradient-warning: linear-gradient(135deg, var(--primary-orange), #ea580c);
+            --gradient-success: linear-gradient(135deg, var(--primary-green), #047857);
+            
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            
+            --border-radius: 20px;
+            --border-radius-lg: 24px;
+            --border-radius-md: 16px;
+            --border-radius-sm: 12px;
+            --border-radius-xs: 8px;
+            
+            --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 24px rgba(0, 0, 0, 0.12);
+            --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.15);
+            --shadow-xl: 0 12px 50px rgba(0, 0, 0, 0.18);
+            
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .stats-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--gray-50) 0%, #f0fdfa 50%, var(--gray-100) 100%);
+            padding: 2rem;
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+        /* === VARIABLES MEJORADAS === */
+        :root {
+            --primary-green: #10b981;
+            --primary-green-dark: #059669;
+            --primary-blue: #3b82f6;
+            --primary-blue-dark: #2563eb;
+            --primary-purple: #8b5cf6;
+            --primary-purple-dark: #7c3aed;
+            --primary-orange: #f59e0b;
+            --primary-orange-dark: #d97706;
+            --primary-red: #ef4444;
+            --primary-cyan: #06b6d4;
+            
+            --gradient-primary: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
+            --gradient-secondary: linear-gradient(135deg, var(--primary-purple), var(--primary-cyan));
+            --gradient-warning: linear-gradient(135deg, var(--primary-orange), #ea580c);
+            --gradient-success: linear-gradient(135deg, var(--primary-green), #047857);
+            
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            
+            --border-radius: 20px;
+            --border-radius-lg: 24px;
+            --border-radius-md: 16px;
+            --border-radius-sm: 12px;
+            --border-radius-xs: 8px;
+            
+            --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 24px rgba(0, 0, 0, 0.12);
+            --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.15);
+            --shadow-xl: 0 12px 50px rgba(0, 0, 0, 0.18);
+            
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .stats-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--gray-50) 0%, #f0fdfa 50%, var(--gray-100) 100%);
+            padding: 2rem;
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        /* === HEADER MEJORADO === */
+        .stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            background: white;
+            padding: 2.5rem;
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--gray-200);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stats-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-primary);
+        }
+
+        .header-content {
+            flex: 1;
+        }
+
+        .habit-header {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .habit-badge {
+            width: 100px;
+            height: 100px;
+            border-radius: var(--border-radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2.5rem;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .habit-badge::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+        }
+
+        .habit-info {
+            flex: 1;
+        }
+
+        .stats-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.025em;
+        }
+
+        .stats-subtitle {
+            color: var(--gray-600);
+            margin: 0 0 1rem 0;
+            font-size: 1.2rem;
+            font-weight: 500;
+            letter-spacing: -0.01em;
+        }
+
+        .habit-meta {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            color: var(--gray-500);
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .meta-item i {
+            color: var(--primary-blue);
+        }
+
+        .header-actions {
+            margin-left: 2rem;
+        }
+
+        .btn-back {
+            background: white;
+            color: var(--gray-700);
+            border: 2px solid var(--gray-300);
+            border-radius: var(--border-radius-md);
+            padding: 0.875rem 1.5rem;
+            font-weight: 600;
+            transition: var(--transition);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .btn-back:hover {
+            background: var(--gray-50);
+            border-color: var(--gray-400);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            color: var(--gray-800);
+        }
+
+        /* === ESTADÍSTICAS PRINCIPALES MEJORADAS === */
+        .main-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .main-stat-card {
+            border-radius: var(--border-radius-lg);
+            padding: 2.5rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid transparent;
+            transition: var(--transition-slow);
+            position: relative;
+            overflow: hidden;
+            color: white;
+            backdrop-filter: blur(20px);
+        }
+
+        .card-glow {
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: var(--transition-slow);
+        }
+
+        .main-stat-card:hover .card-glow {
+            opacity: 1;
+        }
+
+        .main-stat-card:hover {
+            transform: translateY(-8px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .streak-card {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%);
+        }
+
+        .success-card {
+            background: linear-gradient(135deg, var(--primary-purple) 0%, var(--primary-purple-dark) 50%, #6d28d9 100%);
+        }
+
+        .total-card {
+            background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-dark) 50%, #047857 100%);
+        }
+
+        .stat-content {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .main-stat-card .stat-icon {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: var(--border-radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            flex-shrink: 0;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: var(--transition);
+        }
+
+        .main-stat-card:hover .stat-icon {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .stat-info {
+            flex: 1;
+        }
+
+        .main-stat-card .stat-value {
+            display: block;
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .main-stat-card .stat-label {
+            display: block;
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        .stat-meta {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .stat-emoji {
+            font-size: 1.5rem;
+            font-weight: 600;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .stat-detail {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            font-weight: 500;
+        }
+
+        .stat-level {
+            font-size: 1rem;
+            font-weight: 700;
+            opacity: 0.9;
+        }
+
+        .stat-trend {
+            font-size: 0.8rem;
+            opacity: 0.8;
+            font-weight: 500;
+        }
+
+        .consistency-badge {
+            padding: 0.375rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .consistency-badge.excellent { background: rgba(16, 185, 129, 0.3); }
+        .consistency-badge.good { background: rgba(59, 130, 246, 0.3); }
+        .consistency-badge.fair { background: rgba(245, 158, 11, 0.3); }
+        .consistency-badge.poor { background: rgba(239, 68, 68, 0.3); }
+
+        /* === SECCIONES MEJORADAS === */
+        .detailed-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-section {
+            background: white;
+            border-radius: var(--border-radius-lg);
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--gray-200);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-primary);
+        }
+
+        .stat-section:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            letter-spacing: -0.02em;
+        }
+
+        .section-title i {
+            color: var(--primary-blue);
+            width: 24px;
+        }
+
+        .section-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .status-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-badge.completed {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--primary-green);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status-badge.pending {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--primary-orange);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .pattern-summary {
+            background: var(--gray-100);
+            color: var(--gray-600);
+            padding: 0.375rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        /* === ESTADO ACTUAL MEJORADO === */
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.25rem;
+            background: var(--gray-50);
+            border-radius: var(--border-radius-md);
+            border: 1px solid var(--gray-200);
+            transition: var(--transition);
+        }
+
+        .status-item:hover {
+            background: var(--gray-100);
+            border-color: var(--gray-300);
+            transform: translateX(4px);
+        }
+
+        .status-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--border-radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .status-icon.today { background: var(--gradient-primary); }
+        .status-icon.week { background: var(--gradient-secondary); }
+        .status-icon.month { background: var(--gradient-warning); }
+        .status-icon.record { background: var(--gradient-success); }
+
+        .status-info {
+            flex: 1;
+        }
+
+        .status-value {
+            display: block;
+            font-weight: 700;
+            color: var(--gray-900);
+            font-size: 1.1rem;
+            line-height: 1;
+            margin-bottom: 0.25rem;
+        }
+
+        .status-label {
+            display: block;
+            font-weight: 600;
+            color: var(--gray-600);
+            font-size: 0.9rem;
+        }
+
+        /* === RENDIMIENTO MEJORADO === */
+        .performance-stats {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .performance-stat {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .performance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .performance-label {
+            font-weight: 600;
+            color: var(--gray-700);
+            font-size: 0.95rem;
+        }
+
+        .performance-value {
+            font-weight: 700;
+            color: var(--gray-900);
+            font-size: 1.1rem;
+        }
+
+        .performance-bar {
+            height: 8px;
+            background: var(--gray-200);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .performance-fill {
+            height: 100%;
+            background: var(--gradient-primary);
+            border-radius: 4px;
+            transition: width 1s ease;
+            position: relative;
+        }
+
+        .performance-glow {
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        .performance-target {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+            font-weight: 500;
+        }
+
+        .performance-metric {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--gray-50);
+            border-radius: var(--border-radius-sm);
+            border: 1px solid var(--gray-200);
+        }
+
+        .metric-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--border-radius-xs);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .metric-icon.best-day { background: var(--gradient-primary); }
+        .metric-icon.best-month { background: var(--gradient-secondary); }
+
+        .metric-info {
+            flex: 1;
+        }
+
+        .metric-label {
+            display: block;
+            font-weight: 600;
+            color: var(--gray-600);
+            font-size: 0.85rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .metric-value {
+            display: block;
+            font-weight: 700;
+            color: var(--gray-900);
+            font-size: 1rem;
+        }
+
+        /* === PATRÓN SEMANAL MEJORADO === */
+        .weekly-pattern {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            height: 200px;
+            padding: 1rem 0;
+        }
+
+        .day-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1;
+        }
+
+        .day-name {
+            font-weight: 600;
+            color: var(--gray-600);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .day-visualization {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            height: 100%;
+        }
+
+        .day-bar-container {
+            flex: 1;
+            display: flex;
+            align-items: flex-end;
+            width: 100%;
+            max-width: 40px;
+        }
+
+        .day-bar {
+            width: 100%;
+            background: var(--gradient-primary);
+            border-radius: 4px 4px 0 0;
+            transition: height 1s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .day-fill {
+            width: 100%;
+            height: 100%;
+            background: var(--gradient-primary);
+        }
+
+        .day-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        .day-count {
+            font-weight: 700;
+            color: var(--gray-900);
+            font-size: 0.9rem;
+        }
+
+        /* === INSIGHTS MEJORADOS === */
+        .insights-section {
+            background: linear-gradient(135deg, #fffbeb, #fef3c7);
+            border: 1px solid #fcd34d;
+            position: relative;
+        }
+
+        .insights-section::before {
+            background: linear-gradient(90deg, #f59e0b, #d97706);
+        }
+
+        .insights-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .insight-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1.5rem;
+            background: white;
+            border-radius: var(--border-radius-md);
+            border-left: 4px solid #f59e0b;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+        }
+
+        .insight-item:hover {
+            transform: translateX(8px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .insight-icon {
+            width: 40px;
+            height: 40px;
+            background: #f59e0b;
+            border-radius: var(--border-radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+
+        .insight-content {
+            flex: 1;
+        }
+
+        .insight-content p {
+            margin: 0;
+            color: #92400e;
+            font-weight: 500;
+            line-height: 1.5;
+        }
+
+        .insights-more {
+            text-align: center;
+            padding: 1rem;
+            color: var(--gray-500);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        /* === GRÁFICOS MEJORADOS === */
+        .charts-section {
+            background: white;
+            border-radius: var(--border-radius-lg);
+            padding: 2.5rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--gray-200);
+            margin-bottom: 2.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .charts-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gradient-secondary);
+        }
+
+        .chart-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chart-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--gray-300);
+            background: white;
+            color: var(--gray-600);
+            border-radius: var(--border-radius-sm);
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .chart-btn.active,
+        .chart-btn:hover {
+            background: var(--primary-blue);
+            color: white;
+            border-color: var(--primary-blue);
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+
+        .chart-container {
+            background: var(--gray-50);
+            border-radius: var(--border-radius-lg);
+            padding: 1.5rem;
+            border: 1px solid var(--gray-200);
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+            transition: none;
+        }
+
+        .chart-container:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .chart-header {
+            margin-bottom: 1rem;
+            flex-shrink: 0;
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.25rem;
+        }
+
+        .chart-subtitle {
+            font-size: 0.9rem;
+            color: var(--gray-500);
+            font-weight: 500;
+        }
+
+        .chart-wrapper {
+            flex: 1;
+            position: relative;
+            min-height: 0;
+        }
+
+        .chart-wrapper canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+        }
+
+        /* === LOGROS MEJORADOS === */
+        .achievements-section {
+            background: white;
+            border-radius: var(--border-radius-lg);
+            padding: 2.5rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--gray-200);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .achievements-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #f59e0b, var(--primary-orange-dark));
+        }
+
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .achievement-card {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            padding: 2rem;
+            background: var(--gray-50);
+            border-radius: var(--border-radius-lg);
+            border: 1px solid var(--gray-200);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .achievement-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+            background: white;
+        }
+
+        .achievement-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 4px;
+            transition: var(--transition);
+        }
+
+        .achievement-card .streak::before { background: var(--primary-orange); }
+        .achievement-card .success::before { background: var(--primary-green); }
+        .achievement-card .milestone::before { background: var(--primary-blue); }
+        .achievement-card .progress::before { background: var(--primary-purple); }
+
+        .achievement-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: var(--border-radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .achievement-icon.streak { background: var(--gradient-warning); }
+        .achievement-icon.success { background: var(--gradient-success); }
+        .achievement-icon.milestone { background: var(--gradient-primary); }
+        .achievement-icon.progress { background: var(--gradient-secondary); }
+
+        .achievement-content {
+            flex: 1;
+        }
+
+        .achievement-content h4 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.01em;
+        }
+
+        .achievement-content p {
+            color: var(--gray-600);
+            font-size: 0.95rem;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        /* === ANIMACIONES MEJORADAS === */
+        @@keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(400%); }
+        }
+
+        @@keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .main-stat-card,
+        .stat-section,
+        .charts-section,
+        .achievements-section {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .main-stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .main-stat-card:nth-child(2) { animation-delay: 0.2s; }
+        .main-stat-card:nth-child(3) { animation-delay: 0.3s; }
+
+        /* === RESPONSIVE DESIGN MEJORADO === */
+        @@media (max-width: 1200px) {
+            .stats-container {
+                padding: 1.5rem;
+            }
+            
+            .stats-header {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+            
+            .header-actions {
+                margin-left: 0;
+                width: 100%;
+            }
+            
+            .btn-back {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        @@media (max-width: 768px) {
+            .stats-container {
+                padding: 1rem;
+            }
+            
+            .stats-header {
+                padding: 2rem 1.5rem;
+            }
+            
+            .habit-header {
+                flex-direction: column;
+                text-align: center;
+                gap: 1.5rem;
+            }
+            
+            .habit-meta {
+                justify-content: center;
+            }
+            
+            .stats-title {
+                font-size: 2rem;
+            }
+            
+            .main-stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .detailed-stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .achievements-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .weekly-pattern {
+                height: 150px;
+            }
+        }
+
+        @@media (max-width: 480px) {
+            .stats-title {
+                font-size: 1.8rem;
+            }
+            
+            .habit-badge {
+                width: 80px;
+                height: 80px;
+                font-size: 2rem;
+            }
+            
+            .main-stat-card {
+                padding: 2rem;
+            }
+            
+            .main-stat-card .stat-value {
+                font-size: 3rem;
+            }
+            
+            .stat-section {
+                padding: 1.5rem;
+            }
+            
+            .charts-section {
+                padding: 1.5rem;
+            }
+            
+            .chart-container {
+                height: 350px;
+            }
+            
+            .achievement-card {
+                padding: 1.5rem;
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+
+        /* === PATRÓN SEMANAL HORIZONTAL MEJORADO === */
+        .weekly-pattern-horizontal {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .day-stat-horizontal {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .day-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 80px;
+            flex-shrink: 0;
+        }
+
+        .day-name {
+            font-weight: 600;
+            color: var(--gray-600);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            width: 30px;
+        }
+
+        .day-count {
+            font-weight: 700;
+            color: var(--gray-900);
+            font-size: 0.9rem;
+            width: 30px;
+            text-align: right;
+        }
+
+        .day-bar-horizontal {
+            flex: 1;
+            height: 8px;
+            background: var(--gray-200);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .day-fill-horizontal {
+            height: 100%;
+            background: linear-gradient(135deg, var(--primary-purple), var(--primary-cyan));
+            border-radius: 4px;
+            transition: width 1s ease;
+            position: relative;
+        }
+
+        .day-glow {
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        /* Efectos hover para mejor interactividad */
+        .day-stat-horizontal:hover .day-fill-horizontal {
+            background: linear-gradient(135deg, var(--primary-purple-dark), var(--primary-cyan));
+        }
+
+        .day-stat-horizontal:hover .day-name {
+            color: var(--gray-800);
+        }
+
+        .day-stat-horizontal:hover .day-count {
+            color: var(--primary-purple);
+            transform: scale(1.1);
+        }
+
+        /* Animación de entrada */
+        .day-stat-horizontal {
+            animation: slideInRight 0.5s ease-out;
+        }
+
+        .day-stat-horizontal:nth-child(1) { animation-delay: 0.1s; }
+        .day-stat-horizontal:nth-child(2) { animation-delay: 0.2s; }
+        .day-stat-horizontal:nth-child(3) { animation-delay: 0.3s; }
+        .day-stat-horizontal:nth-child(4) { animation-delay: 0.4s; }
+        .day-stat-horizontal:nth-child(5) { animation-delay: 0.5s; }
+        .day-stat-horizontal:nth-child(6) { animation-delay: 0.6s; }
+        .day-stat-horizontal:nth-child(7) { animation-delay: 0.7s; }
+
+        @@keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Responsive para pantallas pequeñas */
+        @@media (max-width: 768px) {
+            .day-info {
+                width: 70px;
+            }
+            
+            .day-name {
+                font-size: 0.8rem;
+                width: 25px;
+            }
+            
+            .day-count {
+                font-size: 0.85rem;
+                width: 25px;
+            }
+            
+            .day-bar-horizontal {
+                height: 6px;
+            }
+        }
+
+        @@media (max-width: 480px) {
+            .day-stat-horizontal {
+                gap: 0.75rem;
+            }
+            
+            .day-info {
+                width: 60px;
+            }
+            
+            .day-name {
+                font-size: 0.75rem;
+                width: 20px;
+            }
+            
+            .day-count {
+                font-size: 0.8rem;
+                width: 20px;
+            }
+        }
+    </style>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Datos para los gráficos
+            const weeklyData = @Html.Raw(Json.Serialize(Model.WeeklyData));
+            const monthlyData = @Html.Raw(Json.Serialize(Model.MonthlyData));
+
+            // Gráfico semanal
+            const weeklyCtx = document.getElementById('weeklyChart');
+            if (weeklyCtx && weeklyData && Object.keys(weeklyData).length > 0) {
+                new Chart(weeklyCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: Object.keys(weeklyData),
+                        datasets: [{
+                            label: 'Completados por semana',
+                            data: Object.values(weeklyData),
+                            backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            borderSkipped: false,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Gráfico mensual
+            const monthlyCtx = document.getElementById('monthlyChart');
+            if (monthlyCtx && monthlyData && Object.keys(monthlyData).length > 0) {
+                new Chart(monthlyCtx, {
+                    type: 'line',
+                    data: {
+                        labels: Object.keys(monthlyData),
+                        datasets: [{
+                            label: 'Completados por mes',
+                            data: Object.values(monthlyData),
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: 'rgba(16, 185, 129, 1)',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 7
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    display: false
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Interacción de botones de gráficos
+            document.querySelectorAll('.chart-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    // Aquí puedes agregar lógica para cambiar entre gráficos
+                });
+            });
+        });
+    </script>
+}
+
+@functions {
+    private string GetConsistencyClass(double successRate)
+    {
+        return successRate switch
+        {
+            >= 90 => "excellent",
+            >= 75 => "good", 
+            >= 60 => "fair",
+            _ => "poor"
+        };
+    }
+
+    private string GetConsistencyIcon(double successRate)
+    {
+        return successRate switch
+        {
+            >= 90 => "fa-crown",
+            >= 75 => "fa-star",
+            >= 60 => "fa-check-circle", 
+            _ => "fa-exclamation-triangle"
+        };
+    }
+
+    private string GetConsistencyText(double successRate)
+    {
+        return successRate switch
+        {
+            >= 90 => "Excelente",
+            >= 75 => "Bueno",
+            >= 60 => "Regular",
+            _ => "Por mejorar"
+        };
+    }
+}
