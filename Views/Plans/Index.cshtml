@@ -63,7 +63,6 @@
                         </div>
                     }
                 </div>
-
                 <div class="plan-actions">
                     @if (plan.Price == 0)
                     {
@@ -78,11 +77,11 @@
                     }
                     else
                     {
-                        <!-- TEMPORAL: Redirigir a página de pago en lugar de modal -->
+                        <!-- Planes de pago - Redirigir a página de pago -->
                         <a href="@Url.Action("Payment", "Plans", new { planId = plan.Id })" 
                         class="btn @(plan.IsFeatured ? "btn-primary" : "btn-outline-primary") btn-plan">
                             <i class="fas fa-credit-card me-2"></i>
-                            Cambiar Plan
+                            Elegir Plan
                         </a>
                     }
                     <a href="@Url.Action("Details", "Plans", new { id = plan.Id })" class="btn btn-link btn-sm">
