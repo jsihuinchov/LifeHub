@@ -1,0 +1,54 @@
+@{
+    ViewData["Title"] = "Selección de Plan";
+    
+    // Manejo seguro de valores posiblemente nulos
+    var planId = ViewBag.PlanId as int? ?? 0;
+    var planName = ViewBag.PlanName as string ?? "Plan Premium";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">Seleccionar @planName</h3>
+                </div>
+                <div class="card-body">
+                    <p>Para continuar con el plan <strong>@planName</strong>, necesitas una cuenta.</p>
+                    <p>¿Te gustaría registrarte o iniciar sesión?</p>
+                    
+                    <div class="d-grid gap-2">
+                        @if (planId > 0)
+                        {
+                            <a href="@Url.Action("Register", "Account", new { planId = planId, planName = planName })" 
+                               class="btn btn-primary btn-lg">
+                                <i class="fas fa-user-plus me-2"></i>Registrarme
+                            </a>
+                            
+                            <a href="@Url.Action("Login", "Account", new { returnUrl = Url.Action("Checkout", "Subscription", new { planId = planId }) })" 
+                               class="btn btn-outline-primary btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
+                            </a>
+                        }
+                        else
+                        {
+                            <a href="@Url.Action("Register", "Account")" 
+                               class="btn btn-primary btn-lg">
+                                <i class="fas fa-user-plus me-2"></i>Registrarme
+                            </a>
+                            
+                            <a href="@Url.Action("Login", "Account")" 
+                               class="btn btn-outline-primary btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
+                            </a>
+                        }
+                        
+                        <a href="@Url.Action("Index", "Home")" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Volver al Inicio
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
