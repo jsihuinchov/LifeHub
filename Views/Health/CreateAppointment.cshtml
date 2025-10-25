@@ -1,0 +1,153 @@
+@model LifeHub.Models.ViewModels.MedicalAppointmentViewModel
+@{
+    ViewData["Title"] = "Nueva Cita Médica";
+}
+
+<div class="health-container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-calendar-plus me-2"></i>Nueva Cita Médica
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <form asp-action="CreateAppointment" method="post">
+                        @Html.AntiForgeryToken()
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Title" class="form-label">Título de la cita *</label>
+                                    <input asp-for="Title" class="form-control" placeholder="Ej: Consulta anual, Control rutinario...">
+                                    <span asp-validation-for="Title" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="DoctorName" class="form-label">Nombre del Doctor</label>
+                                    <input asp-for="DoctorName" class="form-control" placeholder="Dr. Juan Pérez">
+                                    <span asp-validation-for="DoctorName" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Specialty" class="form-label">Especialidad</label>
+                                    <input asp-for="Specialty" class="form-control" placeholder="Ej: Cardiología, Dermatología...">
+                                    <span asp-validation-for="Specialty" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Location" class="form-label">Ubicación</label>
+                                    <input asp-for="Location" class="form-control" placeholder="Ej: Hospital Central, Clínica...">
+                                    <span asp-validation-for="Location" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="AppointmentDate" class="form-label">Fecha y Hora *</label>
+                                    <input asp-for="AppointmentDate" type="datetime-local" class="form-control">
+                                    <span asp-validation-for="AppointmentDate" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Duration" class="form-label">Duración (minutos) *</label>
+                                    <input asp-for="Duration" type="number" class="form-control" min="1" max="480" value="30">
+                                    <span asp-validation-for="Duration" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Notes" class="form-label">Notas Adicionales</label>
+                            <textarea asp-for="Notes" class="form-control" rows="4" 
+                                      placeholder="Síntomas, preguntas para el doctor, preparación necesaria..."></textarea>
+                            <span asp-validation-for="Notes" class="text-danger"></span>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="@Url.Action("Index")" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Volver al Dashboard
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Crear Cita
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    
+    <script>
+        $(document).ready(function () {
+            // ✅ CORREGIDO: Usar UTC para la fecha mínima
+            var now = new Date();
+            var utcDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            $('#AppointmentDate').attr('min', utcDateTime);
+            
+            @if (ViewContext.RouteData.Values["Action"]?.ToString() == "EditAppointment")
+            {
+                // Para editar, formatear la fecha existente
+                <text>
+                var appointmentDate = new Date('@Model.AppointmentDate.ToString("yyyy-MM-ddTHH:mm")');
+                var localDateTime = new Date(appointmentDate.getTime() - appointmentDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                $('#AppointmentDate').val(localDateTime);
+                </text>
+            }
+        });
+    </script>
+
+    <style>
+        .health-container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            border-radius: 15px 15px 0 0 !important;
+            padding: 20px;
+        }
+
+        .card-body {
+            padding: 30px;
+        }
+
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+
+        .btn {
+            border-radius: 10px;
+            padding: 10px 20px;
+            font-weight: 600;
+        }
+    </style>
+}
