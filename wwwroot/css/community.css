@@ -1,0 +1,18 @@
+/* Estilos generales de Comunidad LifeHub */
+#comunidad-content {
+    transition: opacity 0.3s ease-in-out;
+}
+
+#comunidad-content.fade-out {
+    opacity: 0;
+}
+
+#comunidad-content.fade-in {
+    opacity: 1;
+}
+
+.btn-outline-success.active,
+.btn-success.active {
+    background-color: #198754;
+    color: #fff !important;
+}
