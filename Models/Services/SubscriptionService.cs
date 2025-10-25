@@ -181,52 +181,141 @@ namespace LifeHub.Services
         {
             try
             {
+                _logger.LogInformation("🔄 INICIANDO AssignPlanToUserAsync - User: {UserId}, Plan: {PlanId}", userId, planId);
+
                 var plan = await GetPlanByIdAsync(planId);
                 if (plan == null)
+                {
+                    _logger.LogError("❌ Plan {PlanId} no encontrado", planId);
                     throw new ArgumentException("Plan no válido");
+                }
 
                 var endDate = DateTime.UtcNow.AddDays(plan.DurationDays);
+                _logger.LogInformation("📅 Nueva fecha de fin: {EndDate}", endDate);
 
-                // Buscar suscripción existente
-                var existingSubscription = await _context.UserSubscriptions
-                    .FirstOrDefaultAsync(us => us.UserId == userId && us.IsActive);
+                // Buscar TODAS las suscripciones del usuario
+                var existingSubscriptions = await _context.UserSubscriptions
+                    .Where(us => us.UserId == userId)
+                    .ToListAsync();
 
-                if (existingSubscription != null)
+                _logger.LogInformation("📊 Suscripciones existentes encontradas: {Count}", existingSubscriptions.Count);
+
+                // Desactivar TODAS las suscripciones existentes
+                foreach (var sub in existingSubscriptions)
                 {
-                    // Actualizar suscripción existente
-                    existingSubscription.PlanId = planId;
-                    existingSubscription.StartDate = DateTime.UtcNow;
-                    existingSubscription.EndDate = endDate;
-                    existingSubscription.IsActive = true;
-                    existingSubscription.CreatedAt = DateTime.UtcNow;
-                }
-                else
-                {
-                    // Crear nueva suscripción
-                    var newSubscription = new UserSubscription
-                    {
-                        UserId = userId,
-                        PlanId = planId,
-                        StartDate = DateTime.UtcNow,
-                        EndDate = endDate,
-                        IsActive = true,
-                        CreatedAt = DateTime.UtcNow
-                    };
-                    _context.UserSubscriptions.Add(newSubscription);
+                    sub.IsActive = false;
+                    _logger.LogInformation("❌ Desactivada suscripción: {SubscriptionId}", sub.Id);
                 }
 
-                await _context.SaveChangesAsync();
+                // Crear NUEVA suscripción (siempre crear nueva en lugar de actualizar)
+                var newSubscription = new UserSubscription
+                {
+                    UserId = userId,
+                    PlanId = planId,
+                    StartDate = DateTime.UtcNow,
+                    EndDate = endDate,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
 
-                _logger.LogInformation("Plan {PlanId} asignado al usuario {UserId}", planId, userId);
+                _context.UserSubscriptions.Add(newSubscription);
+                _logger.LogInformation("✅ Nueva suscripción creada - Plan: {PlanId}, Activa: true", planId);
+
+                // Guardar cambios
+                var result = await _context.SaveChangesAsync();
+                _logger.LogInformation("💾 Cambios guardados en BD - Filas afectadas: {RowsAffected}", result);
+
+                // Limpiar cache
+                await _cache.RemoveAsync($"subscription:user:{userId}");
+                _logger.LogInformation("🗑️ Cache limpiado para usuario: {UserId}", userId);
+
+                _logger.LogInformation("🎉 Plan {PlanId} asignado EXITOSAMENTE al usuario {UserId}", planId, userId);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al asignar plan {PlanId} al usuario {UserId}", planId, userId);
+                _logger.LogError(ex, "💥 ERROR CRÍTICO al asignar plan {PlanId} al usuario {UserId}", planId, userId);
                 throw;
             }
         }
 
         public async Task<UserSubscription?> GetUserSubscriptionAsync(string userId)
+{
+    try
+    {
+        _logger.LogInformation("🔍 Buscando suscripción para usuario: {UserId}", userId);
+
+        using (var connection = new NpgsqlConnection(_connectionString))
+        {
+            await connection.OpenAsync();
+
+            // ✅ OBTENER LA SUSCRIPCIÓN ACTIVA MÁS RECIENTE
+            const string sql = @"
+                SELECT us.id, us.user_id, us.plan_id, us.start_date, us.end_date, 
+                       us.is_active, us.created_at,
+                       p.name, p.price, p.duration_days, p.max_transactions, p.max_habits,
+                       p.""MaxBudgets"", p.has_advanced_analytics, p.has_ai_features, p.color_code
+                FROM user_subscriptions us
+                INNER JOIN subscription_plans p ON us.plan_id = p.id
+                WHERE us.user_id = @userId AND us.is_active = true
+                ORDER BY us.created_at DESC, us.id DESC
+                LIMIT 1";
+
+            using (var command = new NpgsqlCommand(sql, connection))
+            {
+                command.Parameters.AddWithValue("userId", userId);
+
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    if (await reader.ReadAsync())
+                    {
+                        var subscription = new UserSubscription
+                        {
+                            Id = reader.GetInt32(0),
+                            UserId = reader.GetString(1),
+                            PlanId = reader.GetInt32(2),
+                            StartDate = reader.GetDateTime(3),
+                            EndDate = reader.GetDateTime(4),
+                            IsActive = reader.GetBoolean(5),
+                            CreatedAt = reader.GetDateTime(6),
+                            Plan = new SubscriptionPlan
+                            {
+                                Id = reader.GetInt32(2),
+                                Name = reader.GetString(7),
+                                Price = reader.GetDecimal(8),
+                                DurationDays = reader.GetInt32(9),
+                                MaxTransactions = reader.GetInt32(10),
+                                MaxHabits = reader.GetInt32(11),
+                                MaxBudgets = reader.GetInt32(12),
+                                HasAdvancedAnalytics = reader.GetBoolean(13),
+                                HasAIFeatures = reader.GetBoolean(14),
+                                ColorCode = reader.GetString(15)
+                            }
+                        };
+
+                        _logger.LogInformation("✅ Suscripción encontrada: {PlanName} (ID: {PlanId})", 
+                            subscription.Plan.Name, subscription.PlanId);
+                        return subscription;
+                    }
+                    else
+                    {
+                        _logger.LogWarning("⚠️ No se encontró suscripción activa para usuario {UserId}", userId);
+                        
+                        // ✅ FALLBACK: Buscar cualquier suscripción (aunque no esté activa)
+                        return await GetAnyUserSubscriptionAsync(userId);
+                    }
+                }
+            }
+        }
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "❌ Error al obtener suscripción del usuario {UserId}", userId);
+        return null;
+    }
+}
+
+        // ✅ MÉTODO DE FALLBACK: Obtener cualquier suscripción del usuario
+        private async Task<UserSubscription?> GetAnyUserSubscriptionAsync(string userId)
         {
             try
             {
@@ -234,7 +323,6 @@ namespace LifeHub.Services
                 {
                     await connection.OpenAsync();
 
-                    // ✅ USAR "MaxBudgets" (con comillas y mayúsculas)
                     const string sql = @"
                 SELECT us.id, us.user_id, us.plan_id, us.start_date, us.end_date, 
                        us.is_active, us.created_at,
@@ -242,7 +330,9 @@ namespace LifeHub.Services
                        p.""MaxBudgets"", p.has_advanced_analytics, p.has_ai_features, p.color_code
                 FROM user_subscriptions us
                 INNER JOIN subscription_plans p ON us.plan_id = p.id
-                WHERE us.user_id = @userId AND us.is_active = true";
+                WHERE us.user_id = @userId
+                ORDER BY us.created_at DESC, us.id DESC
+                LIMIT 1";
 
                     using (var command = new NpgsqlCommand(sql, connection))
                     {
@@ -252,7 +342,7 @@ namespace LifeHub.Services
                         {
                             if (await reader.ReadAsync())
                             {
-                                return new UserSubscription
+                                var subscription = new UserSubscription
                                 {
                                     Id = reader.GetInt32(0),
                                     UserId = reader.GetString(1),
@@ -269,23 +359,29 @@ namespace LifeHub.Services
                                         DurationDays = reader.GetInt32(9),
                                         MaxTransactions = reader.GetInt32(10),
                                         MaxHabits = reader.GetInt32(11),
-                                        MaxBudgets = reader.GetInt32(12), // ✅ COLUMNA REAL
+                                        MaxBudgets = reader.GetInt32(12),
                                         HasAdvancedAnalytics = reader.GetBoolean(13),
                                         HasAIFeatures = reader.GetBoolean(14),
                                         ColorCode = reader.GetString(15)
                                     }
                                 };
+
+                                _logger.LogInformation("✅ Suscripción de fallback encontrada: {PlanName} (Activa: {IsActive})",
+                                    subscription.Plan.Name, subscription.IsActive);
+                                return subscription;
                             }
                         }
                     }
                 }
+
+                _logger.LogWarning("🔍 No se encontró NINGUNA suscripción para usuario {UserId}", userId);
+                return null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener suscripción del usuario {UserId}", userId);
+                _logger.LogError(ex, "❌ Error en fallback al obtener suscripción del usuario {UserId}", userId);
+                return null;
             }
-
-            return null;
         }
 
         public async Task<bool> UserHasFeatureAccessAsync(string userId, string feature)

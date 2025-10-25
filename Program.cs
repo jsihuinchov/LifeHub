@@ -5,16 +5,23 @@ using Microsoft.EntityFrameworkCore;
 using DotNetEnv;
 using Microsoft.Extensions.Caching.Distributed;
 using LifeHub.Models.Services;
-using Microsoft.AspNetCore.Authentication.Google; // ✅ NUEVO: Add this line
-using Microsoft.AspNetCore.Authentication.Cookies; // ✅ NUEVO: Add this line
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Stripe;
 
 Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+    
+var stripeSecretKey = builder.Configuration["StripeSettings:SecretKey"];
+if (string.IsNullOrEmpty(stripeSecretKey))
+{
+    throw new InvalidOperationException("Stripe SecretKey no está configurado en appsettings.json");
+}
 
 // Configurar Entity Framework con PostgreSQL
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -90,12 +97,16 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.SlidingExpiration = true;
 });
 
+// ✅ CONFIGURACIÓN STRIPE (CORREGIDO)
+StripeConfiguration.ApiKey = stripeSecretKey;
+builder.Services.AddScoped<IStripeService, StripeService>();
+
 // Add controllers with views
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
-// Registrar servicios personalizados
-builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+// Registrar servicios personalizados (CORREGIDO - usar nombre completo para evitar conflicto)
+builder.Services.AddScoped<ISubscriptionService, LifeHub.Services.SubscriptionService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IFinanceService, FinanceService>();
 builder.Services.AddScoped<RoleInitializer>();
@@ -105,9 +116,15 @@ builder.Services.AddScoped<IHealthService, HealthService>();
 builder.Services.AddHttpClient<IMedicationApiService, RxNormService>();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IGoogleAuthService, GoogleAuthService>();
-
 // Logging
 builder.Services.AddLogging();
+
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
 
 var app = builder.Build();
 

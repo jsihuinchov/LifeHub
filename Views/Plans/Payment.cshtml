@@ -1,586 +1,272 @@
-@model LifeHub.Models.SubscriptionPlan
-
+@model LifeHub.Models.ViewModels.PaymentViewModel
 @{
-    ViewData["Title"] = "Procesar Pago - " + Model.Name;
-    var isFreePlan = Model.Price == 0;
+    ViewData["Title"] = "Completar Pago - " + Model.Plan.Name;
 }
 
 <div class="payment-container">
-    <div class="payment-card">
-        <!-- Header con logo y título -->
-        <div class="payment-header">
-            <div class="payment-logo">
-                <i class="fas fa-shield-alt"></i>
+    <div class="payment-header">
+        <h1 class="payment-title">Completar Pago</h1>
+        <p class="payment-subtitle">Estás a un paso de activar tu <strong>@Model.Plan.Name</strong></p>
+    </div>
+
+    <div class="row">
+        <!-- Resumen del Plan -->
+        <div class="col-md-5">
+            <div class="plan-summary-card">
+                <div class="summary-header" style="background: linear-gradient(135deg, @Model.Plan.ColorCode 0%, #@(Model.Plan.ColorCode.Substring(1))88 100%);">
+                    <h4><i class="fas fa-receipt me-2"></i>Resumen del Plan</h4>
+                </div>
+                <div class="summary-body">
+                    <div class="plan-info">
+                        <h5 class="text-primary">@Model.Plan.Name</h5>
+                        <p class="text-muted">@Model.Plan.ShortDescription</p>
+                    </div>
+                    
+                    <div class="price-section">
+                        <div class="price-amount">@Model.Plan.FormattedPrice</div>
+                        <div class="price-period">/@Model.Plan.Period</div>
+                    </div>
+
+                    <div class="features-list">
+                        <div class="feature-item">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <span>@Model.Plan.MaxHabits hábitos simultáneos</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <span>@Model.Plan.MaxTransactions transacciones/mes</span>
+                        </div>
+                        <div class="feature-item">
+                            <i class="fas fa-check text-success me-2"></i>
+                            <span>@Model.Plan.StorageMB MB almacenamiento</span>
+                        </div>
+                        @if (Model.Plan.HasCommunityAccess)
+                        {
+                            <div class="feature-item">
+                                <i class="fas fa-check text-success me-2"></i>
+                                <span>Acceso a la comunidad</span>
+                            </div>
+                        }
+                        @if (Model.Plan.HasAIFeatures)
+                        {
+                            <div class="feature-item">
+                                <i class="fas fa-check text-success me-2"></i>
+                                <span>Análisis con IA</span>
+                            </div>
+                        }
+                    </div>
+                </div>
             </div>
-            <h1 class="payment-title">Procesar Pago</h1>
-            <p class="payment-subtitle">Completa la información para cambiar al plan <strong>@Model.Name</strong></p>
+
+            <!-- Información de Seguridad -->
+            <div class="security-info mt-3">
+                <div class="d-flex align-items-center justify-content-center text-muted">
+                    <i class="fas fa-lock me-2"></i>
+                    <small>Pago seguro procesado por Stripe</small>
+                </div>
+                <div class="d-flex align-items-center justify-content-center text-muted mt-1">
+                    <i class="fas fa-shield-alt me-2"></i>
+                    <small>Tus datos están encriptados</small>
+                </div>
+            </div>
         </div>
 
-        <form method="post" asp-action="ProcessPayment" class="payment-form">
-            <input type="hidden" name="planId" value="@Model.Id" />
-            
-            <div class="payment-content">
-                <div class="payment-details">
-                    <h3 class="section-title">
-                        <i class="fas fa-credit-card me-2"></i>
-                        Información de Pago
-                    </h3>
-                    
-                    <!-- Número de Tarjeta -->
-                    <div class="form-group">
-                        <label class="form-label">
-                            <i class="fas fa-credit-card me-2"></i>Número de Tarjeta
-                        </label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" name="cardNumber" placeholder="1234 5678 9012 3456" required 
-                                   pattern="[0-9\s]{13,19}" maxlength="19">
-                            <div class="input-icon">
-                                <i class="fas fa-credit-card"></i>
-                            </div>
-                        </div>
-                        <div class="card-icons">
-                            <i class="fab fa-cc-visa"></i>
-                            <i class="fab fa-cc-mastercard"></i>
-                            <i class="fab fa-cc-amex"></i>
-                            <i class="fab fa-cc-discover"></i>
-                        </div>
-                    </div>
-
-                    <!-- Fecha Expiración y CVV -->
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <i class="fas fa-calendar me-2"></i>Fecha Exp.
-                                </label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" name="expiryDate" placeholder="MM/AA" required 
-                                           pattern="(0[1-9]|1[0-2])\/[0-9]{2}" maxlength="5">
-                                    <div class="input-icon">
-                                        <i class="fas fa-calendar-alt"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label class="form-label">
-                                    <i class="fas fa-lock me-2"></i>CVV
-                                </label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" name="cvv" placeholder="123" required 
-                                           pattern="[0-9]{3,4}" maxlength="4">
-                                    <div class="input-icon">
-                                        <i class="fas fa-lock"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Nombre en la Tarjeta -->
-                    <div class="form-group">
-                        <label class="form-label">
-                            <i class="fas fa-user me-2"></i>Nombre en la Tarjeta
-                        </label>
-                        <div class="input-group">
-                            <input type="text" class="form-control" name="cardName" placeholder="Juan Pérez" required>
-                            <div class="input-icon">
-                                <i class="fas fa-user"></i>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Información de Seguridad -->
-                    <div class="security-info">
-                        <i class="fas fa-shield-check"></i>
-                        <span>Tu información está protegida con encriptación de grado bancario</span>
-                    </div>
+        <!-- Formulario de Pago -->
+        <div class="col-md-7">
+            <div class="payment-card">
+                <div class="payment-card-header">
+                    <h4><i class="fas fa-credit-card me-2"></i>Información de Pago</h4>
                 </div>
-
-                <div class="payment-summary">
-                    <div class="summary-card">
-                        <h3 class="section-title">
-                            <i class="fas fa-receipt me-2"></i>
-                            Resumen del Pedido
-                        </h3>
+                <div class="payment-card-body">
+                    <!-- Stripe Elements Container -->
+                    <form id="payment-form">
+                        @Html.AntiForgeryToken()
+                        <div id="payment-element">
+                            <!-- Stripe.js injects the Payment Element -->
+                        </div>
                         
-                        <div class="summary-content">
-                            <div class="summary-item">
-                                <span>Plan seleccionado:</span>
-                                <strong>@Model.Name</strong>
-                            </div>
-                            <div class="summary-item">
-                                <span>Precio:</span>
-                                <strong>@Model.FormattedPrice/@Model.Period</strong>
-                            </div>
-                            <div class="summary-item">
-                                <span>Próxima facturación:</span>
-                                <span>@DateTime.Now.AddDays(Model.DurationDays).ToString("dd/MM/yyyy")</span>
-                            </div>
-                            
-                            <div class="summary-features">
-                                <h5>Incluye:</h5>
-                                <ul>
-                                    <li>
-                                        <i class="fas fa-check"></i>
-                                        @(Model.MaxHabits >= 999 ? "Hábitos ilimitados" : $"{Model.MaxHabits} hábitos simultáneos")
-                                    </li>
-                                    <li>
-                                        <i class="fas fa-check"></i>
-                                        @(Model.MaxTransactions >= 999 ? "Transacciones ilimitadas" : $"{Model.MaxTransactions} transacciones/mes")
-                                    </li>
-                                    <li>
-                                        <i class="fas fa-check"></i>
-                                        @Model.StorageMB MB de almacenamiento
-                                    </li>
-                                    @if (Model.HasAIFeatures)
-                                    {
-                                        <li><i class="fas fa-check"></i>Inteligencia Artificial</li>
-                                    }
-                                    @if (Model.HasAdvancedAnalytics)
-                                    {
-                                        <li><i class="fas fa-check"></i>Analíticas Avanzadas</li>
-                                    }
-                                    @if (Model.HasCommunityAccess)
-                                    {
-                                        <li><i class="fas fa-check"></i>Comunidad Premium</li>
-                                    }
-                                </ul>
-                            </div>
-                            
-                            <div class="summary-total">
-                                <hr>
-                                <div class="total-item">
-                                    <span>Total a pagar:</span>
-                                    <strong class="total-price">@Model.FormattedPrice</strong>
-                                </div>
-                            </div>
-                        </div>
+                        <button id="submit" class="btn btn-primary btn-lg w-100 mt-4">
+                            <div class="spinner hidden" id="spinner"></div>
+                            <span id="button-text">Pagar @Model.Plan.FormattedPrice</span>
+                        </button>
+                        
+                        <div id="payment-message" class="hidden mt-3 alert alert-danger"></div>
+                    </form>
+
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Usa <strong>4242 4242 4242 4242</strong> para pruebas
+                        </small>
                     </div>
                 </div>
             </div>
-
-            <!-- Botones de acción -->
-            <div class="payment-actions">
-                <button type="submit" class="btn btn-primary btn-payment">
-                    <i class="fas fa-lock me-2"></i>
-                    Confirmar Pago Seguro
-                </button>
-                <a href="@Url.Action("Index", "Plans")" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left me-2"></i>
-                    Volver a Planes
-                </a>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 
 @section Scripts {
+    <script src="https://js.stripe.com/v3/"></script>
     <script>
-        // Formatear número de tarjeta
-        document.querySelector('input[name="cardNumber"]').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-            let formattedValue = value.match(/.{1,4}/g)?.join(' ');
-            e.target.value = formattedValue || value;
-        });
-
-        // Formatear fecha de expiración
-        document.querySelector('input[name="expiryDate"]').addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length >= 2) {
-                value = value.substring(0, 2) + '/' + value.substring(2, 4);
+        // Configuración de Stripe
+        const stripe = Stripe('@Model.StripePublishableKey');
+        const elements = stripe.elements({
+            clientSecret: '@Model.PaymentIntentClientSecret',
+            appearance: {
+                theme: 'stripe',
+                variables: {
+                    colorPrimary: '@Model.Plan.ColorCode',
+                    borderRadius: '8px'
+                }
             }
-            e.target.value = value;
         });
 
-        // Solo números para CVV
-        document.querySelector('input[name="cvv"]').addEventListener('input', function(e) {
-            e.target.value = e.target.value.replace(/\D/g, '');
-        });
+        const paymentElement = elements.create('payment');
+        paymentElement.mount('#payment-element');
 
-        // Efectos de focus en inputs
-        document.addEventListener('DOMContentLoaded', function() {
-            const inputs = document.querySelectorAll('.form-control');
+        const form = document.getElementById('payment-form');
+        const submitButton = document.getElementById('submit');
+        const spinner = document.getElementById('spinner');
+        const buttonText = document.getElementById('button-text');
+        const paymentMessage = document.getElementById('payment-message');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
             
-            inputs.forEach(input => {
-                input.addEventListener('focus', function() {
-                    this.parentElement.classList.add('focused');
-                });
-                
-                input.addEventListener('blur', function() {
-                    if (this.value === '') {
-                        this.parentElement.classList.remove('focused');
-                    }
-                });
+            submitButton.disabled = true;
+            spinner.classList.remove('hidden');
+            buttonText.textContent = 'Procesando pago...';
+            
+            const { error } = await stripe.confirmPayment({
+                elements,
+                confirmParams: {
+                    return_url: `${window.location.origin}/Plans/PaymentSuccess?planId=@Model.Plan.Id`,
+                },
             });
+
+            if (error) {
+                paymentMessage.textContent = error.message;
+                paymentMessage.classList.remove('hidden');
+                
+                submitButton.disabled = false;
+                spinner.classList.add('hidden');
+                buttonText.textContent = 'Pagar @Model.Plan.FormattedPrice';
+            }
         });
     </script>
 }
 
 @section Styles {
     <style>
-        /* Contenedor principal - FONDO BLANCO */
         .payment-container {
-            min-height: 100vh;
-            background: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem 1rem;
-            position: relative;
-            overflow: hidden;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
         }
 
-        .payment-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%23f8fafc" fill-opacity="1" d="M0,128L48,117.3C96,107,192,85,288,112C384,139,480,213,576,218.7C672,224,768,160,864,138.7C960,117,1056,139,1152,149.3C1248,160,1344,160,1392,160L1440,160L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
-            background-size: cover;
-            background-position: center bottom;
-        }
-
-        /* Tarjeta de pago */
-        .payment-card {
-            background: white;
-            border-radius: 24px;
-            padding: 3rem;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-            width: 100%;
-            max-width: 1000px;
-            position: relative;
-            z-index: 2;
-            border: 1px solid #f1f5f9;
-        }
-
-        /* Header */
         .payment-header {
             text-align: center;
             margin-bottom: 3rem;
         }
 
-        .payment-logo {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, #10b981, #059669);
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1.5rem;
-            color: white;
-            font-size: 2rem;
-            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
-        }
-
         .payment-title {
-            font-size: 2.2rem;
+            font-size: 2.5rem;
             font-weight: 700;
             color: #1e293b;
             margin-bottom: 0.5rem;
         }
 
         .payment-subtitle {
-            color: #64748b;
             font-size: 1.1rem;
-            margin: 0;
+            color: #64748b;
         }
 
-        /* Layout del contenido */
-        .payment-content {
-            display: grid;
-            grid-template-columns: 1.2fr 0.8fr;
-            gap: 3rem;
-            margin-bottom: 2rem;
-        }
-
-        /* Secciones */
-        .section-title {
-            font-size: 1.3rem;
-            font-weight: 600;
-            color: #1e293b;
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-        }
-
-        .section-title i {
-            color: #4361ee;
-        }
-
-        /* Formulario */
-        .payment-form {
-            margin: 0;
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-label {
-            display: flex;
-            align-items: center;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 0.5rem;
-            font-size: 0.95rem;
-        }
-
-        .form-label i {
-            color: #4361ee;
-            width: 16px;
-        }
-
-        .input-group {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 1rem 3rem 1rem 1rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            background: #f8fafc;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: #4361ee;
+        .plan-summary-card, .payment-card {
             background: white;
-            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
-            transform: translateY(-2px);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 1px solid #f1f5f9;
+            overflow: hidden;
         }
 
-        .input-icon {
-            position: absolute;
-            right: 1rem;
-            color: #64748b;
-            pointer-events: none;
+        .summary-header, .payment-card-header {
+            color: white;
+            padding: 1.5rem;
         }
 
-        /* Iconos de tarjetas */
-        .card-icons {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
+        .summary-header h4, .payment-card-header h4 {
+            margin: 0;
+            font-weight: 600;
         }
 
-        .card-icons i {
-            font-size: 1.5rem;
-            color: #64748b;
-            transition: color 0.3s ease;
-        }
-
-        .card-icons .fa-cc-visa { color: #1a1f71; }
-        .card-icons .fa-cc-mastercard { color: #eb001b; }
-        .card-icons .fa-cc-amex { color: #2e77bc; }
-        .card-icons .fa-cc-discover { color: #ff6000; }
-
-        /* Información de seguridad */
-        .security-info {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 1rem;
-            background: #f0f9ff;
-            border: 1px solid #bae6fd;
-            border-radius: 10px;
-            color: #0369a1;
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-
-        .security-info i {
-            color: #0ea5e9;
-        }
-
-        /* Resumen */
-        .summary-card {
-            background: #f8fafc;
-            border-radius: 16px;
+        .summary-body, .payment-card-body {
             padding: 2rem;
-            border: 1px solid #e2e8f0;
-            position: sticky;
-            top: 2rem;
         }
 
-        .summary-item {
+        .price-section {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem 0;
-            border-bottom: 1px solid #f1f5f9;
-        }
-
-        .summary-item:last-child {
-            border-bottom: none;
-        }
-
-        .summary-features {
+            align-items: baseline;
             margin: 1.5rem 0;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
         }
 
-        .summary-features h5 {
-            color: #374151;
-            margin-bottom: 1rem;
-            font-weight: 600;
-        }
-
-        .summary-features ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .summary-features li {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.5rem 0;
-            color: #64748b;
-            font-size: 0.9rem;
-        }
-
-        .summary-features i {
-            color: #10b981;
-            font-size: 0.8rem;
-        }
-
-        .summary-total {
-            margin-top: 1rem;
-        }
-
-        .total-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 0;
-            font-size: 1.1rem;
-        }
-
-        .total-price {
-            color: #059669;
-            font-size: 1.4rem;
+        .price-amount {
+            font-size: 2.5rem;
             font-weight: 700;
+            color: #1e293b;
+            margin-right: 0.5rem;
         }
 
-        /* Botones de acción - CORREGIDOS */
-        .payment-actions {
+        .price-period {
+            font-size: 1.2rem;
+            color: #64748b;
+        }
+
+        .features-list {
+            space-y: 0.75rem;
+        }
+
+        .feature-item {
             display: flex;
-            gap: 1rem;
-            justify-content: center;
-            flex-wrap: wrap;
-            padding-top: 2rem;
-            border-top: 1px solid #f1f5f9;
-        }
-
-        .btn-payment {
-            padding: 1rem 3rem;
-            background: linear-gradient(135deg, #10b981, #059669);
-            border: none;
-            border-radius: 12px;
-            color: white;
-            font-weight: 600;
-            font-size: 1.1rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
-            display: inline-flex;
             align-items: center;
-            text-decoration: none;
+            padding: 0.5rem 0;
         }
 
-        .btn-payment:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 25px rgba(16, 185, 129, 0.4);
-            background: linear-gradient(135deg, #059669, #10b981);
-            color: white;
-            text-decoration: none;
+        .security-info {
+            text-align: center;
         }
 
-        .btn-secondary {
-            padding: 1rem 2rem;
-            border: 2px solid #4361ee;
-            border-radius: 12px;
-            color: #4361ee;
-            font-weight: 600;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            background: white;
+        /* Estilos para Stripe Elements */
+        #payment-element {
+            margin-bottom: 1rem;
         }
 
-        .btn-secondary:hover {
-            background: #4361ee;
-            color: white;
-            transform: translateY(-2px);
-            text-decoration: none;
+        .hidden {
+            display: none;
         }
 
-        /* Responsive */
-        @@media (max-width: 968px) {
-            .payment-content {
-                grid-template-columns: 1fr;
-                gap: 2rem;
-            }
-
-            .summary-card {
-                position: relative;
-                top: 0;
-            }
+        #spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3B82F6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 8px;
         }
 
-        @@media (max-width: 768px) {
-            .payment-card {
-                padding: 2rem 1.5rem;
-                margin: 1rem;
-            }
-
-            .payment-title {
-                font-size: 1.8rem;
-            }
-
-            .payment-actions {
-                flex-direction: column;
-            }
-
-            .btn-payment, .btn-secondary {
-                width: 100%;
-                justify-content: center;
-            }
+        @@keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
-        @@media (max-width: 480px) {
-            .payment-container {
-                padding: 1rem 0.5rem;
-            }
-
-            .payment-card {
-                padding: 1.5rem 1rem;
-            }
-
-            .payment-title {
-                font-size: 1.6rem;
-            }
-
-            .payment-logo {
-                width: 60px;
-                height: 60px;
-                font-size: 1.5rem;
-            }
-
-            .row.g-3 {
-                flex-direction: column;
-            }
+        #payment-message {
+            color: #dc2626;
+            font-size: 0.875rem;
+            text-align: center;
         }
     </style>
 }

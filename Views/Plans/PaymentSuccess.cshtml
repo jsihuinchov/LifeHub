@@ -1,0 +1,153 @@
+@{
+    ViewData["Title"] = "¡Pago Exitoso!";
+}
+
+<div class="success-container">
+    <div class="success-card">
+        <div class="success-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        
+        <h1 class="success-title">¡Pago Completado Exitosamente!</h1>
+        
+        <p class="success-message">
+            Tu plan <strong>@ViewBag.PlanName</strong> ha sido activado correctamente.
+        </p>
+        
+        <div class="success-details">
+            <div class="detail-item">
+                <i class="fas fa-receipt text-primary me-2"></i>
+                <span><strong>Monto:</strong> @ViewBag.PaymentAmount</span>
+            </div>
+            <div class="detail-item">
+                <i class="fas fa-calendar-check text-success me-2"></i>
+                <span><strong>Fecha:</strong> @ViewBag.PaymentDate</span>
+            </div>
+            <div class="detail-item">
+                <i class="fas fa-rocket text-info me-2"></i>
+                <span><strong>Plan:</strong> @ViewBag.PlanName</span>
+            </div>
+            <div class="detail-item">
+                <i class="fas fa-check text-success me-2"></i>
+                <span><strong>Estado:</strong> Completado</span>
+            </div>
+        </div>
+
+        <div class="success-actions">
+            <a href="@Url.Action("Index", "Dashboard")" class="btn btn-primary btn-lg">
+                <i class="fas fa-tachometer-alt me-2"></i>
+                Ir al Dashboard
+            </a>
+            <a href="@Url.Action("Index", "Plans")" class="btn btn-outline-primary btn-lg">
+                <i class="fas fa-star me-2"></i>
+                Ver Mi Plan
+            </a>
+        </div>
+
+        <div class="success-note mt-4">
+            <small class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                El recibo ha sido enviado a tu email. Tu plan está activo inmediatamente.
+            </small>
+        </div>
+    </div>
+</div>
+
+@{
+    ViewData["Title"] = "¡Pago Exitoso!";
+}
+
+<!-- Agregar este script al final -->
+@section Scripts {
+    <script>
+        // Auto-redirección después de 3 segundos
+        setTimeout(function() {
+            window.location.href = '@Url.Action("Index", "Dashboard")';
+        }, 3000);
+
+        // Forzar limpieza de cache del navegador
+        if (window.history && window.history.replaceState) {
+            window.history.replaceState(null, null, window.location.href);
+        }
+    </script>
+}
+
+@section Styles {
+    <style>
+        .success-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        .success-card {
+            background: white;
+            border-radius: 16px;
+            padding: 3rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            border: 1px solid #f1f5f9;
+        }
+
+        .success-icon {
+            font-size: 4rem;
+            color: #10B981;
+            margin-bottom: 1.5rem;
+        }
+
+        .success-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 1rem;
+        }
+
+        .success-message {
+            font-size: 1.1rem;
+            color: #64748b;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .success-details {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            text-align: left;
+        }
+
+        .detail-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0;
+            color: #374151;
+        }
+
+        .success-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .success-actions .btn {
+            min-width: 180px;
+        }
+
+        .success-note {
+            border-top: 1px solid #e5e7eb;
+            padding-top: 1rem;
+        }
+
+        @@media (max-width: 576px) {
+            .success-actions {
+                flex-direction: column;
+            }
+            
+            .success-actions .btn {
+                width: 100%;
+            }
+        }
+    </style>
+}
