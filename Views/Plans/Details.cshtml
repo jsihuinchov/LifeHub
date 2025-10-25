@@ -1,0 +1,915 @@
+@model LifeHub.Models.SubscriptionPlan
+
+@{
+    ViewData["Title"] = Model.Name;
+    var isFreePlan = Model.Price == 0;
+}
+
+<div class="plan-details-container">
+    <!-- Hero Section Mejorada -->
+    <section class="details-hero" style="background: linear-gradient(135deg, @Model.ColorCode 0%, #@(Model.ColorCode.Substring(1))88 100%);">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    @if (isFreePlan)
+                    {
+                        <span class="hero-badge free-badge">
+                            <i class="fas fa-gem me-2"></i>Plan Gratis
+                        </span>
+                    }
+                    else if (Model.IsFeatured)
+                    {
+                        <span class="hero-badge featured-badge">
+                            <i class="fas fa-crown me-2"></i>Más Popular
+                        </span>
+                    }
+                    
+                    <h1 class="hero-title">@Model.Name</h1>
+                    <p class="hero-subtitle">@Model.ShortDescription</p>
+                    
+                    <div class="price-display">
+                        <span class="price">@Model.FormattedPrice</span>
+                        <span class="period">/@Model.Period</span>
+                    </div>
+                    
+                    <p class="hero-description">@Model.LongDescription</p>
+                </div>
+                <div class="hero-visual">
+                    <div class="plan-visual">
+                        @if (isFreePlan)
+                        {
+                            <i class="fas fa-rocket"></i>
+                        }
+                        else if (Model.Name.Contains("Premium") || Model.Name.Contains("Máxima"))
+                        {
+                            <i class="fas fa-crown"></i>
+                        }
+                        else
+                        {
+                            <i class="fas fa-star"></i>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Grid Mejorada -->
+    <section class="features-grid-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Todo lo que incluye este plan</h2>
+                <p class="section-subtitle">Características diseñadas para maximizar tu productividad</p>
+            </div>
+
+            <div class="features-grid">
+                <!-- Columna 1: Funcionalidades Esenciales -->
+                <div class="feature-category">
+                    <div class="category-header">
+                        <div class="category-icon">
+                            <i class="fas fa-gem"></i>
+                        </div>
+                        <h3>Funcionalidades Principales</h3>
+                    </div>
+                    <div class="features-list">
+                        <div class="feature-item primary">
+                            <div class="feature-icon">
+                                <i class="fas fa-tasks"></i>
+                            </div>
+                            <div class="feature-content">
+                                <h4>Gestión de Hábitos</h4>
+                                <p>@Model.MaxHabits hábitos @(Model.MaxHabits >= 999 ? "ilimitados" : "simultáneos") con seguimiento avanzado y recordatorios inteligentes</p>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-item primary">
+                            <div class="feature-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="feature-content">
+                                <h4>Control Financiero</h4>
+                                <p>@Model.MaxTransactions transacciones mensuales @(Model.MaxTransactions >= 999 ? "ilimitadas" : "") con categorización automática</p>
+                            </div>
+                        </div>
+                        
+                        <div class="feature-item primary">
+                            <div class="feature-icon">
+                                <i class="fas fa-heartbeat"></i>
+                            </div>
+                            <div class="feature-content">
+                                <h4>Seguimiento de Salud</h4>
+                                <p>Monitoreo completo de actividad física, alimentación y bienestar mental</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Columna 2: Beneficios Avanzados -->
+                <div class="feature-category">
+                    <div class="category-header">
+                        <div class="category-icon">
+                            <i class="fas fa-rocket"></i>
+                        </div>
+                        <h3>Beneficios Avanzados</h3>
+                    </div>
+                    <div class="features-list">
+                        <div class="feature-item">
+                            <div class="feature-icon">
+                                <i class="fas fa-database"></i>
+                            </div>
+                            <div class="feature-content">
+                                <h4>Almacenamiento Seguro</h4>
+                                <p>@Model.StorageMB MB de almacenamiento en la nube con encriptación de grado bancario</p>
+                            </div>
+                        </div>
+                        
+                        @if (Model.HasCommunityAccess)
+                        {
+                            <div class="feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="feature-content">
+                                    <h4>Comunidad Exclusiva</h4>
+                                    <p>Acceso a grupos especializados y eventos exclusivos de la comunidad LifeHub</p>
+                                </div>
+                            </div>
+                        }
+                        
+                        @if (Model.HasAIFeatures)
+                        {
+                            <div class="feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-robot"></i>
+                                </div>
+                                <div class="feature-content">
+                                    <h4>Inteligencia Artificial</h4>
+                                    <p>Análisis predictivo y recomendaciones personalizadas basadas en tus patrones</p>
+                                </div>
+                            </div>
+                        }
+                        
+                        @if (Model.HasAdvancedAnalytics)
+                        {
+                            <div class="feature-item">
+                                <div class="feature-icon">
+                                    <i class="fas fa-chart-bar"></i>
+                                </div>
+                                <div class="feature-content">
+                                    <h4>Analíticas Profundas</h4>
+                                    <p>Reportes detallados y insights avanzados sobre tu progreso y métricas</p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+<!-- Stats Section Mejorada -->
+<section class="stats-section-improved">
+    <div class="container">
+        <div class="stats-header">
+            <h2 class="stats-title">Capacidades del Plan</h2>
+            <p class="stats-subtitle">Recursos y límites diseñados para tus necesidades</p>
+        </div>
+        
+        <div class="stats-grid-improved">
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number">@(Model.MaxHabits >= 999 ? "Ilimitados" : Model.MaxHabits.ToString())</div>
+                    <div class="stat-label">Hábitos Activos</div>
+                    <div class="stat-description">Crea y sigue todos los hábitos que necesites para tu rutina diaria</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-exchange-alt"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number">@(Model.MaxTransactions >= 999 ? "Ilimitadas" : Model.MaxTransactions.ToString() + "/mes")</div>
+                    <div class="stat-label">Transacciones</div>
+                    <div class="stat-description">Registra tus ingresos y gastos sin restricciones</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-database"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number">@Model.StorageMB MB</div>
+                    <div class="stat-label">Almacenamiento</div>
+                    <div class="stat-description">Espacio seguro para documentos y respaldos</div>
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">
+                    <i class="fas fa-calendar-check"></i>
+                </div>
+                <div class="stat-content">
+                    <div class="stat-number">@Model.DurationDays</div>
+                    <div class="stat-label">Días de Acceso</div>
+                    <div class="stat-description">Duración completa de tu suscripción</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Additional Features Dinámicos basados en las propiedades reales -->
+        <div class="feature-highlights">
+            @if (Model.HasAIFeatures)
+            {
+                <div class="feature-highlight">
+                    <i class="fas fa-robot"></i>
+                    <span>Inteligencia Artificial</span>
+                </div>
+            }
+            @if (Model.HasAdvancedAnalytics)
+            {
+                <div class="feature-highlight">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Analíticas Avanzadas</span>
+                </div>
+            }
+            @if (Model.HasCommunityAccess)
+            {
+                <div class="feature-highlight">
+                    <i class="fas fa-users"></i>
+                    <span>Comunidad Premium</span>
+                </div>
+            }
+            @if (Model.IsFeatured)
+            {
+                <div class="feature-highlight">
+                    <i class="fas fa-crown"></i>
+                    <span>Plan Destacado</span>
+                </div>
+            }
+            @if (Model.MaxHabits > 15)
+            {
+                <div class="feature-highlight">
+                    <i class="fas fa-infinity"></i>
+                    <span>Hábitos Ilimitados</span>
+                </div>
+            }
+            @if (Model.MaxTransactions > 200)
+            {
+                <div class="feature-highlight">
+                    <i class="fas fa-wallet"></i>
+                    <span>Finanzas Ilimitadas</span>
+                </div>
+            }
+            @if (Model.StorageMB > 100)
+            {
+                <div class="feature-highlight">
+                    <i class="fas fa-cloud"></i>
+                    <span>Almacenamiento Extra</span>
+                </div>
+            }
+            <div class="feature-highlight">
+                <i class="fas fa-shield-check"></i>
+                <span>Seguridad Bancaria</span>
+            </div>
+            <div class="feature-highlight">
+                <i class="fas fa-sync"></i>
+                <span>Sincronización</span>
+            </div>
+            <div class="feature-highlight">
+                <i class="fas fa-mobile-alt"></i>
+                <span>App Móvil</span>
+            </div>
+            @if (!isFreePlan)
+            {
+                <div class="feature-highlight">
+                    <i class="fas fa-cloud-download-alt"></i>
+                    <span>Respaldos Automáticos</span>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+    <!-- CTA Section Mejorada -->
+    <section class="details-cta">
+        <div class="container">
+            <div class="cta-card">
+                <div class="cta-content">
+                    <h3>¿Listo para comenzar?</h3>
+                    <p>Únete a miles de usuarios que ya están transformando sus vidas con LifeHub</p>
+                    
+                    <div class="cta-buttons">
+                        @if (isFreePlan)
+                        {
+                            <form method="post" asp-action="ChangePlan" asp-controller="Plans">
+                                <input type="hidden" name="planId" value="@Model.Id" />
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-play-circle me-2"></i>
+                                    Comenzar Gratis
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <a href="@Url.Action("Payment", "Plans", new { planId = Model.Id })" class="btn btn-primary btn-lg">
+                                <i class="fas fa-credit-card me-2"></i>
+                                Elegir @Model.Name
+                            </a>
+                        }
+                        <a href="@Url.Action("Index", "Plans")" class="btn btn-outline-light btn-lg">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            Ver Todos los Planes
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+@section Styles {
+    <style>
+        /* Hero Section */
+        .plan-details-container {
+            background: #f8fafc;
+        }
+
+        .details-hero {
+            color: white;
+            padding: 80px 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-content {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+        }
+
+        .free-badge {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .featured-badge {
+            background: linear-gradient(45deg, rgba(255,215,0,0.3), rgba(255,140,0,0.3));
+        }
+
+        .hero-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            line-height: 1.1;
+        }
+
+        .hero-subtitle {
+            font-size: 1.4rem;
+            opacity: 0.95;
+            margin-bottom: 2rem;
+            font-weight: 300;
+        }
+
+        .price-display {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 2rem;
+        }
+
+        .price {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-right: 0.5rem;
+        }
+
+        .period {
+            font-size: 1.5rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .hero-description {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            line-height: 1.6;
+            max-width: 600px;
+        }
+
+        .plan-visual {
+            font-size: 8rem;
+            opacity: 0.3;
+            filter: drop-shadow(0 8px 16px rgba(0,0,0,0.2));
+        }
+
+        /* Features Grid */
+        .features-grid-section {
+            padding: 100px 0;
+            background: white;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 4rem;
+        }
+
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 1rem;
+        }
+
+        .section-subtitle {
+            font-size: 1.2rem;
+            color: #64748b;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 3rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .feature-category {
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 2.5rem;
+            border: 1px solid #f1f5f9;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .category-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, @Model.ColorCode, #@(Model.ColorCode.Substring(1))99);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .category-header h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .features-list {
+            space-y: 1.5rem;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 1.5rem;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #f1f5f9;
+            transition: all 0.3s ease;
+        }
+
+        .feature-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        .feature-item.primary {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 2px solid #f1f5f9;
+        }
+
+        .feature-icon {
+            width: 50px;
+            height: 50px;
+            background: #f1f5f9;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            color: @Model.ColorCode;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .feature-content h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-content p {
+            color: #64748b;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        /* Stats Section */
+        .stats-section {
+            padding: 80px 0;
+            background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+            color: white;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            text-align: center;
+        }
+
+        .stat-item {
+            padding: 2rem;
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, #60A5FA, #A78BFA);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-label {
+            font-size: 1rem;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+
+        /* CTA Section */
+        .details-cta {
+            padding: 100px 0;
+            background: white;
+        }
+
+        .cta-card {
+            background: linear-gradient(135deg, @Model.ColorCode 0%, #@(Model.ColorCode.Substring(1))88 100%);
+            color: white;
+            padding: 4rem;
+            border-radius: 24px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+        }
+
+        .cta-content h3 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+
+        .cta-content p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            margin-bottom: 2.5rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .cta-buttons .btn {
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-weight: 600;
+        }
+
+        /* Responsive */
+        @@media (max-width: 968px) {
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .hero-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+                gap: 2rem;
+            }
+            
+            .hero-title {
+                font-size: 2.8rem;
+            }
+        }
+
+        @@media (max-width: 768px) {
+            .details-hero {
+                padding: 60px 0;
+            }
+            
+            .hero-title {
+                font-size: 2.2rem;
+            }
+            
+            .price {
+                font-size: 2.8rem;
+            }
+            
+            .plan-visual {
+                font-size: 5rem;
+            }
+            
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .cta-buttons .btn {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
+
+/* Stats Section Mejorada */
+.stats-section-improved {
+    padding: 60px 0;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.stats-section-improved::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><polygon fill="rgba(255,255,255,0.02)" points="0,1000 1000,0 1000,1000"/></svg>');
+    background-size: cover;
+}
+
+.stats-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.stats-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(45deg, #60A5FA, #A78BFA);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.stats-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.8;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+/* Grid mejorado para 4 elementos - siempre 2x2 en móvil, 4 en desktop */
+.stats-grid-improved {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 2rem 1rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(45deg, @Model.ColorCode, #@(Model.ColorCode.Substring(1))99);
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+}
+
+.stat-icon {
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, @Model.ColorCode, #@(Model.ColorCode.Substring(1))99);
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    color: white;
+    font-size: 1.8rem;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+.stat-number {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(45deg, #ffffff, #e2e8f0);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+    min-height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.stat-label {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #e2e8f0;
+}
+
+.stat-description {
+    font-size: 0.85rem;
+    opacity: 0.7;
+    line-height: 1.4;
+    max-width: 200px;
+    margin: 0 auto;
+}
+
+/* Feature Highlights mejorado - ahora dinámico según el plan */
+.feature-highlights {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    max-width: 1000px;
+    margin: 0 auto;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.feature-highlight {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.feature-highlight:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-2px);
+    border-color: @Model.ColorCode;
+}
+
+.feature-highlight i {
+    color: @Model.ColorCode;
+    font-size: 1rem;
+    width: 20px;
+    text-align: center;
+}
+
+.feature-highlight span {
+    font-weight: 500;
+    color: #e2e8f0;
+    white-space: nowrap;
+}
+
+/* Responsive para Stats - CORREGIDO: @@media en lugar de media */
+@@media (min-width: 768px) {
+    .stats-grid-improved {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.5rem;
+    }
+    
+    .stat-card {
+        padding: 2rem 1rem;
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+    }
+    
+    .feature-highlights {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 1.2rem;
+    }
+}
+
+@@media (max-width: 767px) {
+    .stats-section-improved {
+        padding: 40px 0;
+    }
+    
+    .stats-title {
+        font-size: 1.8rem;
+    }
+    
+    .stats-grid-improved {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        max-width: 400px;
+    }
+    
+    .stat-card {
+        padding: 1.5rem 1rem;
+    }
+    
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+    }
+    
+    .stat-number {
+        font-size: 2rem;
+    }
+    
+    .feature-highlights {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.8rem;
+    }
+    
+    .feature-highlight {
+        padding: 0.8rem;
+        font-size: 0.85rem;
+        justify-content: center;
+        text-align: center;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .feature-highlight span {
+        white-space: normal;
+        text-align: center;
+    }
+}
+
+@@media (max-width: 480px) {
+    .feature-highlights {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-title {
+        font-size: 1.6rem;
+    }
+    
+    .stats-subtitle {
+        font-size: 1rem;
+    }
+    
+    .feature-highlight {
+        flex-direction: row;
+        justify-content: flex-start;
+        text-align: left;
+    }
+}
+    </style>
+}
