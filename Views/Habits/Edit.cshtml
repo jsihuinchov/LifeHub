@@ -1,0 +1,229 @@
+@model LifeHub.Models.ViewModels.HabitViewModel
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Crear Hábito" : "Editar Hábito";
+}
+
+<div class="create-habit-container">
+    <div class="create-habit-card">
+        <div class="card-header">
+            <h1 class="card-title">
+                <i class="fas fa-plus me-2"></i>
+                @ViewData["Title"]
+            </h1>
+            <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver
+            </a>
+        </div>
+        
+        <div class="card-body">
+            <form asp-action="@(Model.Id == 0 ? "Create" : "Edit")" method="post">
+                @Html.AntiForgeryToken()
+                
+                @if (Model.Id != 0)
+                {
+                    <input type="hidden" asp-for="Id" />
+                }
+                
+                <div class="form-group">
+                    <label asp-for="Name" class="form-label">Nombre del Hábito *</label>
+                    <input asp-for="Name" class="form-control" placeholder="Ej: Meditación matutina, Ejercicio, Lectura..." />
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                </div>
+                
+                <div class="form-group">
+                    <label asp-for="Description" class="form-label">Descripción</label>
+                    <textarea asp-for="Description" class="form-control" rows="3" 
+                              placeholder="Describe tu hábito y su propósito..."></textarea>
+                    <span asp-validation-for="Description" class="text-danger"></span>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="Category" class="form-label">Categoría</label>
+                            <select asp-for="Category" class="form-select">
+                                <option value="">Seleccionar categoría...</option>
+                                @foreach (var category in Model.AvailableCategories)
+                                {
+                                    <option value="@category">@category</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Category" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="Frequency" class="form-label">Frecuencia (días por semana) *</label>
+                            <input asp-for="Frequency" type="number" class="form-control" min="1" max="7" />
+                            <span asp-validation-for="Frequency" class="text-danger"></span>
+                            <small class="form-text text-muted">¿Cuántos días a la semana quieres realizar este hábito?</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label asp-for="TargetCount" class="form-label">Objetivo (opcional)</label>
+                    <input asp-for="TargetCount" type="number" class="form-control" min="1" max="100" 
+                           placeholder="Ej: 10 (para 10 minutos, 10 páginas, etc.)" />
+                    <span asp-validation-for="TargetCount" class="text-danger"></span>
+                    <small class="form-text text-muted">Establece un objetivo numérico para tu hábito (minutos, repeticiones, páginas, etc.)</small>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="ColorCode" class="form-label">Color</label>
+                            <div class="color-picker">
+                                <input asp-for="ColorCode" type="color" class="form-control form-control-color" 
+                                       title="Elige un color para tu hábito" />
+                                <span asp-validation-for="ColorCode" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="Icon" class="form-label">Icono</label>
+                            <select asp-for="Icon" class="form-select">
+                                @foreach (var icon in Model.AvailableIcons)
+                                {
+                                    <option value="@icon">@icon @GetIconDescription(icon)</option>
+                                }
+                            </select>
+                            <span asp-validation-for="Icon" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save me-2"></i>
+                        @(Model.Id == 0 ? "Crear Hábito" : "Actualizar Hábito")
+                    </button>
+                    <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-lg">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .create-habit-container {
+            min-height: 100vh;
+            background: #f8fafc;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .create-habit-card {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            border: 1px solid #f1f5f9;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .card-header {
+            padding: 2rem 2rem 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .card-body {
+            padding: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-control, .form-select {
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #4361ee;
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        .form-control-color {
+            height: 50px;
+            padding: 0.25rem;
+        }
+
+        .form-text {
+            font-size: 0.875rem;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .btn-lg {
+            padding: 0.75rem 2rem;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+
+        @@media (max-width: 768px) {
+            .create-habit-container {
+                padding: 1rem;
+            }
+            
+            .card-header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+            
+            .btn-lg {
+                width: 100%;
+            }
+        }
+    </style>
+}
+
+@functions {
+    public string GetIconDescription(string icon)
+    {
+        var descriptions = new Dictionary<string, string>
+        {
+            ["📝"] = "Notas", ["🏃"] = "Ejercicio", ["📚"] = "Estudio", 
+            ["💪"] = "Fuerza", ["🧘"] = "Meditación", ["🍎"] = "Alimentación",
+            ["💰"] = "Finanzas", ["👥"] = "Social", ["🎯"] = "Objetivos",
+            ["⭐"] = "Estrella", ["🔥"] = "Fuego", ["💡"] = "Ideas"
+        };
+        return descriptions.GetValueOrDefault(icon, "Personalizado");
+    }
+}

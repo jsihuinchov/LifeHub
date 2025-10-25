@@ -1,0 +1,1684 @@
+@model List<LifeHub.Models.Entities.Habit>
+@{
+    ViewData["Title"] = "Mis Hábitos";
+    var stats = ViewBag.Stats as LifeHub.Models.ViewModels.HabitStatsViewModel;
+}
+
+<div class="habits-container">
+    <!-- Header Mejorado -->
+    <div class="habits-header">
+        <div class="header-content">
+            <div class="title-section">
+                <h1 class="habits-title">
+                    <i class="fas fa-tasks me-3"></i>
+                    Mis Hábitos
+                </h1>
+                <p class="habits-subtitle">Construye rutinas positivas día a día</p>
+            </div>
+            <div class="header-meta">
+                <div class="plan-limit-badge" id="planLimitBadge">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    <span id="limitBadgeText">Cargando...</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <a href="@Url.Action("Create")" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Nuevo Hábito
+            </a>
+            <a href="@Url.Action("Stats")" class="btn btn-outline-primary">
+                <i class="fas fa-chart-bar me-2"></i>Estadísticas
+            </a>
+        </div>
+    </div>
+
+    <!-- Alertas Mejoradas -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dashboard">
+            <div class="alert-content">
+                <i class="fas fa-check-circle me-2"></i>
+                <span>@TempData["SuccessMessage"]</span>
+            </div>
+            <button type="button" class="alert-close" onclick="this.parentElement.style.display='none'">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dashboard">
+            <div class="alert-content">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <span>@TempData["ErrorMessage"]</span>
+            </div>
+            <button type="button" class="alert-close" onclick="this.parentElement.style.display='none'">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    }
+
+    <!-- Sección de Favoritos Mejorada -->
+    <div class="favorites-section" id="favoritesSection">
+        <div class="section-header">
+            <div class="section-title-content">
+                <h2 class="section-title">
+                    <i class="fas fa-star me-2"></i>
+                    Hábitos Favoritos
+                </h2>
+                <p class="section-subtitle">Tus hábitos más importantes a simple vista</p>
+            </div>
+        </div>
+        
+        <div class="favorites-grid" id="favoritesGrid">
+            <!-- Los favoritos se cargarán dinámicamente con JavaScript -->
+        </div>
+        
+        <div class="no-favorites" id="noFavorites">
+            <div class="no-favorites-icon">
+                <i class="fas fa-star"></i>
+            </div>
+            <div class="no-favorites-content">
+                <h3>No tienes hábitos favoritos</h3>
+                <p>Marca algunos hábitos como favoritos para verlos aquí</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas Rápidas Mejoradas -->
+    @if (stats != null)
+    {
+        <div class="stats-grid-main">
+            <div class="stat-card-main">
+                <div class="stat-icon-main total">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="stat-content-main">
+                    <span class="stat-number">@stats.TotalHabits</span>
+                    <span class="stat-label">Total Hábitos</span>
+                </div>
+            </div>
+            
+            <div class="stat-card-main">
+                <div class="stat-icon-main today">
+                    <i class="fas fa-calendar-day"></i>
+                </div>
+                <div class="stat-content-main">
+                    <span class="stat-number">@stats.TodayCompletions</span>
+                    <span class="stat-label">Completados Hoy</span>
+                </div>
+            </div>
+            
+            <div class="stat-card-main">
+                <div class="stat-icon-main streak">
+                    <i class="fas fa-fire"></i>
+                </div>
+                <div class="stat-content-main">
+                    <span class="stat-number">@stats.CurrentStreak</span>
+                    <span class="stat-label">Racha Actual</span>
+                    <span class="stat-emoji">@stats.StreakEmoji</span>
+                </div>
+            </div>
+            
+            <div class="stat-card-main">
+                <div class="stat-icon-main rate">
+                    <i class="fas fa-percentage"></i>
+                </div>
+                <div class="stat-content-main">
+                    <span class="stat-number">@stats.CompletionRateFormatted</span>
+                    <span class="stat-label">Tasa de Completación</span>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Grid de Hábitos Mejorado -->
+    <div class="habits-grid-main">
+        @if (Model.Any())
+        {
+            foreach (var habit in Model)
+            {
+                <div class="habit-card-main" style="border-left: 4px solid @habit.ColorCode">
+                    <div class="card-glow"></div>
+                    <div class="habit-header-main">
+                        <div class="habit-icon-main">
+                            @habit.Icon
+                        </div>
+                        <div class="habit-info-main">
+                            <h3 class="habit-name">@habit.Name</h3>
+                            <p class="habit-description">@habit.Description</p>
+                            @if (!string.IsNullOrEmpty(habit.Category))
+                            {
+                                <span class="habit-category">@habit.Category</span>
+                            }
+                        </div>
+                        <div class="habit-actions-main">
+                            <!-- Botón de favorito mejorado -->
+                            <button class="btn-favorite-main @(habit.IsFavorite ? "favorited" : "")" 
+                                    data-habit-id="@habit.Id"
+                                    title="@(habit.IsFavorite ? "Quitar de favoritos" : "Agregar a favoritos")">
+                                <i class="fas fa-star"></i>
+                            </button>
+                            
+                            <div class="dropdown">
+                                <button class="btn-actions" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" href="@Url.Action("HabitStats", new { id = habit.Id })">
+                                            <i class="fas fa-chart-bar me-2"></i>Estadísticas
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="@Url.Action("Edit", new { id = habit.Id })">
+                                            <i class="fas fa-edit me-2"></i>Editar
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <form asp-action="Delete" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@habit.Id" />
+                                            <button type="submit" class="dropdown-item text-danger" 
+                                                    onclick="return confirm('¿Estás seguro de que quieres eliminar este hábito?')">
+                                                <i class="fas fa-trash me-2"></i>Eliminar
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="habit-progress-main">
+                        <div class="progress-info-main">
+                            <span class="frequency">
+                                <i class="fas fa-calendar-week me-1"></i>
+                                @habit.Frequency días/semana
+                            </span>
+                            @if (habit.TargetCount.HasValue)
+                            {
+                                <span class="target">
+                                    <i class="fas fa-bullseye me-1"></i>
+                                    Objetivo: @habit.TargetCount
+                                </span>
+                            }
+                        </div>
+                        
+                        <!-- Completar Hoy Mejorado -->
+                        <div class="completion-section-main">
+                            @{
+                                var today = DateTime.Today;
+                                var isCompletedToday = habit.HabitCompletions?.Any(hc => 
+                                    hc.Completed && hc.CompletionDate.Date == today) == true;
+                            }
+                            <button class="btn-complete-main @(isCompletedToday ? "completed" : "")" 
+                                    data-habit-id="@habit.Id" 
+                                    data-date="@today.ToString("yyyy-MM-dd")">
+                                <div class="complete-content">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>@(isCompletedToday ? "Completado" : "Completar Hoy")</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Mini calendario de la semana mejorado -->
+                    <div class="week-calendar-main">
+                        @{
+                            var weekStart = today.AddDays(-(int)today.DayOfWeek);
+                            var completions = habit.HabitCompletions?.Where(hc => 
+                                hc.CompletionDate >= weekStart && 
+                                hc.CompletionDate < weekStart.AddDays(7)).ToList();
+                        }
+                        @for (int i = 0; i < 7; i++)
+                        {
+                            var day = weekStart.AddDays(i);
+                            var isCompleted = completions?.Any(hc => 
+                                hc.CompletionDate.Date == day.Date && hc.Completed) == true;
+                            var isToday = day.Date == today.Date;
+                            var isFuture = day.Date > today.Date;
+                            
+                            <div class="day-main @(isToday ? "today" : "") @(isCompleted ? "completed" : "") @(isFuture ? "future" : "")" 
+                                 data-date="@day.ToString("yyyy-MM-dd")"
+                                 data-habit-id="@habit.Id"
+                                 title="@(isFuture ? "No puedes completar hábitos futuros" : "Haz clic para completar")">
+                                <div class="day-name">@day.ToString("ddd")</div>
+                                <div class="day-number">@day.Day</div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Información de racha mejorada -->
+                    <div class="streak-info-main">
+                        @{
+                            var currentStreak = habit.HabitCompletions?
+                                .Where(hc => hc.Completed)
+                                .OrderByDescending(hc => hc.CompletionDate)
+                                .TakeWhile((hc, index) => 
+                                    hc.CompletionDate.Date == today.AddDays(-index).Date)
+                                .Count() ?? 0;
+                        }
+                        <div class="streak-display-main">
+                            <div class="streak-icon">
+                                <i class="fas fa-fire"></i>
+                            </div>
+                            <div class="streak-content">
+                                <span class="streak-label">Racha actual</span>
+                                <span class="streak-value">@currentStreak días</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="no-habits-main">
+                <div class="no-habits-icon-main">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="no-habits-content">
+                    <h3>No tienes hábitos aún</h3>
+                    <p>Comienza creando tu primer hábito para construir rutinas positivas</p>
+                    <a href="@Url.Action("Create")" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Crear Primer Hábito
+                    </a>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        /* === VARIABLES MEJORADAS === */
+        :root {
+            --primary-green: #10b981;
+            --primary-green-dark: #059669;
+            --primary-blue: #3b82f6;
+            --primary-blue-dark: #2563eb;
+            --primary-purple: #8b5cf6;
+            --primary-purple-dark: #7c3aed;
+            --primary-orange: #f59e0b;
+            --primary-orange-dark: #d97706;
+            --primary-red: #ef4444;
+            --primary-cyan: #06b6d4;
+            
+            --gradient-primary: linear-gradient(135deg, var(--primary-green), var(--primary-blue));
+            --gradient-secondary: linear-gradient(135deg, var(--primary-purple), var(--primary-cyan));
+            --gradient-warning: linear-gradient(135deg, var(--primary-orange), #ea580c);
+            --gradient-success: linear-gradient(135deg, var(--primary-green), #047857);
+            
+            --gray-50: #f8fafc;
+            --gray-100: #f1f5f9;
+            --gray-200: #e2e8f0;
+            --gray-300: #cbd5e1;
+            --gray-400: #94a3b8;
+            --gray-500: #64748b;
+            --gray-600: #475569;
+            --gray-700: #334155;
+            --gray-800: #1e293b;
+            --gray-900: #0f172a;
+            
+            --border-radius: 20px;
+            --border-radius-lg: 24px;
+            --border-radius-md: 16px;
+            --border-radius-sm: 12px;
+            --border-radius-xs: 8px;
+            
+            --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 4px 24px rgba(0, 0, 0, 0.12);
+            --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.15);
+            --shadow-xl: 0 12px 50px rgba(0, 0, 0, 0.18);
+            
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .habits-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, var(--gray-50) 0%, #f0fdfa 50%, var(--gray-100) 100%);
+            padding: 2rem;
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        /* === HEADER MEJORADO === */
+        .habits-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            background: white;
+            padding: 2.5rem;
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--gray-200);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .habits-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--gradient-primary);
+        }
+
+        .header-content {
+            flex: 1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .title-section {
+            flex: 1;
+        }
+
+        .habits-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.025em;
+        }
+
+        .habits-subtitle {
+            color: var(--gray-600);
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 500;
+            letter-spacing: -0.01em;
+        }
+
+        .header-meta {
+            margin-left: 2rem;
+        }
+
+        .plan-limit-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            background: var(--gray-100);
+            border: 1px solid var(--gray-300);
+            border-radius: var(--border-radius-md);
+            color: var(--gray-600);
+            font-size: 1rem;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .plan-limit-badge.warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: rgba(245, 158, 11, 0.3);
+            color: #92400e;
+        }
+
+        .plan-limit-badge.danger {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: #991b1b;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            margin-left: 2rem;
+        }
+
+        .btn {
+            border-radius: var(--border-radius-md);
+            font-weight: 600;
+            padding: 0.875rem 1.5rem;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+            color: white;
+        }
+
+        .btn-outline-primary {
+            border: 2px solid var(--primary-green);
+            color: var(--primary-green);
+            background: transparent;
+        }
+
+        .btn-outline-primary:hover {
+            background: var(--primary-green);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* === SECCIÓN DE FAVORITOS MEJORADA === */
+        .favorites-section {
+            margin-bottom: 2.5rem;
+            background: white;
+            border-radius: var(--border-radius-lg);
+            padding: 2.5rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--gray-200);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .favorites-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #f59e0b, var(--primary-orange-dark));
+        }
+
+        .section-header {
+            margin-bottom: 2rem;
+        }
+
+        .section-title-content {
+            text-align: center;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .section-title i {
+            color: #f59e0b;
+        }
+
+        .section-subtitle {
+            color: var(--gray-500);
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .favorites-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .favorite-card {
+            background: #fffbf0;
+            border: 2px solid #fef3c7;
+            border-radius: var(--border-radius-lg);
+            padding: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            cursor: move;
+            transition: var(--transition-slow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .favorite-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #f59e0b, var(--primary-orange-dark));
+        }
+
+        .favorite-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-xl);
+            border-color: #f59e0b;
+        }
+
+        .favorite-icon {
+            font-size: 2rem;
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #f59e0b, var(--primary-orange-dark));
+            border-radius: var(--border-radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            flex-shrink: 0;
+            box-shadow: var(--shadow-md);
+        }
+
+        .favorite-content {
+            flex: 1;
+        }
+
+        .favorite-name {
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+            font-size: 1.3rem;
+        }
+
+        .favorite-streak {
+            font-size: 0.95rem;
+            color: var(--gray-600);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+
+        .favorite-streak.completed {
+            color: var(--primary-green);
+        }
+
+        .favorite-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-favorite-small, .btn-complete-small {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.75rem;
+            border-radius: var(--border-radius-sm);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+        }
+
+        .btn-favorite-small {
+            color: #f59e0b;
+            border: 1px solid #fef3c7;
+        }
+
+        .btn-favorite-small:hover {
+            background: #fef3c7;
+            transform: scale(1.1);
+        }
+
+        .btn-complete-small {
+            background: var(--gradient-success);
+            color: white;
+        }
+
+        .btn-complete-small:hover {
+            transform: scale(1.1);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .no-favorites {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: var(--gray-500);
+        }
+
+        .no-favorites-icon {
+            color: #fbbf24;
+            margin-bottom: 1.5rem;
+            font-size: 4rem;
+            opacity: 0.5;
+        }
+
+        .no-favorites-content h3 {
+            margin-bottom: 1rem;
+            color: var(--gray-600);
+            font-weight: 600;
+            font-size: 1.5rem;
+        }
+
+        .no-favorites-content p {
+            margin: 0 0 2rem 0;
+            font-size: 1.1rem;
+        }
+
+        /* === ESTADÍSTICAS RÁPIDAS MEJORADAS === */
+        .stats-grid-main {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .stat-card-main {
+            background: white;
+            border-radius: var(--border-radius-lg);
+            padding: 2.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--gray-200);
+            transition: var(--transition-slow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card-main:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .stat-icon-main {
+            width: 80px;
+            height: 80px;
+            border-radius: var(--border-radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            flex-shrink: 0;
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-icon-main.total { 
+            background: var(--gradient-primary);
+        }
+        .stat-icon-main.today { 
+            background: var(--gradient-success);
+        }
+        .stat-icon-main.streak { 
+            background: var(--gradient-warning);
+        }
+        .stat-icon-main.rate { 
+            background: var(--gradient-secondary);
+        }
+
+        .stat-content-main {
+            flex: 1;
+        }
+
+        .stat-number {
+            display: block;
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+            line-height: 1;
+        }
+
+        .stat-label {
+            display: block;
+            font-size: 1rem;
+            color: var(--gray-500);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-emoji {
+            font-size: 1.5rem;
+            margin-left: 0.5rem;
+        }
+
+        /* === GRID DE HÁBITOS MEJORADO === */
+        .habits-grid-main {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+            gap: 2rem;
+        }
+
+        .habit-card-main {
+            background: white;
+            border-radius: var(--border-radius-lg);
+            padding: 2.5rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--gray-200);
+            transition: var(--transition-slow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-glow {
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: var(--transition-slow);
+        }
+
+        .habit-card-main:hover .card-glow {
+            opacity: 1;
+        }
+
+        .habit-card-main:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .habit-header-main {
+            display: flex;
+            align-items: flex-start;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .habit-icon-main {
+            font-size: 2.5rem;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--gray-100);
+            border-radius: var(--border-radius-md);
+            flex-shrink: 0;
+            border: 2px solid var(--gray-200);
+        }
+
+        .habit-info-main {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .habit-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.75rem;
+            line-height: 1.3;
+        }
+
+        .habit-description {
+            color: var(--gray-500);
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .habit-category {
+            background: var(--gray-100);
+            color: var(--gray-600);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-block;
+        }
+
+        .habit-actions-main {
+            flex-shrink: 0;
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+        }
+
+        /* Botón de favorito mejorado */
+        .btn-favorite-main {
+            background: none;
+            border: 2px solid var(--gray-300);
+            color: var(--gray-400);
+            cursor: pointer;
+            padding: 0.75rem;
+            border-radius: var(--border-radius-sm);
+            transition: var(--transition);
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .btn-favorite-main:hover {
+            color: #f59e0b;
+            border-color: #fef3c7;
+            background: #fef3c7;
+            transform: scale(1.1);
+        }
+
+        .btn-favorite-main.favorited {
+            color: #f59e0b;
+            border-color: #fef3c7;
+            background: #fef3c7;
+        }
+
+        .btn-favorite-main.favorited:hover {
+            color: #dc2626;
+            border-color: #fef2f2;
+            background: #fef2f2;
+        }
+
+        .btn-actions {
+            background: none;
+            border: 2px solid var(--gray-300);
+            color: var(--gray-600);
+            cursor: pointer;
+            padding: 0.75rem;
+            border-radius: var(--border-radius-sm);
+            transition: var(--transition);
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-actions:hover {
+            background: var(--gray-100);
+            transform: scale(1.1);
+        }
+
+        /* Información de progreso mejorada */
+        .habit-progress-main {
+            margin-bottom: 2rem;
+        }
+
+        .progress-info-main {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+            color: var(--gray-600);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .frequency, .target {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 500;
+        }
+
+        .frequency i, .target i {
+            color: var(--gray-400);
+        }
+
+        .completion-section-main {
+            text-align: center;
+        }
+
+        .btn-complete-main {
+            background: var(--gradient-success);
+            border: none;
+            border-radius: var(--border-radius-md);
+            padding: 1rem 2rem;
+            color: white;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 1.1rem;
+        }
+
+        .btn-complete-main:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-complete-main.completed {
+            background: linear-gradient(135deg, var(--gray-500), var(--gray-600));
+        }
+
+        .btn-complete-main.completed:hover {
+            box-shadow: 0 8px 25px rgba(100, 116, 139, 0.4);
+        }
+
+        .complete-content {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        /* Calendario Semanal Mejorado */
+        .week-calendar-main {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.75rem;
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: var(--gray-50);
+            border-radius: var(--border-radius-lg);
+            border: 1px solid var(--gray-200);
+        }
+
+        .day-main {
+            text-align: center;
+            padding: 1rem 0.5rem;
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            transition: var(--transition);
+            border: 2px solid transparent;
+            background: white;
+        }
+
+        .day-main:hover:not(.future) {
+            background: var(--gray-100);
+            transform: translateY(-2px);
+        }
+
+        .day-main.today {
+            border-color: var(--primary-blue);
+            background: #f0f4ff;
+            color: var(--primary-blue);
+        }
+
+        .day-main.completed {
+            background: var(--gradient-success);
+            color: white;
+            border-color: var(--primary-green);
+        }
+
+        .day-main.future {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: var(--gray-100);
+        }
+
+        .day-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            opacity: 0.7;
+        }
+
+        .day-number {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        /* Información de racha mejorada */
+        .streak-info-main {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            background: #fffbeb;
+            border-radius: var(--border-radius-lg);
+            border: 1px solid #fef3c7;
+        }
+
+        .streak-display-main {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .streak-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #f59e0b, var(--primary-orange-dark));
+            border-radius: var(--border-radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .streak-content {
+            flex: 1;
+        }
+
+        .streak-label {
+            display: block;
+            font-size: 0.9rem;
+            color: #92400e;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.25rem;
+        }
+
+        .streak-value {
+            display: block;
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #b45309;
+        }
+
+        /* Estado sin hábitos mejorado */
+        .no-habits-main {
+            text-align: center;
+            padding: 5rem 3rem;
+            grid-column: 1 / -1;
+            background: white;
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--gray-200);
+        }
+
+        .no-habits-icon-main {
+            color: var(--gray-300);
+            margin-bottom: 2rem;
+            font-size: 5rem;
+        }
+
+        .no-habits-content h3 {
+            color: var(--gray-600);
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+            font-size: 2rem;
+        }
+
+        .no-habits-content p {
+            color: var(--gray-500);
+            margin-bottom: 3rem;
+            font-size: 1.2rem;
+        }
+
+        /* === RESPONSIVE DESIGN MEJORADO === */
+        @@media (max-width: 1200px) {
+            .habits-grid-main {
+                grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            }
+        }
+
+        @@media (max-width: 768px) {
+            .habits-container {
+                padding: 1.5rem;
+            }
+            
+            .habits-header {
+                flex-direction: column;
+                gap: 2rem;
+                text-align: center;
+                padding: 2rem;
+            }
+            
+            .header-content {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+            
+            .header-meta {
+                margin-left: 0;
+            }
+            
+            .header-actions {
+                margin-left: 0;
+                width: 100%;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+            
+            .habits-grid-main {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid-main {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+            
+            .favorites-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .habit-header-main {
+                flex-direction: column;
+                text-align: center;
+                gap: 1.5rem;
+            }
+            
+            .habit-actions-main {
+                justify-content: center;
+                width: 100%;
+            }
+            
+            .progress-info-main {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            
+            .week-calendar-main {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 0.5rem;
+                padding: 1rem;
+            }
+            
+            .favorite-card {
+                flex-direction: column;
+                text-align: center;
+                gap: 1.5rem;
+            }
+            
+            .favorite-actions {
+                justify-content: center;
+                width: 100%;
+            }
+        }
+
+        @@media (max-width: 480px) {
+            .habits-title {
+                font-size: 2rem;
+            }
+            
+            .stats-grid-main {
+                grid-template-columns: 1fr;
+            }
+            
+            .stat-card-main {
+                padding: 2rem;
+            }
+            
+            .week-calendar-main {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            
+            .header-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+
+        /* === ANIMACIONES MEJORADAS === */
+        @@keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .habit-card-main,
+        .stat-card-main,
+        .favorite-card {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .habit-card-main:nth-child(1) { animation-delay: 0.1s; }
+        .habit-card-main:nth-child(2) { animation-delay: 0.2s; }
+        .habit-card-main:nth-child(3) { animation-delay: 0.3s; }
+        .stat-card-main:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card-main:nth-child(2) { animation-delay: 0.15s; }
+        .stat-card-main:nth-child(3) { animation-delay: 0.2s; }
+        .stat-card-main:nth-child(4) { animation-delay: 0.25s; }
+
+        /* === CORRECCIONES PARA LOS BOTONES === */
+
+        /* Asegurar que los botones tengan z-index adecuado */
+        .btn-favorite-main,
+        .btn-actions,
+        .btn-complete-main,
+        .week-calendar-main .day-main {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Corregir el glow que podría estar tapando los botones */
+        .card-glow {
+            z-index: 1;
+            pointer-events: none; /* Esto es importante para que no intercepte clicks */
+        }
+
+        /* Asegurar que los botones sean clickeables */
+        .btn {
+            position: relative;
+            z-index: 20;
+        }
+
+        /* Corregir posibles problemas de superposición en las tarjetas */
+        .habit-card-main {
+            position: relative;
+        }
+
+        .habit-actions-main {
+            position: relative;
+            z-index: 30; /* Valor alto para asegurar que esté por encima */
+        }
+
+        /* Botones de favorito y acciones específicos */
+        .btn-favorite-main,
+        .btn-actions {
+            background: white !important; /* Fondo sólido para mejor visibilidad */
+            border: 2px solid var(--gray-300) !important;
+            cursor: pointer !important;
+            position: relative;
+            z-index: 40;
+            transition: var(--transition) !important;
+        }
+
+        .btn-favorite-main:hover,
+        .btn-actions:hover {
+            transform: scale(1.1) !important;
+            box-shadow: var(--shadow-sm) !important;
+        }
+
+        /* Botón completar hoy */
+        .btn-complete-main {
+            position: relative;
+            z-index: 20;
+            cursor: pointer !important;
+        }
+
+        /* Días del calendario */
+        .week-calendar-main .day-main {
+            cursor: pointer !important;
+            position: relative;
+            z-index: 10;
+        }
+
+        .week-calendar-main .day-main.future {
+            cursor: not-allowed !important;
+        }
+
+        /* Dropdown menu */
+        .dropdown {
+            position: relative;
+            z-index: 100; /* Alto para dropdowns */
+        }
+
+        .dropdown-menu {
+            z-index: 1000 !important;
+        }
+
+        /* Asegurar que los formularios sean clickeables */
+        form {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Corregir posibles problemas en las tarjetas de favoritos */
+        .favorite-card {
+            position: relative;
+        }
+
+        .favorite-actions .btn-favorite-small,
+        .favorite-actions .btn-complete-small {
+            position: relative;
+            z-index: 20;
+            cursor: pointer;
+        }
+
+        /* === ANIMACIONES MEJORADAS === */
+        @@keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @@keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .habit-card-main,
+        .stat-card-main,
+        .favorite-card {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .habit-card-main:nth-child(1) { animation-delay: 0.1s; }
+        .habit-card-main:nth-child(2) { animation-delay: 0.2s; }
+        .habit-card-main:nth-child(3) { animation-delay: 0.3s; }
+        .stat-card-main:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card-main:nth-child(2) { animation-delay: 0.15s; }
+        .stat-card-main:nth-child(3) { animation-delay: 0.2s; }
+        .stat-card-main:nth-child(4) { animation-delay: 0.25s; }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM cargado - inicializando funcionalidades...');
+            
+            // Cargar favoritos al iniciar
+            loadFavorites();
+
+            // Toggle favorito - con delegación de eventos
+            document.addEventListener('click', function(e) {
+                // Botones de favorito en grid principal
+                if (e.target.closest('.btn-favorite-main')) {
+                    e.preventDefault();
+                    const button = e.target.closest('.btn-favorite-main');
+                    const habitId = button.dataset.habitId;
+                    console.log('Toggle favorite:', habitId);
+                    toggleFavorite(habitId, button);
+                }
+                
+                // Botones de favorito en sección de favoritos
+                if (e.target.closest('.btn-favorite-small')) {
+                    e.preventDefault();
+                    const button = e.target.closest('.btn-favorite-small');
+                    const habitId = button.dataset.habitId;
+                    console.log('Toggle favorite from favorites:', habitId);
+                    toggleFavorite(habitId);
+                }
+                
+                // Botones completar en grid principal
+                if (e.target.closest('.btn-complete-main')) {
+                    e.preventDefault();
+                    const button = e.target.closest('.btn-complete-main');
+                    const habitId = button.dataset.habitId;
+                    const date = button.dataset.date;
+                    console.log('Toggle completion:', habitId, date);
+                    toggleHabitCompletion(habitId, date, button);
+                }
+                
+                // Botones completar en sección de favoritos
+                if (e.target.closest('.btn-complete-small')) {
+                    e.preventDefault();
+                    const button = e.target.closest('.btn-complete-small');
+                    const habitId = button.dataset.habitId;
+                    console.log('Complete from favorites:', habitId);
+                    completeHabit(habitId);
+                }
+                
+                // Días del calendario
+                if (e.target.closest('.week-calendar-main .day-main:not(.future)')) {
+                    e.preventDefault();
+                    const day = e.target.closest('.day-main');
+                    const habitId = day.dataset.habitId;
+                    const date = day.dataset.date;
+                    console.log('Calendar day click:', habitId, date);
+                    toggleHabitCompletion(habitId, date);
+                }
+            });
+
+            // También inicializar los botones directamente por si acaso
+            initializeButtons();
+
+            function initializeButtons() {
+                // Botones de favorito
+                document.querySelectorAll('.btn-favorite-main').forEach(button => {
+                    button.style.pointerEvents = 'auto';
+                    button.style.cursor = 'pointer';
+                });
+
+                // Botones de completar
+                document.querySelectorAll('.btn-complete-main').forEach(button => {
+                    button.style.pointerEvents = 'auto';
+                    button.style.cursor = 'pointer';
+                });
+
+                // Días del calendario
+                document.querySelectorAll('.week-calendar-main .day-main:not(.future)').forEach(day => {
+                    day.style.pointerEvents = 'auto';
+                    day.style.cursor = 'pointer';
+                });
+            }
+
+            function loadFavorites() {
+                console.log('Cargando favoritos...');
+                fetch('/Habits/GetFavorites')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Error en la respuesta de favoritos');
+                        }
+                        return response.json();
+                    })
+                    .then(favorites => {
+                        console.log('Favoritos cargados:', favorites);
+                        const favoritesGrid = document.getElementById('favoritesGrid');
+                        const noFavorites = document.getElementById('noFavorites');
+                        const favoritesSection = document.getElementById('favoritesSection');
+
+                        if (favorites && favorites.length > 0) {
+                            favoritesGrid.innerHTML = favorites.map(habit => `
+                                <div class="favorite-card" data-habit-id="${habit.id}">
+                                    <div class="favorite-icon">${habit.icon}</div>
+                                    <div class="favorite-content">
+                                        <div class="favorite-name">${habit.name}</div>
+                                        <div class="favorite-streak ${habit.completedToday ? 'completed' : ''}">
+                                            <i class="fas fa-fire"></i>
+                                            Racha: ${habit.streak} días
+                                            ${habit.completedToday ? '• ✅ Hoy' : ''}
+                                        </div>
+                                    </div>
+                                    <div class="favorite-actions">
+                                        <button class="btn-complete-small" data-habit-id="${habit.id}" 
+                                                style="cursor: pointer; z-index: 20; position: relative;">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button class="btn-favorite-small" data-habit-id="${habit.id}"
+                                                style="cursor: pointer; z-index: 20; position: relative;">
+                                            <i class="fas fa-star"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            `).join('');
+
+                            noFavorites.style.display = 'none';
+                            favoritesGrid.style.display = 'grid';
+
+                        } else {
+                            favoritesGrid.style.display = 'none';
+                            noFavorites.style.display = 'block';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading favorites:', error);
+                        const noFavorites = document.getElementById('noFavorites');
+                        const favoritesGrid = document.getElementById('favoritesGrid');
+                        favoritesGrid.style.display = 'none';
+                        noFavorites.style.display = 'block';
+                    });
+            }
+
+            function toggleFavorite(habitId, button = null) {
+                console.log('Toggling favorite for habit:', habitId);
+                
+                if (!habitId) {
+                    console.error('No habitId provided');
+                    return;
+                }
+
+                fetch(`/Habits/ToggleFavorite/${habitId}`, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': getAntiForgeryToken(),
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error en la respuesta del servidor');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        console.log('Favorite toggled successfully');
+                        // Actualizar el botón si se proporcionó
+                        if (button) {
+                            button.classList.toggle('favorited');
+                            button.title = button.classList.contains('favorited') ? 
+                                'Quitar de favoritos' : 'Agregar a favoritos';
+                        }
+                        // Recargar la sección de favoritos
+                        loadFavorites();
+                        // Mostrar feedback visual
+                        showNotification('Hábito actualizado correctamente', 'success');
+                    } else {
+                        throw new Error(data.message || 'Error desconocido');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error toggling favorite:', error);
+                    showNotification('Error al actualizar el hábito', 'error');
+                });
+            }
+
+            function completeHabit(habitId) {
+                console.log('Completing habit:', habitId);
+                const today = new Date().toISOString().split('T')[0];
+                toggleHabitCompletion(habitId, today);
+            }
+
+            function toggleHabitCompletion(habitId, date, element = null) {
+                console.log('Toggling completion:', habitId, date);
+                
+                if (!habitId || !date) {
+                    console.error('Missing habitId or date');
+                    return;
+                }
+
+                fetch(`/Habits/ToggleCompletion/${habitId}?date=${date}`, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': getAntiForgeryToken(),
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error en la respuesta del servidor');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        console.log('Completion toggled successfully');
+                        // Mostrar feedback visual
+                        showNotification('Progreso actualizado correctamente', 'success');
+                        // Recargar la página después de un breve delay para ver la animación
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        throw new Error(data.message || 'Error desconocido');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error toggling completion:', error);
+                    showNotification('Error al registrar el progreso', 'error');
+                });
+            }
+
+            function getAntiForgeryToken() {
+                return document.querySelector('input[name="__RequestVerificationToken"]').value;
+            }
+
+            function showNotification(message, type) {
+                // Crear notificación temporal
+                const notification = document.createElement('div');
+                notification.className = `alert alert-${type === 'success' ? 'success' : 'danger'} alert-dashboard`;
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    z-index: 10000;
+                    min-width: 300px;
+                    animation: slideInRight 0.3s ease-out;
+                `;
+                
+                notification.innerHTML = `
+                    <div class="alert-content">
+                        <i class="fas fa-${type === 'success' ? 'check' : 'exclamation'}-circle me-2"></i>
+                        <span>${message}</span>
+                    </div>
+                    <button type="button" class="alert-close" onclick="this.parentElement.remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                // Auto-remover después de 3 segundos
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.remove();
+                    }
+                }, 3000);
+            }
+
+            // Actualizar badge de límite
+            updatePlanLimitBadge();
+
+            function updatePlanLimitBadge() {
+                fetch('/Habits/CheckPlanLimit')
+                    .then(response => response.json())
+                    .then(data => {
+                        const badge = document.getElementById('planLimitBadge');
+                        const badgeText = document.getElementById('limitBadgeText');
+                        
+                        if (badgeText) {
+                            badgeText.textContent = `${data.current}/${data.max} hábitos`;
+                        }
+                        
+                        if (badge) {
+                            if (data.current >= data.max) {
+                                badge.className = 'plan-limit-badge danger';
+                            } else if (data.current >= data.max * 0.8) {
+                                badge.className = 'plan-limit-badge warning';
+                            } else {
+                                badge.className = 'plan-limit-badge';
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error updating plan limit badge:', error);
+                    });
+            }
+        });
+    </script>
+}
