@@ -1,0 +1,10 @@
+bin/
+obj/
+out/
+*.user
+*.db
+*.db-shm
+*.db-wal
+.vscode/
+.git/
+.gitignore
