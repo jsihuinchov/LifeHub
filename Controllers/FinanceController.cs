@@ -1,9 +1,14 @@
+using LifeHub.Data;
 using LifeHub.Models.Entities;
-using LifeHub.Services;
+using LifeHub.Models.Services;
+using LifeHub.Models.IA.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.DependencyInjection;
+using LifeHub.Services;
+using LifeHub.Models.IA.Results;
 
 namespace LifeHub.Controllers
 {
@@ -11,15 +16,18 @@ namespace LifeHub.Controllers
     public class FinanceController : Controller
     {
         private readonly IFinanceService _financeService;
+        private readonly ISubscriptionService _subscriptionService;
         private readonly UserManager<IdentityUser> _userManager;
         private readonly ILogger<FinanceController> _logger;
 
         public FinanceController(
             IFinanceService financeService,
+            ISubscriptionService subscriptionService,
             UserManager<IdentityUser> userManager,
             ILogger<FinanceController> logger)
         {
             _financeService = financeService;
+            _subscriptionService = subscriptionService;
             _userManager = userManager;
             _logger = logger;
         }
@@ -37,7 +45,7 @@ namespace LifeHub.Controllers
                 var recentTransactions = await _financeService.GetUserTransactionsAsync(user.Id);
                 var budgetStatus = await _financeService.GetBudgetStatusAsync(user.Id);
 
-                // NUEVO: Gráficos desde el mismo servicio
+                // Gráficos desde el mismo servicio
                 var monthlyTrendChart = await _financeService.GetMonthlyTrendChartAsync(user.Id);
                 var expenseDistributionChart = await _financeService.GetExpenseDistributionChartAsync(user.Id);
                 var incomeDistributionChart = await _financeService.GetIncomeDistributionChartAsync(user.Id);
@@ -47,16 +55,53 @@ namespace LifeHub.Controllers
                 ViewBag.RecentTransactions = recentTransactions.Take(8).ToList();
                 ViewBag.BudgetStatus = budgetStatus;
 
-                // Pasar gráficos estructurados - VERIFICAR QUE NO SEAN NULL
+                // Pasar gráficos estructurados
                 ViewBag.MonthlyTrendChart = monthlyTrendChart ?? new ChartData();
                 ViewBag.ExpenseDistributionChart = expenseDistributionChart ?? new ChartData();
                 ViewBag.IncomeDistributionChart = incomeDistributionChart ?? new ChartData();
                 ViewBag.BudgetProgressChart = budgetProgressChart ?? new ChartData();
 
-                // DEBUG: Log para verificar datos
-                _logger.LogInformation("Datos de gráficos cargados - MonthlyTrend: {MonthlyLabels}, ExpenseDist: {ExpenseLabels}",
-                    monthlyTrendChart?.Labels?.Length ?? 0,
-                    expenseDistributionChart?.Labels?.Length ?? 0);
+                // Información del plan del usuario
+                var userSubscription = await _subscriptionService.GetUserSubscriptionAsync(user.Id);
+                var userPlan = userSubscription?.Plan;
+                var hasAIFeatures = await _subscriptionService.UserHasFeatureAccessAsync(user.Id, "ai");
+
+                ViewBag.UserPlan = userPlan;
+                ViewBag.HasAIFeatures = hasAIFeatures;
+
+                // ==== AGREGAR DATOS DE IA ====
+                if (hasAIFeatures)
+                {
+                    // Inyectar el servicio de IA
+                    var financeAIService = HttpContext.RequestServices.GetService<IFinanceAIService>();
+                    if (financeAIService != null)
+                    {
+                        var aiAlertsData = await financeAIService.DetectSpendingAnomaliesAsync(user.Id);
+                        var spendingPredictionData = await financeAIService.PredictNextMonthSpendingAsync(user.Id);
+                        var budgetRecommendationsData = await financeAIService.GenerateBudgetRecommendationsAsync(user.Id);
+                        var spendingPatternsData = await financeAIService.AnalyzeSpendingPatternsAsync(user.Id);
+
+                        ViewBag.AIAlerts = aiAlertsData;
+                        ViewBag.SpendingPrediction = spendingPredictionData;
+                        ViewBag.BudgetRecommendations = budgetRecommendationsData;
+                        ViewBag.SpendingPatterns = spendingPatternsData;
+                    }
+                    else
+                    {
+                        // Si el servicio no está disponible, usar datos vacíos
+                        ViewBag.AIAlerts = new List<FinancialAlert>();
+                        ViewBag.SpendingPrediction = 0;
+                        ViewBag.BudgetRecommendations = new List<BudgetRecommendation>();
+                        ViewBag.SpendingPatterns = new SpendingPatterns();
+                    }
+                }
+                else
+                {
+                    ViewBag.AIAlerts = new List<FinancialAlert>();
+                    ViewBag.SpendingPrediction = 0;
+                    ViewBag.BudgetRecommendations = new List<BudgetRecommendation>();
+                    ViewBag.SpendingPatterns = new SpendingPatterns();
+                }
 
                 return View();
             }

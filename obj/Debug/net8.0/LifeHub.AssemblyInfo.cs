@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("LifeHub")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+8ac47f7207ad0d88c981b034bfc3c537b6649d78")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+cded867507c48d92d4cebc8abd578686552b9a86")]
 [assembly: System.Reflection.AssemblyProductAttribute("LifeHub")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LifeHub")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

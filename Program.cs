@@ -8,6 +8,8 @@ using LifeHub.Models.Services;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Stripe;
+using LifeHub.Models.IA.Services;
+using Microsoft.ML;
 
 Env.Load();
 
@@ -117,6 +119,8 @@ builder.Services.AddHttpClient<IMedicationApiService, RxNormService>();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IGoogleAuthService, GoogleAuthService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddSingleton<MLContext>();
+builder.Services.AddScoped<IFinanceAIService, FinanceAIService>();
 
 // Logging
 builder.Services.AddLogging();

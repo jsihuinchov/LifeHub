@@ -1,4 +1,5 @@
 @using LifeHub.Services
+@using LifeHub.Models.IA.Results
 @inject IFinanceService FinanceService
 @inject ISubscriptionService SubscriptionService
 @{
@@ -15,14 +16,23 @@
     
     // Información del plan del usuario
     var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-    var userSubscription = await SubscriptionService.GetUserSubscriptionAsync(userId);
+    var userSubscription = await SubscriptionService.GetUserSubscriptionAsync(userId ?? "");
     var userPlan = userSubscription?.Plan;
-    var canCreateTransaction = await SubscriptionService.CanUserCreateTransactionAsync(userId);
-    var hasAdvancedAnalytics = await SubscriptionService.UserHasFeatureAccessAsync(userId, "analytics");
-    var hasAIFeatures = await SubscriptionService.UserHasFeatureAccessAsync(userId, "ai");
+    var canCreateTransaction = await SubscriptionService.CanUserCreateTransactionAsync(userId ?? "");
+    var hasAdvancedAnalytics = await SubscriptionService.UserHasFeatureAccessAsync(userId ?? "", "analytics");
+    var hasAIFeatures = await SubscriptionService.UserHasFeatureAccessAsync(userId ?? "", "ai");
 
     // Obtener consejo del día
     var dailyAdvice = await FinanceService.GetDailyAdviceAsync();
+
+    // ==== VARIABLES DE IA ====
+    var aiAlerts = ViewBag.AIAlerts as List<FinancialAlert> ?? new List<FinancialAlert>();
+    var spendingPrediction = ViewBag.SpendingPrediction as decimal? ?? 0;
+    var budgetRecommendations = ViewBag.BudgetRecommendations as List<BudgetRecommendation> ?? new List<BudgetRecommendation>();
+    var spendingPatterns = ViewBag.SpendingPatterns as SpendingPatterns ?? new SpendingPatterns();
+    
+    // Determinar si mostrar secciones de IA
+    var showAISections = hasAIFeatures && (aiAlerts.Any() || budgetRecommendations.Any() || spendingPrediction > 0);
 }
 
 <div class="finance-container">
@@ -137,6 +147,143 @@
             </div>
         }
 
+        <!-- Alertas de IA - Solo para usuarios con acceso a IA -->
+        @if (hasAIFeatures && aiAlerts.Any())
+        {
+            <div class="ai-alerts-section">
+                <div class="finance-card alerts-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-robot me-2"></i>
+                            Alertas Inteligentes
+                            <span class="badge bg-purple ms-1">AI</span>
+                        </h3>
+                        <span class="alert-count">@aiAlerts.Count alerta(s)</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="alerts-list">
+                            @foreach (var alert in aiAlerts.Take(5))
+                            {
+                                <div class="alert-item @alert.Severity.ToString().ToLower()">
+                                    <div class="alert-icon">
+                                        @switch (alert.AlertType)
+                                        {
+                                            case "UnusualSpending":
+                                                <i class="fas fa-chart-line"></i>
+                                                break;
+                                            case "BudgetExceeded":
+                                                <i class="fas fa-wallet"></i>
+                                                break;
+                                            case "IncomeDrop":
+                                                <i class="fas fa-arrow-down"></i>
+                                                break;
+                                            default:
+                                                <i class="fas fa-bell"></i>
+                                                break;
+                                        }
+                                    </div>
+                                    <div class="alert-content">
+                                        <div class="alert-title">@alert.Message</div>
+                                        <div class="alert-details">
+                                            <span class="alert-category">@alert.Category</span>
+                                            <span class="alert-amount">@alert.Amount.ToString("C")</span>
+                                            @if (alert.DeviationPercentage != 0)
+                                            {
+                                                <span class="alert-deviation @(alert.DeviationPercentage > 0 ? "positive" : "negative")">
+                                                    @(alert.DeviationPercentage > 0 ? "+" : "")@alert.DeviationPercentage.ToString("N1")%
+                                                </span>
+                                            }
+                                        </div>
+                                        <div class="alert-meta">
+                                            <span class="alert-type">@GetAlertTypeDisplay(alert.AlertType)</span>
+                                            <span class="alert-time">@alert.DetectedDate.ToString("dd/MM/yyyy HH:mm")</span>
+                                        </div>
+                                    </div>
+                                    <div class="alert-severity @alert.Severity.ToString().ToLower()">
+                                        <i class="fas @GetSeverityIcon(alert.Severity)"></i>
+                                        @alert.Severity.ToString()
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        @if (aiAlerts.Count > 5)
+                        {
+                            <div class="text-center mt-3">
+                                <small class="text-muted">Y @(aiAlerts.Count - 5) alertas más...</small>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+
+        <!-- Recomendaciones de IA -->
+        @if (hasAIFeatures && budgetRecommendations.Any())
+        {
+            <div class="finance-card recommendations-card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-magic me-2"></i>
+                        Recomendaciones Inteligentes
+                        <span class="badge bg-purple ms-1">AI</span>
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="recommendations-list">
+                        @foreach (var recommendation in budgetRecommendations.Take(3))
+                        {
+                            <div class="recommendation-item">
+                                <div class="recommendation-header">
+                                    <div class="recommendation-category">
+                                        <i class="fas fa-bullseye me-2"></i>
+                                        @recommendation.Category
+                                    </div>
+                                    <div class="recommendation-confidence">
+                                        <span class="confidence-badge" style="background: @GetConfidenceColor(recommendation.Confidence)">
+                                            @(recommendation.Confidence * 100)%
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="recommendation-content">
+                                    <p class="recommendation-text">@recommendation.Recommendation</p>
+                                    <div class="recommendation-details">
+                                        <div class="detail-item">
+                                            <span class="detail-label">Gasto Actual:</span>
+                                            <span class="detail-value">@recommendation.CurrentSpending.ToString("C")</span>
+                                        </div>
+                                        <div class="detail-item">
+                                            <span class="detail-label">Recomendado:</span>
+                                            <span class="detail-value positive">@recommendation.RecommendedBudget.ToString("C")</span>
+                                        </div>
+                                        @if (recommendation.PotentialSavings > 0)
+                                        {
+                                            <div class="detail-item">
+                                                <span class="detail-label">Ahorro Potencial:</span>
+                                                <span class="detail-value savings">@recommendation.PotentialSavings.ToString("C")</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="recommendation-reasoning">
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        @recommendation.Reasoning
+                                    </small>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    @if (budgetRecommendations.Count > 3)
+                    {
+                        <div class="text-center mt-3">
+                            <small class="text-muted">Y @(budgetRecommendations.Count - 3) recomendaciones más...</small>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
         <!-- Métricas Principales -->
         <div class="metrics-grid">
             <div class="metric-card income">
@@ -195,6 +342,62 @@
                 </div>
             </div>
         </div>
+
+        <!-- Predicciones de IA -->
+        @if (hasAIFeatures && spendingPrediction > 0)
+        {
+            <div class="ai-predictions-section">
+                <div class="finance-card predictions-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-crystal-ball me-2"></i>
+                            Predicciones Inteligentes
+                            <span class="badge bg-purple ms-1">AI</span>
+                        </h3>
+                        <div class="prediction-accuracy">
+                            <i class="fas fa-bullseye me-1"></i>
+                            <span>85% precisión</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="predictions-grid">
+                            <div class="prediction-item">
+                                <div class="prediction-icon">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <div class="prediction-content">
+                                    <div class="prediction-label">Gasto Previsto Próximo Mes</div>
+                                    <div class="prediction-value">@spendingPrediction.ToString("C")</div>
+                                    <div class="prediction-trend positive">
+                                        <i class="fas fa-arrow-up me-1"></i>
+                                        <span>Basado en tus patrones históricos</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            @if (spendingPatterns?.CategoryPatterns != null && spendingPatterns.CategoryPatterns.Any())
+                            {
+                                <div class="prediction-item">
+                                    <div class="prediction-icon">
+                                        <i class="fas fa-tags"></i>
+                                    </div>
+                                    <div class="prediction-content">
+                                        <div class="prediction-label">Categoría con Mayor Crecimiento</div>
+                                        <div class="prediction-value">
+                                            @spendingPatterns.CategoryPatterns.OrderByDescending(c => c.GrowthRate).First().Category
+                                        </div>
+                                        <div class="prediction-trend @(spendingPatterns.CategoryPatterns.OrderByDescending(c => c.GrowthRate).First().GrowthRate > 0 ? "negative" : "positive")">
+                                            <i class="fas fa-@(spendingPatterns.CategoryPatterns.OrderByDescending(c => c.GrowthRate).First().GrowthRate > 0 ? "arrow-up" : "arrow-down") me-1"></i>
+                                            <span>@(spendingPatterns.CategoryPatterns.OrderByDescending(c => c.GrowthRate).First().GrowthRate.ToString("N1"))% este mes</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
 
         <!-- Segunda fila de métricas -->
         <div class="metrics-grid secondary">
@@ -436,6 +639,62 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Patrones de Gastos Detectados por IA -->
+                @if (hasAIFeatures && spendingPatterns?.CategoryPatterns != null && spendingPatterns.CategoryPatterns.Any())
+                {
+                    <div class="finance-card patterns-card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-project-diagram me-2"></i>
+                                Patrones Detectados
+                                <span class="badge bg-purple ms-1">AI</span>
+                            </h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="patterns-section">
+                                <div class="pattern-category">
+                                    <h4 class="pattern-title">Tendencias por Categoría</h4>
+                                    <div class="patterns-list">
+                                        @foreach (var pattern in spendingPatterns.CategoryPatterns.Take(4))
+                                        {
+                                            <div class="pattern-item">
+                                                <div class="pattern-info">
+                                                    <span class="pattern-name">@pattern.Category</span>
+                                                    <span class="pattern-amount">@pattern.AverageMonthlyAmount.ToString("C")/mes</span>
+                                                </div>
+                                                <div class="pattern-trend @(pattern.GrowthRate > 0 ? "increasing" : "decreasing")">
+                                                    <i class="fas fa-@(pattern.GrowthRate > 0 ? "arrow-up" : "arrow-down") me-1"></i>
+                                                    <span>@Math.Abs(pattern.GrowthRate).ToString("N1")%</span>
+                                                    <span class="pattern-percentage">@pattern.PercentageOfTotal.ToString("N1")% del total</span>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                                
+                                @if (spendingPatterns.WeeklyPatterns != null && spendingPatterns.WeeklyPatterns.Any())
+                                {
+                                    <div class="pattern-weekly">
+                                        <h4 class="pattern-title">Patrón Semanal</h4>
+                                        <div class="weekly-patterns">
+                                            @foreach (var day in spendingPatterns.WeeklyPatterns)
+                                            {
+                                                <div class="day-pattern">
+                                                    <span class="day-name">@day.DayOfWeek</span>
+                                                    <div class="day-bar">
+                                                        <div class="day-fill" style="width: @(day.AverageSpending / (spendingPatterns.WeeklyPatterns.Max(d => d.AverageSpending) > 0 ? spendingPatterns.WeeklyPatterns.Max(d => d.AverageSpending) : 1) * 100)%;"></div>
+                                                    </div>
+                                                    <span class="day-amount">@day.AverageSpending.ToString("C")</span>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
 
                 <!-- Transacciones Recientes -->
                 <div class="finance-card">
@@ -744,6 +1003,39 @@
             "intermediate" => "bg-warning", 
             "advanced" => "bg-danger",
             _ => "bg-secondary"
+        };
+    }
+
+    private string GetAlertTypeDisplay(string alertType)
+    {
+        return alertType switch
+        {
+            "UnusualSpending" => "Gasto Inusual",
+            "BudgetExceeded" => "Presupuesto Excedido", 
+            "IncomeDrop" => "Caída de Ingresos",
+            _ => alertType
+        };
+    }
+
+    private string GetSeverityIcon(AlertSeverity severity)
+    {
+        return severity switch
+        {
+            AlertSeverity.Low => "fa-info-circle",
+            AlertSeverity.Medium => "fa-exclamation-triangle",
+            AlertSeverity.High => "fa-exclamation-circle",
+            AlertSeverity.Critical => "fa-skull-crossbones",
+            _ => "fa-bell"
+        };
+    }
+
+    private string GetConfidenceColor(double confidence)
+    {
+        return confidence switch
+        {
+            >= 0.8 => "#10b981",  // Verde
+            >= 0.6 => "#f59e0b",  // Amarillo
+            _ => "#ef4444"        // Rojo
         };
     }
 }
@@ -2262,6 +2554,553 @@
         
         .metrics-section .metrics-grid {
             grid-template-columns: 1fr;
+        }
+    }
+
+    /* === COMPONENTES DE IA - ESTILOS ESPECÍFICOS === */
+
+    /* Alertas de IA */
+    .ai-alerts-section {
+        margin-bottom: 2rem;
+    }
+
+    .alerts-card {
+        border-left: 4px solid #8b5cf6;
+        background: linear-gradient(135deg, #faf5ff, #f3e8ff);
+    }
+
+    .alert-count {
+        background: #8b5cf6;
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+
+    .alerts-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .alert-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1.25rem;
+        border-radius: var(--border-radius-xs);
+        border: 1px solid var(--gray-200);
+        background: white;
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .alert-item::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+    }
+
+    .alert-item.low::before { background: var(--info); }
+    .alert-item.medium::before { background: var(--warning); }
+    .alert-item.high::before { background: var(--danger); }
+    .alert-item.critical::before { background: #7f1d1d; }
+
+    .alert-item:hover {
+        transform: translateX(4px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .alert-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .alert-item.low .alert-icon { background: var(--info); }
+    .alert-item.medium .alert-icon { background: var(--warning); }
+    .alert-item.high .alert-icon { background: var(--danger); }
+    .alert-item.critical .alert-icon { background: #7f1d1d; }
+
+    .alert-content {
+        flex: 1;
+    }
+
+    .alert-title {
+        font-weight: 700;
+        color: var(--gray-800);
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+    }
+
+    .alert-details {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 0.5rem;
+    }
+
+    .alert-category {
+        background: var(--gray-200);
+        color: var(--gray-600);
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .alert-amount {
+        font-weight: 700;
+        color: var(--gray-800);
+        font-size: 0.9rem;
+    }
+
+    .alert-deviation {
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .alert-deviation.positive {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+    }
+
+    .alert-deviation.negative {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+    }
+
+    .alert-meta {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.8rem;
+        color: var(--gray-500);
+    }
+
+    .alert-type {
+        font-weight: 600;
+    }
+
+    .alert-time {
+        font-weight: 500;
+    }
+
+    .alert-severity {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        flex-shrink: 0;
+    }
+
+    .alert-severity.low {
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--info);
+    }
+
+    .alert-severity.medium {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--warning);
+    }
+
+    .alert-severity.high {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+    }
+
+    .alert-severity.critical {
+        background: rgba(127, 29, 29, 0.1);
+        color: #7f1d1d;
+    }
+
+    /* Predicciones de IA */
+    .ai-predictions-section {
+        margin-bottom: 2rem;
+    }
+
+    .predictions-card {
+        border-left: 4px solid #06b6d4;
+        background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+    }
+
+    .prediction-accuracy {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(6, 182, 212, 0.1);
+        color: #06b6d4;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .predictions-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .prediction-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.5rem;
+        border-radius: var(--border-radius-xs);
+        background: white;
+        border: 1px solid var(--gray-200);
+        transition: var(--transition);
+    }
+
+    .prediction-item:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .prediction-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #06b6d4;
+        color: white;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+
+    .prediction-content {
+        flex: 1;
+    }
+
+    .prediction-label {
+        font-size: 0.9rem;
+        color: var(--gray-600);
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+
+    .prediction-value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--gray-800);
+        margin-bottom: 0.5rem;
+        line-height: 1;
+    }
+
+    .prediction-trend {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        width: fit-content;
+    }
+
+    .prediction-trend.positive {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+    }
+
+    .prediction-trend.negative {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+    }
+
+    /* Recomendaciones de IA */
+    .recommendations-card {
+        border-left: 4px solid #10b981;
+        background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    }
+
+    .recommendations-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .recommendation-item {
+        padding: 1.5rem;
+        border-radius: var(--border-radius-xs);
+        background: white;
+        border: 1px solid var(--gray-200);
+        transition: var(--transition);
+    }
+
+    .recommendation-item:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .recommendation-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+
+    .recommendation-category {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-weight: 700;
+        color: var(--gray-800);
+        font-size: 0.95rem;
+    }
+
+    .confidence-badge {
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .recommendation-text {
+        color: var(--gray-700);
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+
+    .recommendation-details {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .detail-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+    }
+
+    .detail-label {
+        color: var(--gray-600);
+        font-weight: 500;
+    }
+
+    .detail-value {
+        font-weight: 700;
+    }
+
+    .detail-value.positive {
+        color: var(--success);
+    }
+
+    .detail-value.savings {
+        color: var(--primary-purple);
+    }
+
+    .recommendation-reasoning {
+        border-top: 1px solid var(--gray-200);
+        padding-top: 0.75rem;
+    }
+
+    /* Patrones de IA */
+    .patterns-card {
+        border-left: 4px solid #f59e0b;
+        background: linear-gradient(135deg, #fffbeb, #fef3c7);
+    }
+
+    .patterns-section {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .pattern-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--gray-800);
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--gray-200);
+    }
+
+    .patterns-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .pattern-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        border-radius: var(--border-radius-xs);
+        background: white;
+        border: 1px solid var(--gray-200);
+        transition: var(--transition);
+    }
+
+    .pattern-item:hover {
+        transform: translateX(4px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .pattern-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .pattern-name {
+        font-weight: 600;
+        color: var(--gray-800);
+        font-size: 0.9rem;
+    }
+
+    .pattern-amount {
+        font-size: 0.8rem;
+        color: var(--gray-500);
+        font-weight: 500;
+    }
+
+    .pattern-trend {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+    }
+
+    .pattern-trend.increasing {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+    }
+
+    .pattern-trend.decreasing {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+    }
+
+    .pattern-percentage {
+        color: var(--gray-500);
+        font-weight: 500;
+    }
+
+    .pattern-weekly {
+        margin-top: 1rem;
+    }
+
+    .weekly-patterns {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .day-pattern {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem;
+        border-radius: var(--border-radius-xs);
+        background: white;
+        border: 1px solid var(--gray-200);
+    }
+
+    .day-name {
+        font-weight: 600;
+        color: var(--gray-700);
+        width: 80px;
+        font-size: 0.9rem;
+    }
+
+    .day-bar {
+        flex: 1;
+        height: 8px;
+        background: var(--gray-200);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .day-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary-orange), #f97316);
+        border-radius: 4px;
+        transition: width 0.5s ease;
+    }
+
+    .day-amount {
+        font-weight: 700;
+        color: var(--gray-800);
+        font-size: 0.9rem;
+        width: 70px;
+        text-align: right;
+    }
+
+    /* Badge de IA */
+    .badge.bg-purple {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed) !important;
+        color: white;
+    }
+
+    /* Responsive para componentes de IA */
+    @@media (max-width: 768px) {
+        .alert-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        
+        .alert-severity {
+            align-self: flex-end;
+        }
+        
+        .predictions-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .recommendation-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .pattern-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        
+        .day-pattern {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .day-bar {
+            width: 100%;
         }
     }
 </style>

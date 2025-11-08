@@ -86,6 +86,14 @@
               "target": "Package",
               "version": "[9.0.9, )"
             },
+            "Microsoft.ML": {
+              "target": "Package",
+              "version": "[4.0.3, )"
+            },
+            "Microsoft.ML.TimeSeries": {
+              "target": "Package",
+              "version": "[4.0.3, )"
+            },
             "Npgsql.EntityFrameworkCore.PostgreSQL": {
               "target": "Package",
               "version": "[8.0.0, )"
