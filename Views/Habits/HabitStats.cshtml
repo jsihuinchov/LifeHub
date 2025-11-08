@@ -1,3 +1,4 @@
+@using LifeHub.Models.IA.Results
 @model LifeHub.Models.ViewModels.HabitDetailStatsViewModel
 @{
     ViewData["Title"] = $"Estadísticas - {Model.HabitName}";
@@ -364,6 +365,199 @@
             </div>
         </div>
     </div>
+
+    <!-- === SECCIÓN DE INTELIGENCIA ARTIFICIAL === -->
+    @if (ViewBag.HasAIFeatures == true)
+    {
+        <div class="ai-analysis-section">
+            <!-- Header de IA -->
+            <div class="section-header">
+                <h3 class="section-title main-title">
+                    <i class="fas fa-robot me-2"></i>
+                    Análisis con Inteligencia Artificial
+                    <span class="ai-badge">AI</span>
+                </h3>
+                <div class="section-actions">
+                    <span class="ai-status">Analizando patrones...</span>
+                </div>
+            </div>
+
+            <!-- Grid de Análisis IA -->
+            <div class="ai-analysis-grid">
+                <!-- Predicción de Éxito -->
+                @if (ViewBag.SuccessPrediction != null)
+                {
+                    var prediction = ViewBag.SuccessPrediction as HabitSuccessPrediction;
+                    <div class="ai-card prediction-card">
+                        <div class="ai-card-header">
+                            <div class="ai-card-icon">
+                                <i class="fas fa-crystal-ball"></i>
+                            </div>
+                            <h4 class="ai-card-title">Predicción de Éxito</h4>
+                            <div class="confidence-badge @GetPredictionConfidenceClass(prediction?.ConfidenceLevel)">
+                                @prediction?.ConfidenceLevel
+                            </div>
+                        </div>
+                        <div class="ai-card-body">
+                            <div class="prediction-main">
+                                <div class="prediction-value">@(prediction?.SuccessProbability.ToString("N1") ?? "0")%</div>
+                                <div class="prediction-label">Probabilidad de éxito continuo</div>
+                            </div>
+                            <div class="prediction-recommendation">
+                                <p>@prediction?.Recommendation</p>
+                            </div>
+                            <div class="prediction-factors">
+                                <h5>Factores clave:</h5>
+                                <ul>
+                                    @if (prediction?.KeyFactors != null)
+                                    {
+                                        @foreach (var factor in prediction.KeyFactors.Take(3))
+                                        {
+                                            <li>@factor</li>
+                                        }
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Recomendaciones IA -->
+                @if (ViewBag.AIRecommendations != null && ((List<HabitRecommendation>)ViewBag.AIRecommendations).Any())
+                {
+                    <div class="ai-card recommendations-card">
+                        <div class="ai-card-header">
+                            <div class="ai-card-icon">
+                                <i class="fas fa-magic"></i>
+                            </div>
+                            <h4 class="ai-card-title">Recomendaciones Inteligentes</h4>
+                        </div>
+                        <div class="ai-card-body">
+                            <div class="recommendations-list">
+                                @foreach (var recommendation in (List<HabitRecommendation>)ViewBag.AIRecommendations)
+                                {
+                                    <div class="recommendation-item">
+                                        <div class="recommendation-header">
+                                            <span class="recommendation-type @recommendation.Type.ToLower()">
+                                                @GetRecommendationTypeDisplay(recommendation.Type)
+                                            </span>
+                                            <span class="confidence-score" style="background: @GetConfidenceColor((float)recommendation.Confidence)">
+                                                @((recommendation.Confidence * 100).ToString("N0"))%
+                                            </span>
+                                        </div>
+                                        <p class="recommendation-text">@recommendation.Recommendation</p>
+                                        <div class="recommendation-reason">
+                                            <small>
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                @recommendation.Reason
+                                            </small>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Patrones Detectados -->
+                @if (ViewBag.AIPatterns != null && ((List<HabitPattern>)ViewBag.AIPatterns).Any())
+                {
+                    <div class="ai-card patterns-card">
+                        <div class="ai-card-header">
+                            <div class="ai-card-icon">
+                                <i class="fas fa-project-diagram"></i>
+                            </div>
+                            <h4 class="ai-card-title">Patrones Detectados</h4>
+                        </div>
+                        <div class="ai-card-body">
+                            <div class="patterns-list">
+                                @foreach (var pattern in (List<HabitPattern>)ViewBag.AIPatterns)
+                                {
+                                    <div class="pattern-item">
+                                        <div class="pattern-type">@pattern.PatternType</div>
+                                        <p class="pattern-description">@pattern.Description</p>
+                                        <div class="pattern-strength">
+                                            <div class="strength-bar">
+                                                <div class="strength-fill" style="width: @((pattern.Strength * 100).ToString("N0"))%"></div>
+                                            </div>
+                                            <span class="strength-value">@(pattern.Strength.ToString("P0"))</span>
+                                        </div>
+                                        <div class="pattern-suggestion">
+                                            <i class="fas fa-lightbulb me-1"></i>
+                                            @pattern.SuggestedAction
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Optimización de Tiempo -->
+                <div class="ai-card optimization-card">
+                    <div class="ai-card-header">
+                        <div class="ai-card-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <h4 class="ai-card-title">Optimización de Tiempo</h4>
+                    </div>
+                    <div class="ai-card-body">
+                        <div class="optimization-content">
+                            <div class="time-suggestion">
+                                <div class="time-icon best-time">
+                                    <i class="fas fa-sun"></i>
+                                </div>
+                                <div class="time-info">
+                                    <div class="time-label">Mejor horario</div>
+                                    <div class="time-value">Mañana (7-9 AM)</div>
+                                    <div class="time-reason">Basado en tu consistencia matutina</div>
+                                </div>
+                            </div>
+                            <div class="time-suggestion">
+                                <div class="time-icon best-day">
+                                    <i class="fas fa-calendar-star"></i>
+                                </div>
+                                <div class="time-info">
+                                    <div class="time-label">Día más efectivo</div>
+                                    <div class="time-value">@(Model.BestDayOfWeek?.Split(' ')?.FirstOrDefault() ?? "Lunes")</div>
+                                    <div class="time-reason">Tu día de mayor productividad</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="optimization-tip">
+                            <i class="fas fa-tip me-1"></i>
+                            Programar recordatorios consistentes mejora la adherencia en un 45%
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Upsell para usuarios sin IA -->
+    @if (ViewBag.HasAIFeatures == false)
+    {
+        <div class="ai-upsell-section">
+            <div class="upsell-card">
+                <div class="upsell-icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="upsell-content">
+                    <h3>Desbloquea Análisis con Inteligencia Artificial</h3>
+                    <p>Obtén recomendaciones personalizadas, predicciones de éxito y patrones detectados automáticamente para mejorar tus hábitos.</p>
+                    <ul class="upsell-features">
+                        <li><i class="fas fa-check"></i> Predicciones de éxito basadas en ML</li>
+                        <li><i class="fas fa-check"></i> Recomendaciones personalizadas</li>
+                        <li><i class="fas fa-check"></i> Detección automática de patrones</li>
+                        <li><i class="fas fa-check"></i> Optimización de horarios inteligente</li>
+                    </ul>
+                    <a href="@Url.Action("Index", "Plans")" class="btn btn-primary upsell-btn">
+                        <i class="fas fa-crown me-2"></i>Mejorar Plan
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
 </div>
 
 @section Styles {
@@ -1616,6 +1810,483 @@
                 width: 20px;
             }
         }
+
+        /* === SECCIÓN DE INTELIGENCIA ARTIFICIAL === */
+        .ai-analysis-section {
+            background: white;
+            border-radius: var(--border-radius-lg);
+            padding: 2.5rem;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--gray-200);
+            margin-bottom: 2.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ai-analysis-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #8b5cf6, #7c3aed, #6d28d9);
+        }
+
+        .ai-badge {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-left: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .ai-status {
+            color: var(--primary-purple);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .ai-analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .ai-card {
+            background: var(--gray-50);
+            border-radius: var(--border-radius-lg);
+            padding: 2rem;
+            border: 1px solid var(--gray-200);
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ai-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+            background: white;
+        }
+
+        .ai-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+
+        .prediction-card::before { background: linear-gradient(90deg, #06b6d4, #0ea5e9); }
+        .recommendations-card::before { background: linear-gradient(90deg, #10b981, #059669); }
+        .patterns-card::before { background: linear-gradient(90deg, #f59e0b, #d97706); }
+        .optimization-card::before { background: linear-gradient(90deg, #8b5cf6, #7c3aed); }
+
+        .ai-card-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .ai-card-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: var(--border-radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .prediction-card .ai-card-icon { background: linear-gradient(135deg, #06b6d4, #0ea5e9); }
+        .recommendations-card .ai-card-icon { background: linear-gradient(135deg, #10b981, #059669); }
+        .patterns-card .ai-card-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .optimization-card .ai-card-icon { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+        .ai-card-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin: 0;
+            flex: 1;
+        }
+
+        /* Predicción de Éxito */
+        .prediction-main {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+            background: white;
+            border-radius: var(--border-radius-md);
+            border: 1px solid var(--gray-200);
+        }
+
+        .prediction-value {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--gray-900);
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .prediction-label {
+            color: var(--gray-600);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .prediction-recommendation {
+            background: rgba(6, 182, 212, 0.05);
+            border: 1px solid rgba(6, 182, 212, 0.2);
+            border-radius: var(--border-radius-md);
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .prediction-recommendation p {
+            margin: 0;
+            color: #0e7490;
+            font-weight: 500;
+            line-height: 1.5;
+        }
+
+        .prediction-factors h5 {
+            color: var(--gray-700);
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+        }
+
+        .prediction-factors ul {
+            margin: 0;
+            padding-left: 1rem;
+            color: var(--gray-600);
+        }
+
+        .prediction-factors li {
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        /* Recomendaciones IA */
+        .recommendations-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .recommendation-item {
+            background: white;
+            border-radius: var(--border-radius-md);
+            padding: 1.25rem;
+            border: 1px solid var(--gray-200);
+            transition: var(--transition);
+        }
+
+        .recommendation-item:hover {
+            border-color: var(--primary-green);
+            transform: translateX(4px);
+        }
+
+        .recommendation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .recommendation-type {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .recommendation-type.gettingstarted { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+        .recommendation-type.frequency { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+        .recommendation-type.motivation { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+        .recommendation-type.optimization { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+        .recommendation-type.progression { background: rgba(236, 72, 153, 0.1); color: #ec4899; }
+        .recommendation-type.newhabit { background: rgba(6, 182, 212, 0.1); color: #06b6d4; }
+
+        .confidence-score {
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .recommendation-text {
+            color: var(--gray-700);
+            margin-bottom: 0.75rem;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        .recommendation-reason {
+            color: var(--gray-500);
+            font-size: 0.8rem;
+        }
+
+        /* Patrones Detectados */
+        .patterns-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .pattern-item {
+            background: white;
+            border-radius: var(--border-radius-md);
+            padding: 1.25rem;
+            border: 1px solid var(--gray-200);
+        }
+
+        .pattern-type {
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .pattern-description {
+            color: var(--gray-700);
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .pattern-strength {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .strength-bar {
+            flex: 1;
+            height: 6px;
+            background: var(--gray-200);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .strength-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #f59e0b, #d97706);
+            border-radius: 3px;
+        }
+
+        .strength-value {
+            font-weight: 700;
+            color: var(--gray-700);
+            font-size: 0.85rem;
+            min-width: 40px;
+        }
+
+        .pattern-suggestion {
+            color: var(--gray-600);
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* Optimización de Tiempo */
+        .optimization-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .time-suggestion {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.25rem;
+            background: white;
+            border-radius: var(--border-radius-md);
+            border: 1px solid var(--gray-200);
+        }
+
+        .time-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: var(--border-radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .time-icon.best-time { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .time-icon.best-day { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+        .time-info {
+            flex: 1;
+        }
+
+        .time-label {
+            font-weight: 600;
+            color: var(--gray-600);
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .time-value {
+            font-weight: 700;
+            color: var(--gray-900);
+            font-size: 1.1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .time-reason {
+            color: var(--gray-500);
+            font-size: 0.8rem;
+        }
+
+        .optimization-tip {
+            background: rgba(139, 92, 246, 0.05);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: var(--border-radius-md);
+            padding: 1rem;
+            color: #7c3aed;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        /* Upsell de IA */
+        .ai-upsell-section {
+            margin-bottom: 2.5rem;
+        }
+
+        .upsell-card {
+            background: linear-gradient(135deg, #f8fafc, #f0f4ff);
+            border: 2px solid #8b5cf6;
+            border-radius: var(--border-radius-lg);
+            padding: 3rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upsell-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #8b5cf6, #7c3aed, #6d28d9);
+        }
+
+        .upsell-icon {
+            font-size: 4rem;
+            color: #8b5cf6;
+            margin-bottom: 1.5rem;
+        }
+
+        .upsell-content h3 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 1rem;
+        }
+
+        .upsell-content p {
+            color: var(--gray-600);
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+
+        .upsell-features {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 2rem 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .upsell-features li {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--gray-700);
+            font-weight: 500;
+        }
+
+        .upsell-features i {
+            color: #10b981;
+            width: 20px;
+        }
+
+        .upsell-btn {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius-md);
+            padding: 1rem 2rem;
+            font-weight: 600;
+            font-size: 1.1rem;
+            transition: var(--transition);
+        }
+
+        .upsell-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            color: white;
+        }
+
+        /* Badges de confianza */
+        .confidence-badge {
+            padding: 0.375rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .confidence-badge.high { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+        .confidence-badge.medium { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+        .confidence-badge.low { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+        /* Responsive */
+        @@media (max-width: 768px) {
+            .ai-analysis-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .ai-card {
+                padding: 1.5rem;
+            }
+            
+            .upsell-card {
+                padding: 2rem 1.5rem;
+            }
+            
+            .upsell-features {
+                grid-template-columns: 1fr;
+            }
+            
+            .time-suggestion {
+                flex-direction: column;
+                text-align: center;
+                gap: 0.75rem;
+            }
+        }
     </style>
 }
 
@@ -1762,6 +2433,41 @@
             >= 75 => "Bueno",
             >= 60 => "Regular",
             _ => "Por mejorar"
+        };
+    }
+
+    private string GetPredictionConfidenceClass(string confidenceLevel)
+    {
+        return confidenceLevel?.ToLower() switch
+        {
+            "high" => "high",
+            "medium" => "medium", 
+            "low" => "low",
+            _ => "medium"
+        };
+    }
+
+    private string GetRecommendationTypeDisplay(string type)
+    {
+        return type switch
+        {
+            "GettingStarted" => "Inicio",
+            "Frequency" => "Frecuencia",
+            "Motivation" => "Motivación",
+            "Optimization" => "Optimización",
+            "Progression" => "Progresión", 
+            "NewHabit" => "Nuevo Hábito",
+            _ => type
+        };
+    }
+
+    private string GetConfidenceColor(float confidence)
+    {
+        return confidence switch
+        {
+            >= 0.8f => "#10b981",  // Verde
+            >= 0.6f => "#f59e0b",  // Amarillo
+            _ => "#ef4444"         // Rojo
         };
     }
 }

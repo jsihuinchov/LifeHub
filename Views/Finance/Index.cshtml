@@ -1,180 +1,131 @@
-@using LifeHub.Services
+@using LifeHub.Models.Entities
 @using LifeHub.Models.IA.Results
-@inject IFinanceService FinanceService
+@using LifeHub.Models.ViewModels
+@using LifeHub.Services
+@inject IHabitService HabitService
 @inject ISubscriptionService SubscriptionService
+@model List<Habit>
+
 @{
-    ViewData["Title"] = "Dashboard Financiero";
-    var summary = ViewBag.FinanceSummary as FinanceSummary;
-    var recentTransactions = ViewBag.RecentTransactions as List<LifeHub.Models.Entities.FinancialTransaction>;
-    var budgetStatus = ViewBag.BudgetStatus as List<BudgetStatus>;
+    ViewData["Title"] = "Mis Hábitos";
     
-    // Gráficos desde C#
-    var monthlyTrendChart = ViewBag.MonthlyTrendChart as ChartData;
-    var expenseDistributionChart = ViewBag.ExpenseDistributionChart as ChartData;
-    var incomeDistributionChart = ViewBag.IncomeDistributionChart as ChartData;
-    var budgetProgressChart = ViewBag.BudgetProgressChart as ChartData;
-    
-    // Información del plan del usuario
     var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-    var userSubscription = await SubscriptionService.GetUserSubscriptionAsync(userId ?? "");
+    var stats = ViewBag.Stats as HabitStatsViewModel;
+    var userSubscription = ViewBag.UserSubscription as UserSubscription;
     var userPlan = userSubscription?.Plan;
-    var canCreateTransaction = await SubscriptionService.CanUserCreateTransactionAsync(userId ?? "");
-    var hasAdvancedAnalytics = await SubscriptionService.UserHasFeatureAccessAsync(userId ?? "", "analytics");
-    var hasAIFeatures = await SubscriptionService.UserHasFeatureAccessAsync(userId ?? "", "ai");
-
-    // Obtener consejo del día
-    var dailyAdvice = await FinanceService.GetDailyAdviceAsync();
-
-    // ==== VARIABLES DE IA ====
-    var aiAlerts = ViewBag.AIAlerts as List<FinancialAlert> ?? new List<FinancialAlert>();
-    var spendingPrediction = ViewBag.SpendingPrediction as decimal? ?? 0;
-    var budgetRecommendations = ViewBag.BudgetRecommendations as List<BudgetRecommendation> ?? new List<BudgetRecommendation>();
-    var spendingPatterns = ViewBag.SpendingPatterns as SpendingPatterns ?? new SpendingPatterns();
+    var hasAIFeatures = ViewBag.HasAIFeatures as bool? ?? false;
     
-    // Determinar si mostrar secciones de IA
-    var showAISections = hasAIFeatures && (aiAlerts.Any() || budgetRecommendations.Any() || spendingPrediction > 0);
+    // ✅ NUEVO: Datos de IA
+    var aiRecommendations = ViewBag.AIRecommendations as List<HabitRecommendation> ?? new List<HabitRecommendation>();
+    var consistencyAlerts = ViewBag.ConsistencyAlerts as List<ConsistencyAlert> ?? new List<ConsistencyAlert>();
+    var habitPatterns = ViewBag.HabitPatterns as List<HabitPattern> ?? new List<HabitPattern>();
+    
+    var canCreateHabit = await SubscriptionService.CanUserCreateHabitAsync(userId ?? "");
+    var habitUsage = await HabitService.GetHabitUsageAsync(userId ?? "");
 }
 
-<div class="finance-container">
-    <!-- Navegación Horizontal -->
-    <div class="finance-nav">
-        <div class="nav-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Index" ? "active" : "")">
-            <a href="@Url.Action("Index", "Finance")">
-                <i class="fas fa-chart-line"></i>
-                <span>Dashboard</span>
-            </a>
+<div class="habits-container">
+    <!-- Header Principal -->
+    <div class="habits-header">
+        <div class="header-content">
+            <h1 class="habits-title">
+                <i class="fas fa-seedling me-3"></i>Mis Hábitos
+            </h1>
+            <p class="habits-subtitle">Construye una mejor versión de ti mismo, un hábito a la vez</p>
+            
+            @if (userPlan != null)
+            {
+                <div class="current-plan-badge">
+                    <span class="badge" style="background: @userPlan.ColorCode; color: white;">
+                        <i class="fas fa-crown me-1"></i>Plan @userPlan.Name
+                        @if (userSubscription?.DaysRemaining <= 7)
+                        {
+                            <span class="ms-1">• Renueva en @userSubscription.DaysRemaining días</span>
+                        }
+                    </span>
+                </div>
+            }
         </div>
-        
-        <div class="nav-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Transactions" ? "active" : "")">
-            <a href="@Url.Action("Transactions", "Finance")">
-                <i class="fas fa-exchange-alt"></i>
-                <span>Transacciones</span>
-                @if (userPlan != null)
-                {
-                    <small class="plan-badge">@(userPlan.MaxTransactions)/mes</small>
-                }
-            </a>
-        </div>
-        
-        <div class="nav-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Budgets" ? "active" : "")">
-            <a href="@Url.Action("Budgets", "Finance")">
-                <i class="fas fa-wallet"></i>
-                <span>Presupuestos</span>
-            </a>
-        </div>
-        
-        <div class="nav-item @(ViewContext.RouteData.Values["Action"]?.ToString() == "Reports" ? "active" : "")">
-            <a href="@Url.Action("Reports", "Finance")">
-                <i class="fas fa-chart-bar"></i>
-                <span>Reportes</span>
-                @if (!hasAdvancedAnalytics)
-                {
-                    <small class="plan-badge premium">PREMIUM</small>
-                }
+        <div class="header-actions">
+            @if (canCreateHabit)
+            {
+                <a href="@Url.Action("Create", "Habits")" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Nuevo Hábito
+                </a>
+            }
+            else
+            {
+                <button class="btn btn-primary" disabled title="Límite de hábitos alcanzado en tu plan actual">
+                    <i class="fas fa-plus me-2"></i>Nuevo Hábito
+                </button>
+            }
+            <a href="@Url.Action("Stats", "Habits")" class="btn btn-outline-primary">
+                <i class="fas fa-chart-line me-2"></i>Estadísticas
             </a>
         </div>
     </div>
 
-    <!-- Contenido Principal -->
-    <div class="finance-main-content">
-        <!-- Header con información del plan -->
-        <div class="finance-header">
-            <div class="header-content">
-                <h1 class="finance-title">
-                    <i class="fas fa-chart-line me-3"></i>Dashboard Financiero
-                </h1>
-                <p class="finance-subtitle">Resumen completo de tu situación financiera</p>
-                
-                @if (userPlan != null)
-                {
-                    <div class="current-plan-badge">
-                        <span class="badge" style="background: @userPlan.ColorCode; color: white;">
-                            <i class="fas fa-crown me-1"></i>Plan @userPlan.Name
-                            @if (userSubscription?.DaysRemaining <= 7)
-                            {
-                                <span class="ms-1">• Renueva en @userSubscription.DaysRemaining días</span>
-                            }
-                        </span>
-                    </div>
-                }
-            </div>
-            <div class="header-actions">
-                @if (canCreateTransaction)
-                {
-                    <a href="@Url.Action("CreateTransaction", "Finance")" class="btn btn-primary">
-                        <i class="fas fa-plus me-2"></i>Nueva Transacción
-                    </a>
-                }
-                else
-                {
-                    <button class="btn btn-primary" disabled title="Límite de transacciones alcanzado en tu plan actual">
-                        <i class="fas fa-plus me-2"></i>Nueva Transacción
-                    </button>
-                }
-                <a href="@Url.Action("CreateBudget", "Finance")" class="btn btn-outline-primary">
-                    <i class="fas fa-wallet me-2"></i>Crear Presupuesto
+    <!-- Alerta de límite de hábitos -->
+    @if (!canCreateHabit && userPlan != null)
+    {
+        <div class="alert alert-warning">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Límite de hábitos alcanzado</strong> - Has usado los @userPlan.MaxHabits hábitos de tu plan @userPlan.Name
+                </div>
+                <a href="@Url.Action("Index", "Plans")" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-rocket me-1"></i>Mejorar Plan
                 </a>
             </div>
         </div>
+    }
 
-        <!-- Alerta de límite de transacciones -->
-        @if (!canCreateTransaction && userPlan != null)
-        {
-            <div class="alert alert-warning">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong>Límite de transacciones alcanzado</strong> - Has usado las @userPlan.MaxTransactions transacciones de tu plan @userPlan.Name
-                    </div>
-                    <a href="@Url.Action("Index", "Plans")" class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-rocket me-1"></i>Mejorar Plan
-                    </a>
-                </div>
-            </div>
-        }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+        </div>
+    }
 
-        @if (TempData["SuccessMessage"] != null)
-        {
-            <div class="alert alert-success">
-                <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
-            </div>
-        }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>@TempData["ErrorMessage"]
+        </div>
+    }
 
-        @if (TempData["ErrorMessage"] != null)
-        {
-            <div class="alert alert-danger">
-                <i class="fas fa-exclamation-triangle me-2"></i>@TempData["ErrorMessage"]
-            </div>
-        }
-
-        <!-- Alertas de IA - Solo para usuarios con acceso a IA -->
-        @if (hasAIFeatures && aiAlerts.Any())
-        {
-            <div class="ai-alerts-section">
-                <div class="finance-card alerts-card">
+    <!-- === SECCIÓN DE IA - SOLO PARA USUARIOS CON ACCESO === -->
+    @if (hasAIFeatures)
+    {
+        <div class="ai-habits-section">
+            <!-- Alertas de Consistencia -->
+            @if (consistencyAlerts.Any())
+            {
+                <div class="habits-card alerts-card">
                     <div class="card-header">
                         <h3 class="card-title">
                             <i class="fas fa-robot me-2"></i>
-                            Alertas Inteligentes
+                            Alertas de Consistencia
                             <span class="badge bg-purple ms-1">AI</span>
                         </h3>
-                        <span class="alert-count">@aiAlerts.Count alerta(s)</span>
+                        <span class="alert-count">@consistencyAlerts.Count alerta(s)</span>
                     </div>
                     <div class="card-body">
                         <div class="alerts-list">
-                            @foreach (var alert in aiAlerts.Take(5))
+                            @foreach (var alert in consistencyAlerts.Take(3))
                             {
-                                <div class="alert-item @alert.Severity.ToString().ToLower()">
+                                <div class="alert-item @alert.AlertType.ToLower()">
                                     <div class="alert-icon">
                                         @switch (alert.AlertType)
                                         {
-                                            case "UnusualSpending":
+                                            case "AtRisk":
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                                break;
+                                            case "Inconsistent":
                                                 <i class="fas fa-chart-line"></i>
                                                 break;
-                                            case "BudgetExceeded":
-                                                <i class="fas fa-wallet"></i>
-                                                break;
-                                            case "IncomeDrop":
+                                            case "Declining":
                                                 <i class="fas fa-arrow-down"></i>
                                                 break;
                                             default:
@@ -183,852 +134,634 @@
                                         }
                                     </div>
                                     <div class="alert-content">
-                                        <div class="alert-title">@alert.Message</div>
-                                        <div class="alert-details">
-                                            <span class="alert-category">@alert.Category</span>
-                                            <span class="alert-amount">@alert.Amount.ToString("C")</span>
-                                            @if (alert.DeviationPercentage != 0)
-                                            {
-                                                <span class="alert-deviation @(alert.DeviationPercentage > 0 ? "positive" : "negative")">
-                                                    @(alert.DeviationPercentage > 0 ? "+" : "")@alert.DeviationPercentage.ToString("N1")%
-                                                </span>
-                                            }
-                                        </div>
-                                        <div class="alert-meta">
-                                            <span class="alert-type">@GetAlertTypeDisplay(alert.AlertType)</span>
-                                            <span class="alert-time">@alert.DetectedDate.ToString("dd/MM/yyyy HH:mm")</span>
-                                        </div>
-                                    </div>
-                                    <div class="alert-severity @alert.Severity.ToString().ToLower()">
-                                        <i class="fas @GetSeverityIcon(alert.Severity)"></i>
-                                        @alert.Severity.ToString()
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                        @if (aiAlerts.Count > 5)
-                        {
-                            <div class="text-center mt-3">
-                                <small class="text-muted">Y @(aiAlerts.Count - 5) alertas más...</small>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-        }
-
-
-        <!-- Recomendaciones de IA -->
-        @if (hasAIFeatures && budgetRecommendations.Any())
-        {
-            <div class="finance-card recommendations-card">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="fas fa-magic me-2"></i>
-                        Recomendaciones Inteligentes
-                        <span class="badge bg-purple ms-1">AI</span>
-                    </h3>
-                </div>
-                <div class="card-body">
-                    <div class="recommendations-list">
-                        @foreach (var recommendation in budgetRecommendations.Take(3))
-                        {
-                            <div class="recommendation-item">
-                                <div class="recommendation-header">
-                                    <div class="recommendation-category">
-                                        <i class="fas fa-bullseye me-2"></i>
-                                        @recommendation.Category
-                                    </div>
-                                    <div class="recommendation-confidence">
-                                        <span class="confidence-badge" style="background: @GetConfidenceColor(recommendation.Confidence)">
-                                            @(recommendation.Confidence * 100)%
-                                        </span>
-                                    </div>
-                                </div>
-                                <div class="recommendation-content">
-                                    <p class="recommendation-text">@recommendation.Recommendation</p>
-                                    <div class="recommendation-details">
-                                        <div class="detail-item">
-                                            <span class="detail-label">Gasto Actual:</span>
-                                            <span class="detail-value">@recommendation.CurrentSpending.ToString("C")</span>
-                                        </div>
-                                        <div class="detail-item">
-                                            <span class="detail-label">Recomendado:</span>
-                                            <span class="detail-value positive">@recommendation.RecommendedBudget.ToString("C")</span>
-                                        </div>
-                                        @if (recommendation.PotentialSavings > 0)
-                                        {
-                                            <div class="detail-item">
-                                                <span class="detail-label">Ahorro Potencial:</span>
-                                                <span class="detail-value savings">@recommendation.PotentialSavings.ToString("C")</span>
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-                                <div class="recommendation-reasoning">
-                                    <small class="text-muted">
-                                        <i class="fas fa-info-circle me-1"></i>
-                                        @recommendation.Reasoning
-                                    </small>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                    @if (budgetRecommendations.Count > 3)
-                    {
-                        <div class="text-center mt-3">
-                            <small class="text-muted">Y @(budgetRecommendations.Count - 3) recomendaciones más...</small>
-                        </div>
-                    }
-                </div>
-            </div>
-        }
-
-        <!-- Métricas Principales -->
-        <div class="metrics-grid">
-            <div class="metric-card income">
-                <div class="metric-icon">
-                    <i class="fas fa-arrow-up"></i>
-                </div>
-                <div class="metric-content">
-                    <h3 class="metric-value">@summary?.TotalIncome.ToString("C")</h3>
-                    <p class="metric-label">Ingresos Totales</p>
-                    <div class="metric-trend positive">
-                        <i class="fas fa-arrow-up"></i>
-                        <span>@(summary?.IncomeGrowth.ToString("N1") ?? "0")% vs mes anterior</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="metric-card expense">
-                <div class="metric-icon">
-                    <i class="fas fa-arrow-down"></i>
-                </div>
-                <div class="metric-content">
-                    <h3 class="metric-value">@summary?.TotalExpenses.ToString("C")</h3>
-                    <p class="metric-label">Gastos Totales</p>
-                    <div class="metric-trend @(summary?.ExpenseGrowth > 0 ? "negative" : "positive")">
-                        <i class="fas fa-arrow-@(summary?.ExpenseGrowth > 0 ? "up" : "down")"></i>
-                        <span>@(Math.Abs(summary?.ExpenseGrowth ?? 0).ToString("N1"))% vs mes anterior</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="metric-card balance @(summary?.NetAmount >= 0 ? "positive" : "negative")">
-                <div class="metric-icon">
-                    <i class="fas fa-balance-scale"></i>
-                </div>
-                <div class="metric-content">
-                    <h3 class="metric-value">@summary?.NetAmount.ToString("C")</h3>
-                    <p class="metric-label">Balance Neto</p>
-                    <div class="metric-trend @(summary?.NetAmount >= 0 ? "positive" : "negative")">
-                        <i class="fas fa-@(summary?.NetAmount >= 0 ? "smile" : "frown")"></i>
-                        <span>@(summary?.NetAmount >= 0 ? "Positivo" : "Negativo") este mes</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="metric-card savings">
-                <div class="metric-icon">
-                    <i class="fas fa-piggy-bank"></i>
-                </div>
-                <div class="metric-content">
-                    <h3 class="metric-value">@summary?.SavingsRate.ToString("N1")%</h3>
-                    <p class="metric-label">Tasa de Ahorro</p>
-                    <div class="metric-trend @(summary?.SavingsRate >= 20 ? "positive" : summary?.SavingsRate >= 10 ? "warning" : "negative")">
-                        <i class="fas fa-@(summary?.SavingsRate >= 20 ? "trophy" : summary?.SavingsRate >= 10 ? "check" : "exclamation")"></i>
-                        <span>@(summary?.SavingsRate >= 20 ? "Excelente" : summary?.SavingsRate >= 10 ? "Bueno" : "Mejorable")</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Predicciones de IA -->
-        @if (hasAIFeatures && spendingPrediction > 0)
-        {
-            <div class="ai-predictions-section">
-                <div class="finance-card predictions-card">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-crystal-ball me-2"></i>
-                            Predicciones Inteligentes
-                            <span class="badge bg-purple ms-1">AI</span>
-                        </h3>
-                        <div class="prediction-accuracy">
-                            <i class="fas fa-bullseye me-1"></i>
-                            <span>85% precisión</span>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="predictions-grid">
-                            <div class="prediction-item">
-                                <div class="prediction-icon">
-                                    <i class="fas fa-chart-line"></i>
-                                </div>
-                                <div class="prediction-content">
-                                    <div class="prediction-label">Gasto Previsto Próximo Mes</div>
-                                    <div class="prediction-value">@spendingPrediction.ToString("C")</div>
-                                    <div class="prediction-trend positive">
-                                        <i class="fas fa-arrow-up me-1"></i>
-                                        <span>Basado en tus patrones históricos</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            @if (spendingPatterns?.CategoryPatterns != null && spendingPatterns.CategoryPatterns.Any())
-                            {
-                                <div class="prediction-item">
-                                    <div class="prediction-icon">
-                                        <i class="fas fa-tags"></i>
-                                    </div>
-                                    <div class="prediction-content">
-                                        <div class="prediction-label">Categoría con Mayor Crecimiento</div>
-                                        <div class="prediction-value">
-                                            @spendingPatterns.CategoryPatterns.OrderByDescending(c => c.GrowthRate).First().Category
-                                        </div>
-                                        <div class="prediction-trend @(spendingPatterns.CategoryPatterns.OrderByDescending(c => c.GrowthRate).First().GrowthRate > 0 ? "negative" : "positive")">
-                                            <i class="fas fa-@(spendingPatterns.CategoryPatterns.OrderByDescending(c => c.GrowthRate).First().GrowthRate > 0 ? "arrow-up" : "arrow-down") me-1"></i>
-                                            <span>@(spendingPatterns.CategoryPatterns.OrderByDescending(c => c.GrowthRate).First().GrowthRate.ToString("N1"))% este mes</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    </div>
-                </div>
-            </div>
-        }
-
-        <!-- Segunda fila de métricas -->
-        <div class="metrics-grid secondary">
-            <div class="metric-card transactions">
-                <div class="metric-icon">
-                    <i class="fas fa-exchange-alt"></i>
-                </div>
-                <div class="metric-content">
-                    <h3 class="metric-value">@summary?.TotalTransactions</h3>
-                    <p class="metric-label">Total Transacciones</p>
-                    @if (userPlan != null)
-                    {
-                        <div class="metric-trend info">
-                            <i class="fas fa-chart-bar"></i>
-                            <span>@(summary?.TotalTransactions ?? 0)/@userPlan.MaxTransactions este mes</span>
-                        </div>
-                    }
-                </div>
-            </div>
-
-            <div class="metric-card avg-transaction">
-                <div class="metric-icon">
-                    <i class="fas fa-chart-bar"></i>
-                </div>
-                <div class="metric-content">
-                    <h3 class="metric-value">@summary?.AverageTransaction.ToString("C")</h3>
-                    <p class="metric-label">Transacción Promedio</p>
-                </div>
-            </div>
-
-            <div class="metric-card budgets">
-                <div class="metric-icon">
-                    <i class="fas fa-wallet"></i>
-                </div>
-                <div class="metric-content">
-                    <h3 class="metric-value">@budgetStatus?.Count</h3>
-                    <p class="metric-label">Presupuestos Activos</p>
-                </div>
-            </div>
-
-            <div class="metric-card goals">
-                <div class="metric-icon">
-                    <i class="fas fa-bullseye"></i>
-                </div>
-                <div class="metric-content">
-                    <h3 class="metric-value">@summary?.MonthlyGoalProgress.ToString("N0")%</h3>
-                    <p class="metric-label">Progreso Meta Mensual</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="finance-content">
-            <!-- Columna Izquierda - AHORA CON MÁS CONTENIDO -->
-            <div class="finance-main">
-                <!-- Gráfico de Tendencia -->
-                <div class="finance-card">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-chart-line me-2"></i>
-                            Tendencia Financiera (Últimos 6 Meses)
-                        </h3>
-                        <div class="chart-legend">
-                            <div class="legend-item">
-                                <span class="legend-color income"></span>
-                                <span>Ingresos</span>
-                            </div>
-                            <div class="legend-item">
-                                <span class="legend-color expense"></span>
-                                <span>Gastos</span>
-                            </div>
-                            <div class="legend-item">
-                                <span class="legend-color savings"></span>
-                                <span>Ahorro</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="monthlyTrendChart" 
-                                    data-chart-data='@Json.Serialize(monthlyTrendChart)'>
-                            </canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Distribución de Gastos - MOVIDA A LA IZQUIERDA -->
-                <div class="finance-card">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-chart-pie me-2"></i>
-                            Distribución de Gastos por Categoría
-                        </h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="charts-row">
-                            <div class="chart-wrapper">
-                                <canvas id="expenseChart"
-                                        data-chart-data='@Json.Serialize(expenseDistributionChart)'>
-                                </canvas>
-                            </div>
-                            <div class="categories-details">
-                                @if (expenseDistributionChart?.Datasets?.FirstOrDefault()?.Data != null)
-                                {
-                                    <div class="categories-list">
-                                        @for (int i = 0; i < expenseDistributionChart.Labels.Length; i++)
-                                        {
-                                            <div class="category-item">
-                                                <div class="category-info">
-                                                    <span class="category-color" 
-                                                          style="background-color: @expenseDistributionChart.Datasets[0].BackgroundColor[i]"></span>
-                                                    <span class="category-name">@expenseDistributionChart.Labels[i]</span>
-                                                </div>
-                                                <div class="category-stats">
-                                                    <span class="category-amount">@expenseDistributionChart.Datasets[0].Data[i].ToString("C")</span>
-                                                    <span class="category-percentage">
-                                                        @{
-                                                            var total = expenseDistributionChart.Datasets[0].Data.Sum();
-                                                            var percentage = total > 0 ? (expenseDistributionChart.Datasets[0].Data[i] / total) * 100 : 0;
-                                                        }
-                                                        @percentage.ToString("N1")%
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                                else
-                                {
-                                    <div class="empty-state">
-                                        <i class="fas fa-chart-pie fa-2x mb-2"></i>
-                                        <p>No hay datos de gastos este mes</p>
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Insights y Recomendaciones - MOVIDA A LA IZQUIERDA -->
-                <div class="finance-card">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-chart-line me-2"></i>
-                            Insights Financieros
-                            @if (hasAIFeatures)
-                            {
-                                <span class="badge bg-purple ms-1" style="background: #8b5cf6;">AI</span>
-                            }
-                        </h3>
-                    </div>
-                    <div class="card-body">
-                        <div class="insights-list">
-                            <!-- Insight de Balance -->
-                            @if (summary?.NetAmount < 0)
-                            {
-                                <div class="insight-item negative">
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                    <div class="insight-content">
-                                        <strong>Balance Negativo</strong>
-                                        <p>Tus gastos superan tus ingresos. Revisa tus presupuestos.</p>
-                                    </div>
-                                </div>
-                            }
-                            else if (summary?.NetAmount > 0)
-                            {
-                                <div class="insight-item positive">
-                                    <i class="fas fa-check-circle"></i>
-                                    <div class="insight-content">
-                                        <strong>Balance Positivo</strong>
-                                        <p>¡Buen trabajo! Estás ahorrando @summary.NetAmount.ToString("C") este mes.</p>
-                                    </div>
-                                </div>
-                            }
-
-                            <!-- Insight de Ahorro -->
-                            @if (summary?.SavingsRate < 10)
-                            {
-                                <div class="insight-item warning">
-                                    <i class="fas fa-piggy-bank"></i>
-                                    <div class="insight-content">
-                                        <strong>Tasa de Ahorro Baja</strong>
-                                        <p>Tu tasa de ahorro es del @summary.SavingsRate.ToString("N1")%. Objetivo: 20%.</p>
-                                    </div>
-                                </div>
-                            }
-                            else if (summary?.SavingsRate >= 20)
-                            {
-                                <div class="insight-item positive">
-                                    <i class="fas fa-trophy"></i>
-                                    <div class="insight-content">
-                                        <strong>¡Excelente Ahorro!</strong>
-                                        <p>Tu tasa de ahorro del @summary.SavingsRate.ToString("N1")% es excelente.</p>
-                                    </div>
-                                </div>
-                            }
-
-                            <!-- Insight de Presupuestos -->
-                            @if (budgetStatus?.Any(b => b.IsOverBudget) == true)
-                            {
-                                <div class="insight-item negative">
-                                    <i class="fas fa-wallet"></i>
-                                    <div class="insight-content">
-                                        <strong>Presupuestos Excedidos</strong>
-                                        <p>@budgetStatus.Count(b => b.IsOverBudget) categorías sobrepasaron su límite.</p>
-                                    </div>
-                                </div>
-                            }
-
-                            <!-- Insight de Transacciones -->
-                            @if (summary?.TotalTransactions > 0)
-                            {
-                                <div class="insight-item info">
-                                    <i class="fas fa-chart-bar"></i>
-                                    <div class="insight-content">
-                                        <strong>Actividad Financiera</strong>
-                                        <p>@summary.TotalTransactions transacciones este mes.</p>
-                                        @if (userPlan != null && summary.TotalTransactions >= userPlan.MaxTransactions * 0.8)
-                                        {
-                                            <div class="mt-1" style="font-size: 0.8rem; color: #f59e0b;">
-                                                <i class="fas fa-exclamation-triangle"></i>
-                                                Has usado el @((summary.TotalTransactions * 100 / userPlan.MaxTransactions))% de tu límite
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-                            }
-
-                            <!-- Insight de Plan -->
-                            @if (userPlan != null && userPlan.MaxTransactions <= 50)
-                            {
-                                <div class="insight-item info">
-                                    <i class="fas fa-rocket"></i>
-                                    <div class="insight-content">
-                                        <strong>Plan Básico</strong>
-                                        <p>Límite: @userPlan.MaxTransactions transacciones/mes. <a href="@Url.Action("Index", "Plans")">Mejorar</a></p>
-                                    </div>
-                                </div>
-                            }
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Patrones de Gastos Detectados por IA -->
-                @if (hasAIFeatures && spendingPatterns?.CategoryPatterns != null && spendingPatterns.CategoryPatterns.Any())
-                {
-                    <div class="finance-card patterns-card">
-                        <div class="card-header">
-                            <h3 class="card-title">
-                                <i class="fas fa-project-diagram me-2"></i>
-                                Patrones Detectados
-                                <span class="badge bg-purple ms-1">AI</span>
-                            </h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="patterns-section">
-                                <div class="pattern-category">
-                                    <h4 class="pattern-title">Tendencias por Categoría</h4>
-                                    <div class="patterns-list">
-                                        @foreach (var pattern in spendingPatterns.CategoryPatterns.Take(4))
-                                        {
-                                            <div class="pattern-item">
-                                                <div class="pattern-info">
-                                                    <span class="pattern-name">@pattern.Category</span>
-                                                    <span class="pattern-amount">@pattern.AverageMonthlyAmount.ToString("C")/mes</span>
-                                                </div>
-                                                <div class="pattern-trend @(pattern.GrowthRate > 0 ? "increasing" : "decreasing")">
-                                                    <i class="fas fa-@(pattern.GrowthRate > 0 ? "arrow-up" : "arrow-down") me-1"></i>
-                                                    <span>@Math.Abs(pattern.GrowthRate).ToString("N1")%</span>
-                                                    <span class="pattern-percentage">@pattern.PercentageOfTotal.ToString("N1")% del total</span>
-                                                </div>
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-                                
-                                @if (spendingPatterns.WeeklyPatterns != null && spendingPatterns.WeeklyPatterns.Any())
-                                {
-                                    <div class="pattern-weekly">
-                                        <h4 class="pattern-title">Patrón Semanal</h4>
-                                        <div class="weekly-patterns">
-                                            @foreach (var day in spendingPatterns.WeeklyPatterns)
-                                            {
-                                                <div class="day-pattern">
-                                                    <span class="day-name">@day.DayOfWeek</span>
-                                                    <div class="day-bar">
-                                                        <div class="day-fill" style="width: @(day.AverageSpending / (spendingPatterns.WeeklyPatterns.Max(d => d.AverageSpending) > 0 ? spendingPatterns.WeeklyPatterns.Max(d => d.AverageSpending) : 1) * 100)%;"></div>
-                                                    </div>
-                                                    <span class="day-amount">@day.AverageSpending.ToString("C")</span>
-                                                </div>
-                                            }
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        </div>
-                    </div>
-                }
-
-                <!-- Transacciones Recientes -->
-                <div class="finance-card">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-history me-2"></i>
-                            Transacciones Recientes
-                        </h3>
-                        <a href="@Url.Action("Transactions", "Finance")" class="btn btn-link">Ver todas</a>
-                    </div>
-                    <div class="card-body">
-                        @if (recentTransactions != null && recentTransactions.Any())
-                        {
-                            <div class="transactions-list">
-                                @foreach (var transaction in recentTransactions.Take(8))
-                                {
-                                    <div class="transaction-item">
-                                        <div class="transaction-icon @(transaction.TransactionType == 0 ? "income" : "expense")">
-                                            <i class="fas fa-@(transaction.TransactionType == 0 ? "arrow-up" : "arrow-down")"></i>
-                                        </div>
-                                        <div class="transaction-details">
-                                            <div class="transaction-description">@transaction.Description</div>
-                                            <div class="transaction-meta">
-                                                <span class="transaction-category">@transaction.Category</span>
-                                                @if (!string.IsNullOrEmpty(transaction.Subcategory))
-                                                {
-                                                    <span class="transaction-subcategory">• @transaction.Subcategory</span>
-                                                }
-                                                <span class="transaction-date">@transaction.TransactionDate.ToString("dd/MM/yyyy")</span>
-                                            </div>
-                                        </div>
-                                        <div class="transaction-amount @(transaction.TransactionType == 0 ? "income" : "expense")">
-                                            @(transaction.TransactionType == 0 ? "+" : "-")@transaction.Amount.ToString("C")
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="empty-state">
-                                <i class="fas fa-receipt fa-3x mb-3"></i>
-                                <h4>No hay transacciones recientes</h4>
-                                <p>Comienza registrando tus primeros ingresos y gastos</p>
-                                @if (canCreateTransaction)
-                                {
-                                    <a href="@Url.Action("CreateTransaction", "Finance")" class="btn btn-primary mt-2">
-                                        <i class="fas fa-plus me-2"></i>Crear primera transacción
-                                    </a>
-                                }
-                                else
-                                {
-                                    <div class="alert alert-warning mt-2">
-                                        <i class="fas fa-info-circle me-2"></i>
-                                        Límite de transacciones alcanzado en tu plan actual
-                                        <a href="@Url.Action("Index", "Plans")" class="btn btn-sm btn-outline-primary ms-2">
-                                            Mejorar Plan
-                                        </a>
-                                    </div>
-                                }
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-
-            <!-- Columna Derecha - AHORA MÁS LIVIANA -->
-            <div class="finance-sidebar">
-                <!-- Cuadro de Consejos Financieros Compacto -->
-                <div class="finance-card advice-card compact" id="advice-card">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-lightbulb me-2"></i>
-                            Consejo del Día
-                        </h3>
-                        <div class="advice-actions">
-                            <button id="new-advice-btn" class="btn-advice" title="Nuevo Consejo">
-                                <i class="fas fa-sync-alt"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div id="financial-advice-container">
-                            <div class="advice-content-wrapper">
-                                <div class="advice-text">
-                                    @dailyAdvice.Advice
-                                </div>
-                                <div class="advice-footer">
-                                    <span class="advice-category">@dailyAdvice.Category</span>
-                                    <span class="advice-difficulty badge @GetDifficultyClass(dailyAdvice.Difficulty)">
-                                        @dailyAdvice.Difficulty
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Estado de Presupuestos -->
-                <div class="finance-card">
-                    <div class="card-header">
-                        <h3 class="card-title">
-                            <i class="fas fa-wallet me-2"></i>
-                            Estado de Presupuestos
-                        </h3>
-                        <a href="@Url.Action("Budgets", "Finance")" class="btn btn-link">Gestionar</a>
-                    </div>
-                    <div class="card-body">
-                        @if (budgetStatus != null && budgetStatus.Any())
-                        {
-                            <div class="budgets-list">
-                                @foreach (var budget in budgetStatus.Take(5))
-                                {
-                                    var isSavings = budget.Budget.BudgetType == 0;
-                                    <div class="budget-item @(isSavings ? "savings" : "expense")">
-                                        <div class="budget-header">
-                                            <div class="budget-category">
-                                                <span class="budget-type-icon">
-                                                    <i class="fas fa-@(isSavings ? "piggy-bank" : "chart-line")"></i>
-                                                </span>
-                                                <span class="budget-name">@budget.Budget.Category</span>
-                                            </div>
-                                            <span class="budget-amount">@budget.Budget.MonthlyAmount.ToString("C")</span>
-                                        </div>
-                                        <div class="budget-progress">
-                                            <div class="progress-info">
-                                                <span class="progress-label">
-                                                    @(isSavings ? "Ahorrado:" : "Gastado:")
-                                                </span>
-                                                <span class="progress-amount">@budget.SpentAmount.ToString("C")</span>
-                                            </div>
+                                        <div class="alert-title">@alert.HabitName</div>
+                                        <div class="alert-message">@alert.Message</div>
+                                        <div class="alert-progress">
                                             <div class="progress-bar">
-                                                <div class="progress-fill @(budget.IsOverBudget ? "over-budget" : budget.UsagePercentage >= 80 ? "warning" : isSavings ? "savings" : "expense")" 
-                                                     style="width: @(Math.Min(budget.UsagePercentage, 100))%">
-                                                </div>
+                                                <div class="progress-fill" style="width: @alert.CurrentConsistency%;"></div>
                                             </div>
                                             <div class="progress-stats">
-                                                <span class="progress-percentage">@budget.UsagePercentage.ToString("N0")%</span>
-                                                <span class="progress-remaining">
-                                                    @(isSavings ? "Falta: " : "Restante: ")@budget.RemainingAmount.ToString("C")
-                                                </span>
+                                                <span>Consistencia: @alert.CurrentConsistency.ToString("N1")%</span>
+                                                <span>Objetivo: @alert.TargetConsistency.ToString("N1")%</span>
                                             </div>
                                         </div>
-                                        <div class="budget-status">
-                                            @if (budget.IsOverBudget)
-                                            {
-                                                <span class="status-badge over-budget">
-                                                    <i class="fas fa-exclamation-circle me-1"></i>
-                                                    @(isSavings ? "Meta superada" : "Límite excedido")
-                                                </span>
-                                            }
-                                            else if (budget.UsagePercentage >= 80)
-                                            {
-                                                <span class="status-badge warning">
-                                                    <i class="fas fa-exclamation-triangle me-1"></i>
-                                                    @(isSavings ? "Cerca de la meta" : "Cerca del límite")
-                                                </span>
-                                            }
-                                            else
-                                            {
-                                                <span class="status-badge @(isSavings ? "savings-good" : "expense-good")">
-                                                    <i class="fas fa-check-circle me-1"></i>
-                                                    @(isSavings ? "En progreso" : "Bajo control")
-                                                </span>
-                                            }
-                                        </div>
                                     </div>
-                                }
-                            </div>
-                            <div class="budget-summary">
-                                <div class="summary-item">
-                                    <span class="summary-label">
-                                        <i class="fas fa-check-circle text-success me-1"></i>Bien
-                                    </span>
-                                    <span class="summary-value">@budgetStatus.Count(b => !b.IsOverBudget && b.UsagePercentage < 80)</span>
+                                    <div class="alert-severity @alert.AlertType.ToLower()">
+                                        @alert.AlertType
+                                    </div>
                                 </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">
-                                        <i class="fas fa-exclamation-triangle text-warning me-1"></i>Alerta
-                                    </span>
-                                    <span class="summary-value">@budgetStatus.Count(b => b.UsagePercentage >= 80 && !b.IsOverBudget)</span>
-                                </div>
-                                <div class="summary-item">
-                                    <span class="summary-label">
-                                        <i class="fas fa-exclamation-circle text-danger me-1"></i>Excedido
-                                    </span>
-                                    <span class="summary-value">@budgetStatus.Count(b => b.IsOverBudget)</span>
-                                </div>
-                            </div>
-                        }
-                        else
+                            }
+                        </div>
+                        @if (consistencyAlerts.Count > 3)
                         {
-                            <div class="empty-state">
-                                <i class="fas fa-wallet fa-3x mb-3"></i>
-                                <h4>No hay presupuestos</h4>
-                                <p>Crea tu primer presupuesto para controlar tus finanzas</p>
-                                <a href="@Url.Action("CreateBudget", "Finance")" class="btn btn-outline-primary mt-2">
-                                    <i class="fas fa-plus me-2"></i>Crear presupuesto
-                                </a>
+                            <div class="text-center mt-3">
+                                <small class="text-muted">Y @(consistencyAlerts.Count - 3) alertas más...</small>
                             </div>
                         }
                     </div>
                 </div>
+            }
 
-                <!-- Ingresos por Categoría -->
-                <div class="finance-card">
+            <!-- Recomendaciones Inteligentes -->
+            @if (aiRecommendations.Any())
+            {
+                <div class="habits-card recommendations-card">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-arrow-up me-2"></i>
-                            Ingresos por Categoría
+                            <i class="fas fa-magic me-2"></i>
+                            Recomendaciones Inteligentes
+                            <span class="badge bg-purple ms-1">AI</span>
                         </h3>
                     </div>
                     <div class="card-body">
-                        @if (incomeDistributionChart?.Datasets?.FirstOrDefault()?.Data != null)
-                        {
-                            <div class="income-categories">
-                                @for (int i = 0; i < incomeDistributionChart.Labels.Length; i++)
-                                {
-                                    <div class="income-item">
-                                        <div class="income-category">
-                                            <span class="income-color" 
-                                                  style="background-color: @incomeDistributionChart.Datasets[0].BackgroundColor[i]"></span>
-                                            <span class="income-name">@incomeDistributionChart.Labels[i]</span>
+                        <div class="recommendations-list">
+                            @foreach (var recommendation in aiRecommendations.Take(3))
+                            {
+                                <div class="recommendation-item">
+                                    <div class="recommendation-header">
+                                        <div class="recommendation-habit">
+                                            <i class="fas fa-bullseye me-2"></i>
+                                            @recommendation.HabitName
                                         </div>
-                                        <div class="income-stats">
-                                            <span class="income-amount">@incomeDistributionChart.Datasets[0].Data[i].ToString("C")</span>
-                                            <span class="income-percentage">
-                                                @{
-                                                    var total = incomeDistributionChart.Datasets[0].Data.Sum();
-                                                    var percentage = total > 0 ? (incomeDistributionChart.Datasets[0].Data[i] / total) * 100 : 0;
-                                                }
-                                                @percentage.ToString("N1")%
+                                        <div class="recommendation-confidence">
+                                            <span class="confidence-badge" style="background: @GetConfidenceColor(recommendation.Confidence)">
+                                                @(recommendation.Confidence * 100)%
                                             </span>
                                         </div>
                                     </div>
-                                }
-                            </div>
-                        }
-                        else
+                                    <div class="recommendation-content">
+                                        <p class="recommendation-text">@recommendation.Recommendation</p>
+                                        <div class="recommendation-type">
+                                            <span class="type-badge @recommendation.Type.ToLower()">@GetRecommendationTypeDisplay(recommendation.Type)</span>
+                                        </div>
+                                    </div>
+                                    <div class="recommendation-reasoning">
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            @recommendation.Reason
+                                        </small>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        @if (aiRecommendations.Count > 3)
                         {
-                            <div class="empty-state">
-                                <i class="fas fa-arrow-up fa-2x mb-2"></i>
-                                <p>No hay ingresos este mes</p>
+                            <div class="text-center mt-3">
+                                <small class="text-muted">Y @(aiRecommendations.Count - 3) recomendaciones más...</small>
                             </div>
                         }
                     </div>
                 </div>
+            }
 
-                <!-- Upsell de Planes -->
-                @if (userPlan != null && userPlan.Price == 0)
-                {
-                    <div class="finance-card upsell-card" style="border: 2px solid #8b5cf6; background: linear-gradient(135deg, #f8fafc, #f0f4ff);">
-                        <div class="card-body text-center">
-                            <i class="fas fa-rocket fa-2x mb-3" style="color: #8b5cf6;"></i>
-                            <h5 style="color: #1e293b; margin-bottom: 0.5rem;">¿Necesitas más transacciones?</h5>
-                            <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1rem;">
-                                Actualiza a un plan superior para más límites y características avanzadas
-                            </p>
-                            <a href="@Url.Action("Index", "Plans")" class="btn btn-primary btn-sm">
-                                <i class="fas fa-crown me-1"></i>Ver Planes
-                            </a>
+            <!-- Patrones Detectados -->
+            @if (habitPatterns.Any())
+            {
+                <div class="habits-card patterns-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-project-diagram me-2"></i>
+                            Patrones Detectados
+                            <span class="badge bg-purple ms-1">AI</span>
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="patterns-list">
+                            @foreach (var pattern in habitPatterns.Take(2))
+                            {
+                                <div class="pattern-item">
+                                    <div class="pattern-icon">
+                                        @switch (pattern.PatternType)
+                                        {
+                                            case "Weekly":
+                                                <i class="fas fa-calendar-week"></i>
+                                                break;
+                                            case "CategoryBased":
+                                                <i class="fas fa-tags"></i>
+                                                break;
+                                            case "Progression":
+                                                <i class="fas fa-chart-line"></i>
+                                                break;
+                                            default:
+                                                <i class="fas fa-chart-bar"></i>
+                                                break;
+                                        }
+                                    </div>
+                                    <div class="pattern-content">
+                                        <div class="pattern-title">@pattern.Description</div>
+                                        <div class="pattern-strength">
+                                            <div class="strength-bar">
+                                                <div class="strength-fill" style="width: @(pattern.Strength * 100)%;"></div>
+                                            </div>
+                                            <span class="strength-value">@(pattern.Strength.ToString("P0"))</span>
+                                        </div>
+                                        <div class="pattern-suggestion">
+                                            <small class="text-muted">
+                                                <i class="fas fa-lightbulb me-1"></i>
+                                                @pattern.SuggestedAction
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
                         </div>
                     </div>
-                }
+                </div>
+            }
+        </div>
+    }
+
+    <!-- Métricas Principales -->
+    <div class="metrics-grid">
+        <div class="metric-card total-habits">
+            <div class="metric-icon">
+                <i class="fas fa-seedling"></i>
             </div>
+            <div class="metric-content">
+                <h3 class="metric-value">@Model.Count</h3>
+                <p class="metric-label">Total Hábitos</p>
+                <div class="metric-trend info">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>@habitUsage.current/@habitUsage.max en tu plan</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="metric-card completion-rate">
+            <div class="metric-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="metric-content">
+                <h3 class="metric-value">@(stats?.CompletionRate.ToString("N1") ?? "0")%</h3>
+                <p class="metric-label">Tasa de Completitud</p>
+                <div class="metric-trend @(stats?.CompletionRate >= 70 ? "positive" : stats?.CompletionRate >= 50 ? "warning" : "negative")">
+                    <i class="fas fa-@(stats?.CompletionRate >= 70 ? "trophy" : stats?.CompletionRate >= 50 ? "check" : "exclamation")"></i>
+                    <span>@(stats?.CompletionRate >= 70 ? "Excelente" : stats?.CompletionRate >= 50 ? "Bueno" : "A mejorar")</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="metric-card current-streak">
+            <div class="metric-icon">
+                <i class="fas fa-fire"></i>
+            </div>
+            <div class="metric-content">
+                <h3 class="metric-value">@(stats?.CurrentStreak ?? 0)</h3>
+                <p class="metric-label">Racha Actual</p>
+                <div class="metric-trend @(stats?.CurrentStreak >= 7 ? "positive" : "info")">
+                    <i class="fas fa-@(stats?.CurrentStreak >= 7 ? "fire" : "clock")"></i>
+                    <span>@(stats?.CurrentStreak >= 7 ? "¡En llamas!" : "Sigue así")</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="metric-card perfect-weeks">
+            <div class="metric-icon">
+                <i class="fas fa-star"></i>
+            </div>
+            <div class="metric-content">
+                <h3 class="metric-value">@(stats?.PerfectWeeks ?? 0)</h3>
+                <p class="metric-label">Semanas Perfectas</p>
+                <div class="metric-trend @(stats?.PerfectWeeks >= 2 ? "positive" : "info")">
+                    <i class="fas fa-@(stats?.PerfectWeeks >= 2 ? "crown" : "star")"></i>
+                    <span>@(stats?.PerfectWeeks >= 2 ? "¡Impresionante!" : "Buen comienzo")</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenido Principal -->
+    <div class="habits-content">
+        <!-- Columna Principal -->
+        <div class="habits-main">
+            <!-- Lista de Hábitos -->
+            <div class="habits-card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-list me-2"></i>
+                        Mis Hábitos Activos
+                    </h3>
+                    <div class="card-actions">
+                        <span class="habits-count">@Model.Count hábitos</span>
+                        <div class="view-options">
+                            <button class="btn-view active" data-view="grid">
+                                <i class="fas fa-th"></i>
+                            </button>
+                            <button class="btn-view" data-view="list">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (Model.Any())
+                    {
+                        <div class="habits-grid" id="habits-view">
+                            @foreach (var habit in Model)
+                            {
+                                var completions = habit.HabitCompletions?.Where(hc => hc.Completed).ToList();
+                                var todayCompleted = completions?.Any(hc => hc.CompletionDate.Date == DateTime.UtcNow.Date) == true;
+                                var currentStreak = completions?.OrderByDescending(hc => hc.CompletionDate)
+                                                              .TakeWhile((hc, i) => hc.Completed && hc.CompletionDate.Date == DateTime.UtcNow.Date.AddDays(-i))
+                                                              .Count() ?? 0;
+
+                                <div class="habit-card" data-habit-id="@habit.Id">
+                                    <div class="habit-header">
+                                        <div class="habit-icon" style="background: @habit.ColorCode;">
+                                            <i class="@habit.Icon"></i>
+                                        </div>
+                                        <div class="habit-info">
+                                            <h4 class="habit-name">@habit.Name</h4>
+                                            <p class="habit-category">@habit.Category</p>
+                                        </div>
+                                        <div class="habit-actions">
+                                            <button class="btn-favorite @(habit.IsFavorite ? "active" : "")" 
+                                                    data-habit-id="@habit.Id"
+                                                    title="@(habit.IsFavorite ? "Quitar de favoritos" : "Agregar a favoritos")">
+                                                <i class="fas fa-star"></i>
+                                            </button>
+                                            <div class="dropdown">
+                                                <button class="btn-more" data-bs-toggle="dropdown">
+                                                    <i class="fas fa-ellipsis-v"></i>
+                                                </button>
+                                                <ul class="dropdown-menu">
+                                                    <li>
+                                                        <a class="dropdown-item" href="@Url.Action("Edit", new { id = habit.Id })">
+                                                            <i class="fas fa-edit me-2"></i>Editar
+                                                        </a>
+                                                    </li>
+                                                    <li>
+                                                        <a class="dropdown-item" href="@Url.Action("HabitStats", new { id = habit.Id })">
+                                                            <i class="fas fa-chart-line me-2"></i>Estadísticas
+                                                        </a>
+                                                    </li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <form asp-action="Delete" method="post" class="d-inline">
+                                                            <input type="hidden" name="id" value="@habit.Id" />
+                                                            <button type="submit" class="dropdown-item text-danger" 
+                                                                    onclick="return confirm('¿Estás seguro de que quieres eliminar este hábito?')">
+                                                                <i class="fas fa-trash me-2"></i>Eliminar
+                                                            </button>
+                                                        </form>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="habit-progress">
+                                        <div class="progress-info">
+                                            <span class="progress-label">Progreso semanal</span>
+                                            <span class="progress-stats">
+                                                @(completions?.Count(hc => hc.CompletionDate >= DateTime.UtcNow.AddDays(-7)) ?? 0)/@habit.Frequency
+                                            </span>
+                                        </div>
+                                        <div class="progress-bar">
+                                            @{
+                                                var weeklyCompletions = completions?.Count(hc => hc.CompletionDate >= DateTime.UtcNow.AddDays(-7)) ?? 0;
+                                                var progressPercentage = habit.Frequency > 0 ? (weeklyCompletions * 100) / habit.Frequency : 0;
+                                            }
+                                            <div class="progress-fill" style="width: @progressPercentage%;"></div>
+                                        </div>
+                                    </div>
+
+                                    <div class="habit-stats">
+                                        <div class="stat-item">
+                                            <i class="fas fa-fire"></i>
+                                            <span class="stat-value">@currentStreak</span>
+                                            <span class="stat-label">días</span>
+                                        </div>
+                                        <div class="stat-item">
+                                            <i class="fas fa-check-circle"></i>
+                                            <span class="stat-value">@(completions?.Count ?? 0)</span>
+                                            <span class="stat-label">total</span>
+                                        </div>
+                                        <div class="stat-item">
+                                            <i class="fas fa-bullseye"></i>
+                                            <span class="stat-value">@habit.Frequency</span>
+                                            <span class="stat-label">/semana</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="habit-actions-main">
+                                        <button class="btn-complete @(todayCompleted ? "completed" : "")" 
+                                                data-habit-id="@habit.Id"
+                                                data-date="@DateTime.UtcNow.ToString("yyyy-MM-dd")">
+                                            <i class="fas fa-@(todayCompleted ? "check" : "plus")"></i>
+                                            @(todayCompleted ? "Completado" : "Marcar hoy")
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="empty-state">
+                            <i class="fas fa-seedling fa-3x mb-3"></i>
+                            <h4>No hay hábitos creados</h4>
+                            <p>Comienza creando tu primer hábito para construir mejores rutinas</p>
+                            @if (canCreateHabit)
+                            {
+                                <a href="@Url.Action("Create", "Habits")" class="btn btn-primary mt-2">
+                                    <i class="fas fa-plus me-2"></i>Crear primer hábito
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="habits-sidebar">
+            <!-- Predicción de IA para Nuevo Hábito -->
+            @if (hasAIFeatures)
+            {
+                <div class="habits-card prediction-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-crystal-ball me-2"></i>
+                            Predicción de Éxito
+                            <span class="badge bg-purple ms-1">AI</span>
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="prediction-form">
+                            <div class="form-group">
+                                <label for="habit-name">Nombre del hábito</label>
+                                <input type="text" id="habit-name" class="form-control" placeholder="Ej: Meditación matutina">
+                            </div>
+                            <div class="form-group">
+                                <label for="habit-frequency">Frecuencia semanal</label>
+                                <select id="habit-frequency" class="form-control">
+                                    <option value="1">1 día/semana</option>
+                                    <option value="2">2 días/semana</option>
+                                    <option value="3" selected>3 días/semana</option>
+                                    <option value="4">4 días/semana</option>
+                                    <option value="5">5 días/semana</option>
+                                    <option value="6">6 días/semana</option>
+                                    <option value="7">7 días/semana</option>
+                                </select>
+                            </div>
+                            <button id="btn-predict" class="btn btn-primary w-100">
+                                <i class="fas fa-chart-line me-2"></i>Predecir Éxito
+                            </button>
+                        </div>
+                        <div id="prediction-result" class="prediction-result" style="display: none;">
+                            <div class="prediction-header">
+                                <h4 id="prediction-title"></h4>
+                                <span id="prediction-confidence" class="confidence-badge"></span>
+                            </div>
+                            <div class="prediction-content">
+                                <p id="prediction-message"></p>
+                                <div class="prediction-factors">
+                                    <h5>Factores Clave:</h5>
+                                    <ul id="prediction-factors"></ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Estadísticas Rápidas -->
+            <div class="habits-card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Estadísticas Rápidas
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="quick-stats">
+                        <div class="stat-item">
+                            <div class="stat-icon completed">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-value">@(stats?.TodayCompletions ?? 0)</div>
+                                <div class="stat-label">Hoy</div>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-icon week">
+                                <i class="fas fa-calendar-week"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-value">@(stats?.WeekCompletions ?? 0)</div>
+                                <div class="stat-label">Esta semana</div>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-icon month">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-value">@(stats?.MonthCompletions ?? 0)</div>
+                                <div class="stat-label">Este mes</div>
+                            </div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-icon streak">
+                                <i class="fas fa-fire"></i>
+                            </div>
+                            <div class="stat-content">
+                                <div class="stat-value">@(stats?.LongestStreak ?? 0)</div>
+                                <div class="stat-label">Mejor racha</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Categorías Populares -->
+            @if (stats?.TopCategories != null && stats.TopCategories.Any())
+            {
+                <div class="habits-card">
+                    <div class="card-header">
+                        <h3 class="card-title">
+                            <i class="fas fa-tags me-2"></i>
+                            Categorías Populares
+                        </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="categories-list">
+                            @foreach (var category in stats.TopCategories)
+                            {
+                                <div class="category-item">
+                                    <span class="category-name">@category.Key</span>
+                                    <span class="category-count">@category.Value</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Upsell de Planes -->
+            @if (userPlan != null && userPlan.Price == 0)
+            {
+                <div class="habits-card upsell-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-robot fa-2x mb-3" style="color: #8b5cf6;"></i>
+                        <h5 style="color: #1e293b; margin-bottom: 0.5rem;">¿Quieres recomendaciones inteligentes?</h5>
+                        <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1rem;">
+                            Actualiza a un plan superior para obtener análisis de IA y recomendaciones personalizadas
+                        </p>
+                        <a href="@Url.Action("Index", "Plans")" class="btn btn-primary btn-sm">
+                            <i class="fas fa-crown me-1"></i>Ver Planes
+                        </a>
+                    </div>
+                </div>
+            }
         </div>
     </div>
 </div>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="~/js/chartManager.js"></script>
-    
     <script>
-        // Sistema de Consejos Financieros
+        // Sistema de IA para Hábitos
         document.addEventListener('DOMContentLoaded', function() {
-            const newAdviceBtn = document.getElementById('new-advice-btn');
-            if (newAdviceBtn) {
-                newAdviceBtn.addEventListener('click', async function() {
+            // Predicción de éxito de hábitos
+            const predictBtn = document.getElementById('btn-predict');
+            if (predictBtn) {
+                predictBtn.addEventListener('click', async function() {
+                    const habitName = document.getElementById('habit-name').value;
+                    const frequency = document.getElementById('habit-frequency').value;
+
+                    if (!habitName.trim()) {
+                        alert('Por favor, ingresa un nombre para el hábito');
+                        return;
+                    }
+
                     try {
-                        const response = await fetch('/Finance/Advice/Random');
+                        const response = await fetch('@Url.Action("PredictHabitSuccess", "Habits")', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                habitName: habitName,
+                                frequency: parseInt(frequency)
+                            })
+                        });
+
                         if (response.ok) {
-                            const advice = await response.json();
-                            document.querySelector('.advice-text').textContent = advice.advice;
-                            document.querySelector('.advice-category').textContent = advice.category;
-                            document.querySelector('.advice-difficulty').textContent = advice.difficulty;
-                            document.querySelector('.advice-difficulty').className = 'advice-difficulty badge ' + 
-                                (advice.difficulty.toLowerCase() === 'beginner' ? 'bg-success' : 
-                                 advice.difficulty.toLowerCase() === 'intermediate' ? 'bg-warning' : 'bg-danger');
+                            const prediction = await response.json();
+                            displayPredictionResult(prediction);
+                        } else {
+                            alert('Error al obtener la predicción');
                         }
                     } catch (error) {
-                        console.error('Error al cargar nuevo consejo:', error);
+                        console.error('Error:', error);
+                        alert('Error al conectar con el servidor');
                     }
                 });
             }
+
+            function displayPredictionResult(prediction) {
+                const resultDiv = document.getElementById('prediction-result');
+                const title = document.getElementById('prediction-title');
+                const confidence = document.getElementById('prediction-confidence');
+                const message = document.getElementById('prediction-message');
+                const factorsList = document.getElementById('prediction-factors');
+
+                title.textContent = `Probabilidad de éxito: ${prediction.successProbability.toFixed(1)}%`;
+                confidence.textContent = prediction.confidenceLevel;
+                confidence.style.background = getConfidenceColor(prediction.confidenceLevel);
+                message.textContent = prediction.recommendation;
+
+                factorsList.innerHTML = '';
+                prediction.keyFactors.forEach(factor => {
+                    const li = document.createElement('li');
+                    li.textContent = factor;
+                    factorsList.appendChild(li);
+                });
+
+                resultDiv.style.display = 'block';
+            }
+
+            function getConfidenceColor(level) {
+                switch (level.toLowerCase()) {
+                    case 'high': return '#10b981';
+                    case 'medium': return '#f59e0b';
+                    case 'low': return '#ef4444';
+                    default: return '#6b7280';
+                }
+            }
+
+            // Toggle de favoritos
+            document.querySelectorAll('.btn-favorite').forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    const habitId = this.dataset.habitId;
+                    const isActive = this.classList.contains('active');
+
+                    try {
+                        const response = await fetch('@Url.Action("ToggleFavorite", "Habits")', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ id: parseInt(habitId) })
+                        });
+
+                        if (response.ok) {
+                            const result = await response.json();
+                            if (result.success) {
+                                this.classList.toggle('active');
+                                this.title = isActive ? "Agregar a favoritos" : "Quitar de favoritos";
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                    }
+                });
+            });
+
+            // Completar hábito
+            document.querySelectorAll('.btn-complete').forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    const habitId = this.dataset.habitId;
+                    const date = this.dataset.date;
+
+                    try {
+                        const response = await fetch(`@Url.Action("ToggleCompletion", "Habits")?id=${habitId}&date=${date}`, {
+                            method: 'POST'
+                        });
+
+                        if (response.ok) {
+                            const result = await response.json();
+                            if (result.success) {
+                                location.reload(); // Recargar para actualizar estadísticas
+                            } else {
+                                alert('Error al completar el hábito');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Error de conexión');
+                    }
+                });
+            });
+
+            // Cambiar vista (grid/list)
+            document.querySelectorAll('.btn-view').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const view = this.dataset.view;
+                    document.querySelectorAll('.btn-view').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    const habitsView = document.getElementById('habits-view');
+                    habitsView.className = `habits-${view}`;
+                });
+            });
         });
     </script>
 }
 
 @functions {
-    private string GetDifficultyClass(string difficulty)
-    {
-        return difficulty.ToLower() switch
-        {
-            "beginner" => "bg-success",
-            "intermediate" => "bg-warning", 
-            "advanced" => "bg-danger",
-            _ => "bg-secondary"
-        };
-    }
-
-    private string GetAlertTypeDisplay(string alertType)
-    {
-        return alertType switch
-        {
-            "UnusualSpending" => "Gasto Inusual",
-            "BudgetExceeded" => "Presupuesto Excedido", 
-            "IncomeDrop" => "Caída de Ingresos",
-            _ => alertType
-        };
-    }
-
-    private string GetSeverityIcon(AlertSeverity severity)
-    {
-        return severity switch
-        {
-            AlertSeverity.Low => "fa-info-circle",
-            AlertSeverity.Medium => "fa-exclamation-triangle",
-            AlertSeverity.High => "fa-exclamation-circle",
-            AlertSeverity.Critical => "fa-skull-crossbones",
-            _ => "fa-bell"
-        };
-    }
-
     private string GetConfidenceColor(double confidence)
     {
         return confidence switch
@@ -1038,150 +771,29 @@
             _ => "#ef4444"        // Rojo
         };
     }
+
+    private string GetRecommendationTypeDisplay(string type)
+    {
+        return type switch
+        {
+            "TimeOptimization" => "Optimización de Tiempo",
+            "Consistency" => "Consistencia",
+            "Progression" => "Progresión",
+            "NewHabit" => "Nuevo Hábito",
+            _ => type
+        };
+    }
 }
 
 <style>
-    /* === VARIABLES Y ESTILOS BASE === */
-    :root {
-        --primary-green: #10b981;
-        --primary-green-dark: #059669;
-        --primary-red: #ef4444;
-        --primary-blue: #3b82f6;
-        --primary-purple: #8b5cf6;
-        --primary-orange: #f59e0b;
-        --primary-cyan: #06b6d4;
-        
-        --gray-50: #f8fafc;
-        --gray-100: #f1f5f9;
-        --gray-200: #e2e8f0;
-        --gray-300: #cbd5e1;
-        --gray-400: #94a3b8;
-        --gray-500: #64748b;
-        --gray-600: #475569;
-        --gray-700: #334155;
-        --gray-800: #1e293b;
-        --gray-900: #0f172a;
-        
-        --success: #10b981;
-        --warning: #f59e0b;
-        --danger: #ef4444;
-        --info: #3b82f6;
-        
-        --border-radius: 16px;
-        --border-radius-sm: 12px;
-        --border-radius-xs: 8px;
-        
-        --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
-        --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.08);
-        --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12);
-        --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.15);
-        
-        --transition: all 0.3s ease;
-    }
-
-    /* === ESTILOS BASE DEL DASHBOARD === */
-    .finance-container {
+    /* === ESTILOS ESPECÍFICOS PARA HÁBITOS === */
+    .habits-container {
         padding: 2rem;
         background: var(--gray-50);
         min-height: 100vh;
-        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-        line-height: 1.6;
     }
 
-    /* === NAVEGACIÓN HORIZONTAL - MEJORADA === */
-    .finance-nav {
-        display: flex;
-        background: white;
-        border-radius: var(--border-radius);
-        padding: 1rem;
-        box-shadow: var(--shadow-md);
-        margin-bottom: 2rem;
-        border: 1px solid var(--gray-200);
-        gap: 0.5rem;
-        backdrop-filter: blur(10px);
-    }
-
-    .nav-item {
-        flex: 1;
-        position: relative;
-    }
-
-    .nav-item a {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 1rem;
-        text-decoration: none;
-        color: var(--gray-500);
-        border-radius: var(--border-radius-sm);
-        transition: var(--transition);
-        text-align: center;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .nav-item a::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-        transition: left 0.5s ease;
-    }
-
-    .nav-item a:hover::before {
-        left: 100%;
-    }
-
-    .nav-item a:hover {
-        background: var(--gray-50);
-        color: var(--gray-700);
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-sm);
-    }
-
-    .nav-item.active a {
-        background: rgba(16, 185, 129, 0.1);
-        color: var(--primary-green);
-        font-weight: 600;
-        box-shadow: 0 2px 10px rgba(16, 185, 129, 0.1);
-    }
-
-    .nav-item i {
-        font-size: 1.2rem;
-        margin-bottom: 0.5rem;
-        transition: var(--transition);
-    }
-
-    .nav-item.active i {
-        transform: scale(1.1);
-    }
-
-    .nav-item span {
-        font-size: 0.9rem;
-        font-weight: 500;
-        transition: var(--transition);
-    }
-
-    .plan-badge {
-        font-size: 0.6em;
-        background: var(--primary-purple);
-        color: white;
-        padding: 1px 4px;
-        border-radius: 4px;
-        margin-top: 2px;
-        font-weight: 600;
-        letter-spacing: 0.5px;
-    }
-
-    .plan-badge.premium {
-        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-    }
-
-    /* === HEADER PRINCIPAL - MEJORADO === */
-    .finance-header {
+    .habits-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -1195,1679 +807,448 @@
         overflow: hidden;
     }
 
-    .finance-header::before {
+    .habits-header::before {
         content: '';
         position: absolute;
         top: 0;
         left: 0;
         right: 0;
         height: 3px;
-        background: linear-gradient(90deg, var(--primary-green), var(--primary-blue), var(--primary-purple));
+        background: linear-gradient(90deg, #10b981, #84cc16, #f59e0b);
     }
 
-    .header-content {
-        flex: 1;
-    }
-
-    .finance-title {
+    .habits-title {
         font-size: 2.2rem;
         font-weight: 800;
         color: var(--gray-800);
         margin-bottom: 0.5rem;
-        background: linear-gradient(135deg, var(--primary-green), var(--primary-green-dark));
+        background: linear-gradient(135deg, #10b981, #84cc16);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
-        letter-spacing: -0.5px;
     }
 
-    .finance-subtitle {
+    .habits-subtitle {
         color: var(--gray-500);
         margin: 0;
         font-size: 1.1rem;
-        font-weight: 500;
     }
 
-    .current-plan-badge {
-        margin-top: 0.75rem;
-    }
-
-    .current-plan-badge .badge {
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-weight: 600;
-        font-size: 0.8rem;
-        box-shadow: var(--shadow-sm);
-        border: 1px solid rgba(255,255,255,0.2);
-    }
-
-    .header-actions {
-        display: flex;
-        gap: 1rem;
-        align-items: center;
-    }
-
-    .plan-limits {
-        font-size: 0.8rem;
-        color: var(--gray-500);
-        text-align: right;
-        line-height: 1.4;
-    }
-
-    .plan-limits div {
-        margin-bottom: 0.25rem;
-    }
-
-    .plan-limits strong {
-        color: var(--gray-700);
-    }
-
-    /* === SISTEMA DE MÉTRICAS - REORGANIZADO === */
-    .metrics-grid {
+    /* Grid de Hábitos */
+    .habits-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
         gap: 1.5rem;
-        margin-bottom: 2rem;
     }
 
-    .metrics-grid.secondary {
-        margin-bottom: 0;
-    }
-
-    .metrics-grid.secondary .metric-card {
+    .habit-card {
+        background: white;
+        border-radius: var(--border-radius);
         padding: 1.5rem;
-    }
-
-    .metric-card {
-        background: white;
-        border-radius: var(--border-radius);
-        padding: 2rem;
-        box-shadow: var(--shadow-md);
-        border: 1px solid var(--gray-200);
-        display: flex;
-        align-items: center;
-        gap: 1.5rem;
-        transition: var(--transition);
-        position: relative;
-        overflow: hidden;
-        cursor: pointer;
-    }
-
-    .metric-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        transition: var(--transition);
-    }
-
-    .metric-card::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
-        transition: left 0.5s ease;
-    }
-
-    .metric-card:hover::after {
-        left: 100%;
-    }
-
-    .metric-card:hover {
-        transform: translateY(-4px);
-        box-shadow: var(--shadow-hover);
-    }
-
-    /* Colores de las métricas */
-    .metric-card.income::before { background: var(--primary-green); }
-    .metric-card.expense::before { background: var(--primary-red); }
-    .metric-card.positive::before { background: var(--primary-blue); }
-    .metric-card.negative::before { background: var(--primary-orange); }
-    .metric-card.savings::before { background: var(--primary-purple); }
-    .metric-card.transactions::before { background: var(--primary-cyan); }
-    .metric-card.avg-transaction::before { background: #ec4899; }
-    .metric-card.budgets::before { background: #84cc16; }
-    .metric-card.goals::before { background: #f97316; }
-
-    .metric-icon {
-        width: 60px;
-        height: 60px;
-        border-radius: var(--border-radius-sm);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        color: white;
-        flex-shrink: 0;
-        transition: var(--transition);
         box-shadow: var(--shadow-sm);
-    }
-
-    .metric-card:hover .metric-icon {
-        transform: scale(1.05);
-    }
-
-    /* Colores de íconos */
-    .metric-card.income .metric-icon { background: var(--primary-green); }
-    .metric-card.expense .metric-icon { background: var(--primary-red); }
-    .metric-card.positive .metric-icon { background: var(--primary-blue); }
-    .metric-card.negative .metric-icon { background: var(--primary-orange); }
-    .metric-card.savings .metric-icon { background: var(--primary-purple); }
-    .metric-card.transactions .metric-icon { background: var(--primary-cyan); }
-    .metric-card.avg-transaction .metric-icon { background: #ec4899; }
-    .metric-card.budgets .metric-icon { background: #84cc16; }
-    .metric-card.goals .metric-icon { background: #f97316; }
-
-    .metric-content {
-        flex: 1;
-    }
-
-    .metric-value {
-        font-size: 1.8rem;
-        font-weight: 800;
-        color: var(--gray-800);
-        margin-bottom: 0.5rem;
-        line-height: 1;
-        letter-spacing: -0.5px;
-    }
-
-    .metric-label {
-        color: var(--gray-500);
-        margin: 0;
-        font-weight: 600;
-        font-size: 0.9rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .metric-trend {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.8rem;
-        margin-top: 0.5rem;
-        font-weight: 600;
-        padding: 0.25rem 0.5rem;
-        border-radius: 6px;
-        background: var(--gray-100);
-        width: fit-content;
-    }
-
-    .metric-trend.positive { 
-        color: var(--success);
-        background: rgba(16, 185, 129, 0.1);
-    }
-    .metric-trend.negative { 
-        color: var(--danger);
-        background: rgba(239, 68, 68, 0.1);
-    }
-    .metric-trend.warning { 
-        color: var(--warning);
-        background: rgba(245, 158, 11, 0.1);
-    }
-    .metric-trend.info { 
-        color: var(--info);
-        background: rgba(59, 130, 246, 0.1);
-    }
-
-    /* === LAYOUT PRINCIPAL - ESTRUCTURA MEJORADA === */
-    .finance-main-content {
-        display: flex;
-        flex-direction: column;
-        gap: 2rem;
-    }
-
-    .finance-content {
-        display: grid;
-        grid-template-columns: 2fr 1fr;
-        gap: 2rem;
-        align-items: start;
-    }
-
-    .finance-main {
-        display: flex;
-        flex-direction: column;
-        gap: 2rem;
-    }
-
-    .finance-sidebar {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-        position: sticky;
-        top: 2rem;
-    }
-
-    /* === COMPONENTES DE TARJETAS - UNIFICADOS === */
-    .finance-card {
-        background: white;
-        border-radius: var(--border-radius);
-        box-shadow: var(--shadow-md);
         border: 1px solid var(--gray-200);
-        overflow: hidden;
-        transition: var(--transition);
-    }
-
-    .finance-card:hover {
-        box-shadow: var(--shadow-hover);
-        transform: translateY(-2px);
-    }
-
-    .card-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1.5rem 2rem;
-        border-bottom: 1px solid var(--gray-200);
-        background: var(--gray-50);
-    }
-
-    .card-title {
-        font-size: 1.3rem;
-        font-weight: 700;
-        color: var(--gray-800);
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        letter-spacing: -0.25px;
-    }
-
-    .card-body {
-        padding: 2rem;
-    }
-
-    /* === COMPONENTES DE GRÁFICOS - MEJORADOS === */
-    .chart-container {
-        height: 300px;
-        position: relative;
-        background: white;
-        border-radius: var(--border-radius-xs);
-        padding: 1rem;
-    }
-
-    .chart-legend {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-    }
-
-    .legend-item {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.9rem;
-        color: var(--gray-600);
-        font-weight: 500;
-    }
-
-    .legend-color {
-        width: 12px;
-        height: 12px;
-        border-radius: 2px;
-        box-shadow: var(--shadow-sm);
-    }
-
-    .legend-color.income { background-color: var(--primary-green); }
-    .legend-color.expense { background-color: var(--primary-red); }
-    .legend-color.savings { background-color: var(--primary-purple); }
-
-    .charts-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 2rem;
-        align-items: start;
-    }
-
-    .chart-wrapper {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: 250px;
-    }
-
-    /* === COMPONENTES DE LISTAS - ESTILOS UNIFICADOS === */
-    .transactions-list,
-    .categories-list,
-    .budgets-list,
-    .insights-list,
-    .income-categories {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    /* Transacciones */
-    .transaction-item {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 1rem;
-        border-radius: var(--border-radius-xs);
-        border: 1px solid var(--gray-200);
-        transition: var(--transition);
-        background: white;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .transaction-item::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 3px;
-        background: var(--gray-300);
-        transition: var(--transition);
-    }
-
-    .transaction-item.income::before { background: var(--primary-green); }
-    .transaction-item.expense::before { background: var(--primary-red); }
-
-    .transaction-item:hover {
-        background: var(--gray-50);
-        border-color: var(--gray-300);
-        transform: translateX(4px);
-    }
-
-    .transaction-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 1rem;
-        flex-shrink: 0;
-        box-shadow: var(--shadow-sm);
-    }
-
-    .transaction-icon.income { background: var(--primary-green); }
-    .transaction-icon.expense { background: var(--primary-red); }
-
-    .transaction-details {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .transaction-description {
-        font-weight: 600;
-        color: var(--gray-800);
-        margin-bottom: 0.25rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .transaction-meta {
-        display: flex;
-        gap: 1rem;
-        font-size: 0.85rem;
-        color: var(--gray-500);
-        flex-wrap: wrap;
-    }
-
-    .transaction-category,
-    .transaction-subcategory,
-    .transaction-date {
-        font-weight: 500;
-    }
-
-    .transaction-amount {
-        font-weight: 700;
-        font-size: 1.1rem;
-        flex-shrink: 0;
-        padding: 0.25rem 0.5rem;
-        border-radius: 6px;
-        background: var(--gray-100);
-    }
-
-    .transaction-amount.income { 
-        color: var(--primary-green);
-        background: rgba(16, 185, 129, 0.1);
-    }
-    .transaction-amount.expense { 
-        color: var(--primary-red);
-        background: rgba(239, 68, 68, 0.1);
-    }
-
-    /* Categorías */
-    .categories-details {
-        max-height: 300px;
-        overflow-y: auto;
-        padding-right: 0.5rem;
-    }
-
-    .category-item,
-    .income-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.75rem;
-        border-radius: var(--border-radius-xs);
-        background: var(--gray-50);
-        border: 1px solid var(--gray-200);
-        transition: var(--transition);
-    }
-
-    .category-item:hover,
-    .income-item:hover {
-        background: var(--gray-100);
-        border-color: var(--gray-300);
-    }
-
-    .category-info,
-    .income-category {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        flex: 1;
-    }
-
-    .category-color,
-    .income-color {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        display: inline-block;
-        flex-shrink: 0;
-        box-shadow: var(--shadow-sm);
-    }
-
-    .category-name,
-    .income-name {
-        font-weight: 600;
-        color: var(--gray-700);
-        font-size: 0.9rem;
-    }
-
-    .category-stats,
-    .income-stats {
-        display: flex;
-        gap: 1rem;
-        align-items: center;
-    }
-
-    .category-amount,
-    .income-amount {
-        font-weight: 700;
-        color: var(--gray-800);
-        font-size: 0.9rem;
-    }
-
-    .category-percentage,
-    .income-percentage {
-        background: var(--gray-200);
-        color: var(--gray-600);
-        padding: 0.25rem 0.75rem;
-        border-radius: 12px;
-        font-size: 0.8rem;
-        font-weight: 700;
-        min-width: 60px;
-        text-align: center;
-    }
-
-    /* === SISTEMA DE PRESUPUESTOS - MEJORADO === */
-    .budget-item {
-        padding: 1.25rem;
-        border-radius: var(--border-radius-sm);
-        border: 1px solid var(--gray-200);
-        background: var(--gray-50);
         transition: var(--transition);
         position: relative;
     }
 
-    .budget-item:hover {
-        background: var(--gray-100);
-        border-color: var(--gray-300);
-    }
-
-    .budget-item.savings {
-        border-left: 4px solid var(--primary-purple);
-    }
-
-    .budget-item.expense {
-        border-left: 4px solid var(--primary-orange);
-    }
-
-    .budget-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-
-    .budget-category {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        font-weight: 600;
-        color: var(--gray-800);
-    }
-
-    .budget-type-icon {
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 0.9rem;
-    }
-
-    .budget-item.savings .budget-type-icon { background: var(--primary-purple); }
-    .budget-item.expense .budget-type-icon { background: var(--primary-orange); }
-
-    .budget-amount {
-        font-weight: 700;
-        color: var(--gray-700);
-        font-size: 1rem;
-    }
-
-    .budget-progress {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-
-    .progress-info {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 0.85rem;
-        color: var(--gray-600);
-    }
-
-    .progress-label {
-        font-weight: 500;
-    }
-
-    .progress-amount {
-        font-weight: 600;
-        color: var(--gray-700);
-    }
-
-    .progress-bar {
-        height: 8px;
-        background: var(--gray-200);
-        border-radius: 4px;
-        overflow: hidden;
-        position: relative;
-    }
-
-    .progress-fill {
-        height: 100%;
-        border-radius: 4px;
-        transition: width 0.5s ease;
-        position: relative;
-    }
-
-    .progress-fill.expense { background: var(--primary-orange); }
-    .progress-fill.savings { background: var(--primary-purple); }
-    .progress-fill.warning { background: var(--warning); }
-    .progress-fill.over-budget { background: var(--danger); }
-
-    .progress-stats {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 0.8rem;
-        color: var(--gray-500);
-    }
-
-    .progress-percentage {
-        font-weight: 700;
-        color: var(--gray-700);
-    }
-
-    .progress-remaining {
-        font-weight: 500;
-    }
-
-    .budget-status {
-        margin-top: 0.75rem;
-    }
-
-    .status-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.25rem 0.75rem;
-        border-radius: 12px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .status-badge.over-budget {
-        background: rgba(239, 68, 68, 0.1);
-        color: var(--danger);
-    }
-
-    .status-badge.warning {
-        background: rgba(245, 158, 11, 0.1);
-        color: var(--warning);
-    }
-
-    .status-badge.savings-good {
-        background: rgba(139, 92, 246, 0.1);
-        color: var(--primary-purple);
-    }
-
-    .status-badge.expense-good {
-        background: rgba(245, 158, 11, 0.1);
-        color: var(--primary-orange);
-    }
-
-    .budget-summary {
-        border-top: 1px solid var(--gray-200);
-        padding-top: 1rem;
-        margin-top: 1rem;
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1rem;
-    }
-
-    .summary-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        gap: 0.25rem;
-    }
-
-    .summary-label {
-        font-size: 0.75rem;
-        color: var(--gray-500);
-        font-weight: 500;
-    }
-
-    .summary-value {
-        font-size: 1.25rem;
-        font-weight: 800;
-        color: var(--gray-800);
-    }
-
-    /* === SISTEMA DE INSIGHTS - MEJORADO === */
-    .insight-item {
-        display: flex;
-        gap: 1rem;
-        padding: 1.25rem;
-        border-radius: var(--border-radius-xs);
-        border-left: 4px solid;
-        transition: var(--transition);
-        background: white;
-        border: 1px solid var(--gray-200);
-    }
-
-    .insight-item:hover {
-        transform: translateX(4px);
-        box-shadow: var(--shadow-sm);
-    }
-
-    .insight-item.positive {
-        background: rgba(16, 185, 129, 0.05);
-        border-left-color: var(--success);
-        color: #065f46;
-    }
-
-    .insight-item.negative {
-        background: rgba(239, 68, 68, 0.05);
-        border-left-color: var(--danger);
-        color: #7f1d1d;
-    }
-
-    .insight-item.warning {
-        background: rgba(245, 158, 11, 0.05);
-        border-left-color: var(--warning);
-        color: #92400e;
-    }
-
-    .insight-item.info {
-        background: rgba(59, 130, 246, 0.05);
-        border-left-color: var(--info);
-        color: #1e40af;
-    }
-
-    .insight-item i {
-        font-size: 1.2rem;
-        margin-top: 0.2rem;
-        flex-shrink: 0;
-    }
-
-    .insight-content {
-        flex: 1;
-    }
-
-    .insight-content strong {
-        display: block;
-        color: inherit;
-        font-size: 0.95rem;
-        margin-bottom: 0.5rem;
-        font-weight: 700;
-    }
-
-    .insight-content p {
-        color: inherit;
-        font-size: 0.85rem;
-        margin: 0;
-        line-height: 1.5;
-        opacity: 0.9;
-    }
-
-    /* === COMPONENTES DE CONSEJOS - MEJORADOS === */
-    .advice-card.compact {
-        background: linear-gradient(135deg, var(--gray-50) 0%, var(--gray-100) 100%);
-        border: 1px solid var(--gray-200);
-        box-shadow: var(--shadow-sm);
-        margin-bottom: 1.5rem;
-        transition: var(--transition);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .advice-card.compact::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, var(--primary-green), var(--primary-purple));
-    }
-
-    .advice-card.compact:hover {
+    .habit-card:hover {
         transform: translateY(-2px);
         box-shadow: var(--shadow-md);
         border-color: var(--gray-300);
     }
 
-    .advice-card.compact .card-header {
-        background: var(--gray-100);
-        border-bottom: 1px solid var(--gray-200);
-        padding: 1rem 1.25rem;
-    }
-
-    .advice-card.compact .card-title {
-        color: var(--gray-700);
-        font-size: 0.95rem;
-        font-weight: 700;
-    }
-
-    .advice-card.compact .card-body {
-        padding: 1.25rem;
-    }
-
-    .advice-content-wrapper {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-
-    .advice-card.compact .advice-text {
-        font-size: 0.9rem;
-        line-height: 1.5;
-        color: var(--gray-700);
-        text-align: left;
-        margin: 0;
-        font-weight: 500;
-    }
-
-    .advice-card.compact .advice-footer {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 0.75rem;
-        padding-top: 0.75rem;
-        border-top: 1px solid var(--gray-200);
-        font-size: 0.8rem;
-    }
-
-    .advice-card.compact .advice-category {
-        background: var(--gray-200);
-        color: var(--gray-600);
-        padding: 0.25rem 0.75rem;
-        border-radius: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        font-size: 0.75rem;
-    }
-
-    .advice-card.compact .advice-difficulty {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .advice-card.compact .advice-difficulty.bg-success { 
-        background: var(--success) !important; 
-        color: white;
-    }
-    .advice-card.compact .advice-difficulty.bg-warning { 
-        background: var(--warning) !important; 
-        color: white;
-    }
-    .advice-card.compact .advice-difficulty.bg-danger { 
-        background: var(--danger) !important; 
-        color: white;
-    }
-
-    .advice-actions {
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .btn-advice {
-        background: white;
-        border: 1px solid var(--gray-300);
-        color: var(--gray-500);
-        padding: 0.4rem;
-        border-radius: 6px;
-        font-size: 0.8rem;
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: var(--transition);
-        cursor: pointer;
-    }
-
-    .btn-advice:hover {
-        background: var(--gray-50);
-        border-color: var(--gray-400);
-        color: var(--gray-700);
-        transform: rotate(90deg);
-    }
-
-    /* === COMPONENTES DE ALERTAS Y ESTADOS === */
-    .alert {
-        border-radius: var(--border-radius-sm);
-        border: none;
-        padding: 1rem 1.5rem;
-        margin-bottom: 2rem;
-        border-left: 4px solid;
-        box-shadow: var(--shadow-sm);
-    }
-
-    .alert-success {
-        background: rgba(16, 185, 129, 0.1);
-        color: #065f46;
-        border-left-color: var(--success);
-    }
-
-    .alert-warning {
-        background: rgba(245, 158, 11, 0.1);
-        color: #92400e;
-        border-left-color: var(--warning);
-    }
-
-    .alert-danger {
-        background: rgba(239, 68, 68, 0.1);
-        color: #7f1d1d;
-        border-left-color: var(--danger);
-    }
-
-    .alert-info {
-        background: rgba(59, 130, 246, 0.1);
-        color: #1e40af;
-        border-left-color: var(--info);
-    }
-
-    /* === BOTONES - SISTEMA UNIFICADO === */
-    .btn {
-        border-radius: var(--border-radius-xs);
-        font-weight: 600;
-        padding: 0.75rem 1.5rem;
-        transition: var(--transition);
-        border: none;
-        cursor: pointer;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-        font-size: 0.9rem;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .btn::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-        transition: left 0.5s ease;
-    }
-
-    .btn:hover::before {
-        left: 100%;
-    }
-
-    .btn-primary {
-        background: linear-gradient(135deg, var(--primary-green), var(--primary-green-dark));
-        color: white;
-        box-shadow: var(--shadow-sm);
-    }
-
-    .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-md);
-    }
-
-    .btn-outline-primary {
-        border: 2px solid var(--primary-green);
-        color: var(--primary-green);
-        background: transparent;
-    }
-
-    .btn-outline-primary:hover {
-        background: var(--primary-green);
-        color: white;
-        transform: translateY(-2px);
-    }
-
-    .btn-link {
-        color: var(--info);
-        text-decoration: none;
-        font-weight: 600;
-        background: none;
-        border: none;
-        padding: 0.5rem;
-    }
-
-    .btn-link:hover {
-        color: #1d4ed8;
-        text-decoration: underline;
-        transform: none;
-        background: none;
-    }
-
-    .btn-sm {
-        padding: 0.5rem 1rem;
-        font-size: 0.8rem;
-    }
-
-    /* === ESTADOS VACÍOS - MEJORADOS === */
-    .empty-state {
-        text-align: center;
-        padding: 3rem 2rem;
-        color: var(--gray-500);
-    }
-
-    .empty-state i {
-        margin-bottom: 1rem;
-        opacity: 0.3;
-        font-size: 3rem;
-    }
-
-    .empty-state h4 {
-        color: var(--gray-600);
-        margin-bottom: 0.5rem;
-        font-weight: 600;
-    }
-
-    .empty-state p {
-        margin-bottom: 1.5rem;
-        font-size: 0.9rem;
-    }
-
-    /* === COMPONENTES ADICIONALES === */
-    .upsell-card {
-        border: 2px solid var(--primary-purple);
-        background: linear-gradient(135deg, var(--gray-50), #f0f4ff);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .upsell-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background: linear-gradient(90deg, var(--primary-purple), #7c3aed);
-    }
-
-    .bg-purple {
-        background: var(--primary-purple) !important;
-    }
-
-    /* === SCROLLBARS PERSONALIZADOS === */
-    .categories-details::-webkit-scrollbar,
-    .transactions-list::-webkit-scrollbar {
-        width: 6px;
-    }
-
-    .categories-details::-webkit-scrollbar-track,
-    .transactions-list::-webkit-scrollbar-track {
-        background: var(--gray-100);
-        border-radius: 3px;
-    }
-
-    .categories-details::-webkit-scrollbar-thumb,
-    .transactions-list::-webkit-scrollbar-thumb {
-        background: var(--gray-300);
-        border-radius: 3px;
-    }
-
-    .categories-details::-webkit-scrollbar-thumb:hover,
-    .transactions-list::-webkit-scrollbar-thumb:hover {
-        background: var(--gray-400);
-    }
-
-    /* === RESPONSIVE DESIGN - MEJORADO === */
-    @@media (max-width: 1200px) {
-        .charts-row {
-            grid-template-columns: 1fr;
-        }
-        
-        .finance-content {
-            grid-template-columns: 1fr;
-        }
-        
-        .finance-sidebar {
-            position: static;
-        }
-    }
-
-    @@media (max-width: 768px) {
-        .finance-container {
-            padding: 1rem;
-        }
-
-        .finance-nav {
-            flex-wrap: wrap;
-            gap: 0.5rem;
-        }
-        
-        .nav-item {
-            flex: 1 0 calc(50% - 0.5rem);
-            margin-bottom: 0.5rem;
-        }
-        
-        .nav-item a {
-            padding: 0.75rem 0.5rem;
-        }
-        
-        .nav-item i {
-            font-size: 1rem;
-            margin-bottom: 0.25rem;
-        }
-        
-        .nav-item span {
-            font-size: 0.8rem;
-        }
-
-        .finance-header {
-            flex-direction: column;
-            gap: 1.5rem;
-            text-align: center;
-            padding: 1.5rem;
-        }
-
-        .header-actions {
-            width: 100%;
-            justify-content: center;
-        }
-
-        .metrics-grid {
-            grid-template-columns: 1fr;
-            gap: 1rem;
-        }
-
-        .metric-card {
-            padding: 1.5rem;
-        }
-        
-        .card-header {
-            flex-direction: column;
-            gap: 1rem;
-            align-items: flex-start;
-            padding: 1.25rem;
-        }
-        
-        .card-body {
-            padding: 1.5rem;
-        }
-        
-        .transaction-item {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.75rem;
-        }
-        
-        .transaction-details {
-            width: 100%;
-        }
-        
-        .transaction-meta {
-            flex-direction: column;
-            gap: 0.25rem;
-        }
-
-        .budget-summary {
-            grid-template-columns: 1fr;
-            gap: 0.75rem;
-        }
-
-        .summary-item {
-            flex-direction: row;
-            justify-content: space-between;
-            text-align: left;
-        }
-
-        /* Ajustes específicos para móviles */
-        .finance-main-content {
-            gap: 1.5rem;
-        }
-
-        .advice-card.compact .card-header {
-            padding: 1rem;
-        }
-
-        .advice-card.compact .card-body {
-            padding: 1rem;
-        }
-
-        .advice-card.compact .advice-text {
-            font-size: 0.85rem;
-        }
-    }
-
-    @@media (max-width: 480px) {
-        .nav-item {
-            flex: 1 0 100%;
-        }
-        
-        .metric-card {
-            flex-direction: column;
-            text-align: center;
-            gap: 1rem;
-        }
-        
-        .metric-content {
-            width: 100%;
-        }
-        
-        .header-actions {
-            flex-direction: column;
-        }
-        
-        .btn {
-            width: 100%;
-            justify-content: center;
-        }
-    }
-
-    /* === ANIMACIONES Y MEJORAS VISUALES === */
-    @@keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .finance-card,
-    .metric-card {
-        animation: fadeInUp 0.5s ease-out;
-    }
-
-    .finance-card:nth-child(1) { animation-delay: 0.1s; }
-    .finance-card:nth-child(2) { animation-delay: 0.2s; }
-    .finance-card:nth-child(3) { animation-delay: 0.3s; }
-    .metric-card:nth-child(1) { animation-delay: 0.1s; }
-    .metric-card:nth-child(2) { animation-delay: 0.15s; }
-    .metric-card:nth-child(3) { animation-delay: 0.2s; }
-    .metric-card:nth-child(4) { animation-delay: 0.25s; }
-
-    /* === MEJORAS DE ACCESIBILIDAD === */
-    @@media (prefers-reduced-motion: reduce) {
-        * {
-            animation-duration: 0.01ms !important;
-            animation-iteration-count: 1 !important;
-            transition-duration: 0.01ms !important;
-        }
-    }
-
-    /* Focus styles para accesibilidad */
-    .btn:focus-visible,
-    .nav-item a:focus-visible {
-        outline: 2px solid var(--primary-blue);
-        outline-offset: 2px;
-    }
-
-    /* High contrast support */
-    @@media (prefers-contrast: high) {
-        .finance-card {
-            border: 2px solid var(--gray-800);
-        }
-        
-        .metric-card::before {
-            height: 6px;
-        }
-    }
-
-    /* === ESTRUCTURA MEJORADA === */
-    .metrics-section {
-        margin-bottom: 2rem;
-    }
-
-    .section-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: var(--gray-800);
-        margin-bottom: 1rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 2px solid var(--gray-200);
-    }
-
-    .analysis-section {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
-        margin-bottom: 2rem;
-    }
-
-    .analysis-section .finance-card {
-        margin-bottom: 0;
-    }
-
-    /* Métricas Secundarias */
-    .secondary-metrics {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1.5rem;
-    }
-
-    .secondary-metric {
-        text-align: center;
-        padding: 1rem;
-        border-radius: var(--border-radius-xs);
-        background: var(--gray-50);
-        border: 1px solid var(--gray-200);
-    }
-
-    .secondary-metric .metric-label {
-        font-size: 0.8rem;
-        color: var(--gray-500);
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 0.5rem;
-    }
-
-    .secondary-metric .metric-value {
-        font-size: 1.5rem;
-        font-weight: 800;
-        color: var(--gray-800);
-        margin-bottom: 0.75rem;
-    }
-
-    .metric-progress {
-        margin-top: 0.5rem;
-    }
-
-    .progress-text {
-        font-size: 0.75rem;
-        color: var(--gray-500);
-        margin-top: 0.25rem;
-        font-weight: 600;
-    }
-
-    /* Ajustes responsivos para la nueva estructura */
-    @@media (max-width: 1200px) {
-        .analysis-section {
-            grid-template-columns: 1fr;
-        }
-        
-        .secondary-metrics {
-            grid-template-columns: 1fr;
-            gap: 1rem;
-        }
-    }
-
-    @@media (max-width: 768px) {
-        .analysis-section {
-            grid-template-columns: 1fr;
-            gap: 1rem;
-        }
-        
-        .metrics-section .metrics-grid {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    /* === COMPONENTES DE IA - ESTILOS ESPECÍFICOS === */
-
-    /* Alertas de IA */
-    .ai-alerts-section {
-        margin-bottom: 2rem;
-    }
-
-    .alerts-card {
-        border-left: 4px solid #8b5cf6;
-        background: linear-gradient(135deg, #faf5ff, #f3e8ff);
-    }
-
-    .alert-count {
-        background: #8b5cf6;
-        color: white;
-        padding: 0.25rem 0.75rem;
-        border-radius: 12px;
-        font-size: 0.8rem;
-        font-weight: 700;
-    }
-
-    .alerts-list {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .alert-item {
+    .habit-header {
         display: flex;
         align-items: flex-start;
         gap: 1rem;
-        padding: 1.25rem;
-        border-radius: var(--border-radius-xs);
-        border: 1px solid var(--gray-200);
-        background: white;
-        transition: var(--transition);
-        position: relative;
-        overflow: hidden;
+        margin-bottom: 1rem;
     }
 
-    .alert-item::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 4px;
-    }
-
-    .alert-item.low::before { background: var(--info); }
-    .alert-item.medium::before { background: var(--warning); }
-    .alert-item.high::before { background: var(--danger); }
-    .alert-item.critical::before { background: #7f1d1d; }
-
-    .alert-item:hover {
-        transform: translateX(4px);
-        box-shadow: var(--shadow-sm);
-    }
-
-    .alert-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 1rem;
-        flex-shrink: 0;
-    }
-
-    .alert-item.low .alert-icon { background: var(--info); }
-    .alert-item.medium .alert-icon { background: var(--warning); }
-    .alert-item.high .alert-icon { background: var(--danger); }
-    .alert-item.critical .alert-icon { background: #7f1d1d; }
-
-    .alert-content {
-        flex: 1;
-    }
-
-    .alert-title {
-        font-weight: 700;
-        color: var(--gray-800);
-        margin-bottom: 0.5rem;
-        font-size: 0.95rem;
-    }
-
-    .alert-details {
-        display: flex;
-        gap: 1rem;
-        align-items: center;
-        flex-wrap: wrap;
-        margin-bottom: 0.5rem;
-    }
-
-    .alert-category {
-        background: var(--gray-200);
-        color: var(--gray-600);
-        padding: 0.25rem 0.75rem;
-        border-radius: 12px;
-        font-size: 0.8rem;
-        font-weight: 600;
-    }
-
-    .alert-amount {
-        font-weight: 700;
-        color: var(--gray-800);
-        font-size: 0.9rem;
-    }
-
-    .alert-deviation {
-        padding: 0.25rem 0.5rem;
-        border-radius: 6px;
-        font-size: 0.75rem;
-        font-weight: 700;
-    }
-
-    .alert-deviation.positive {
-        background: rgba(239, 68, 68, 0.1);
-        color: var(--danger);
-    }
-
-    .alert-deviation.negative {
-        background: rgba(16, 185, 129, 0.1);
-        color: var(--success);
-    }
-
-    .alert-meta {
-        display: flex;
-        gap: 1rem;
-        font-size: 0.8rem;
-        color: var(--gray-500);
-    }
-
-    .alert-type {
-        font-weight: 600;
-    }
-
-    .alert-time {
-        font-weight: 500;
-    }
-
-    .alert-severity {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 0.75rem;
-        border-radius: 8px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        flex-shrink: 0;
-    }
-
-    .alert-severity.low {
-        background: rgba(59, 130, 246, 0.1);
-        color: var(--info);
-    }
-
-    .alert-severity.medium {
-        background: rgba(245, 158, 11, 0.1);
-        color: var(--warning);
-    }
-
-    .alert-severity.high {
-        background: rgba(239, 68, 68, 0.1);
-        color: var(--danger);
-    }
-
-    .alert-severity.critical {
-        background: rgba(127, 29, 29, 0.1);
-        color: #7f1d1d;
-    }
-
-    /* Predicciones de IA */
-    .ai-predictions-section {
-        margin-bottom: 2rem;
-    }
-
-    .predictions-card {
-        border-left: 4px solid #06b6d4;
-        background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
-    }
-
-    .prediction-accuracy {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: rgba(6, 182, 212, 0.1);
-        color: #06b6d4;
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-    }
-
-    .predictions-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1.5rem;
-    }
-
-    .prediction-item {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 1.5rem;
-        border-radius: var(--border-radius-xs);
-        background: white;
-        border: 1px solid var(--gray-200);
-        transition: var(--transition);
-    }
-
-    .prediction-item:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-sm);
-    }
-
-    .prediction-icon {
+    .habit-icon {
         width: 50px;
         height: 50px;
         border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #06b6d4;
         color: white;
         font-size: 1.2rem;
         flex-shrink: 0;
     }
 
-    .prediction-content {
+    .habit-info {
         flex: 1;
     }
 
-    .prediction-label {
-        font-size: 0.9rem;
-        color: var(--gray-600);
-        margin-bottom: 0.5rem;
-        font-weight: 600;
-    }
-
-    .prediction-value {
-        font-size: 1.5rem;
-        font-weight: 800;
+    .habit-name {
+        font-size: 1.1rem;
+        font-weight: 700;
         color: var(--gray-800);
-        margin-bottom: 0.5rem;
-        line-height: 1;
+        margin: 0 0 0.25rem 0;
     }
 
-    .prediction-trend {
+    .habit-category {
+        color: var(--gray-500);
+        font-size: 0.9rem;
+        margin: 0;
+        font-weight: 500;
+    }
+
+    .habit-actions {
         display: flex;
-        align-items: center;
         gap: 0.5rem;
-        font-size: 0.8rem;
-        font-weight: 600;
-        padding: 0.25rem 0.5rem;
+    }
+
+    .btn-favorite {
+        background: none;
+        border: none;
+        color: var(--gray-400);
+        cursor: pointer;
+        padding: 0.5rem;
         border-radius: 6px;
-        width: fit-content;
-    }
-
-    .prediction-trend.positive {
-        background: rgba(16, 185, 129, 0.1);
-        color: var(--success);
-    }
-
-    .prediction-trend.negative {
-        background: rgba(239, 68, 68, 0.1);
-        color: var(--danger);
-    }
-
-    /* Recomendaciones de IA */
-    .recommendations-card {
-        border-left: 4px solid #10b981;
-        background: linear-gradient(135deg, #f0fdf4, #dcfce7);
-    }
-
-    .recommendations-list {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-    }
-
-    .recommendation-item {
-        padding: 1.5rem;
-        border-radius: var(--border-radius-xs);
-        background: white;
-        border: 1px solid var(--gray-200);
         transition: var(--transition);
     }
 
-    .recommendation-item:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-sm);
+    .btn-favorite:hover {
+        background: var(--gray-100);
+        color: var(--warning);
     }
 
-    .recommendation-header {
+    .btn-favorite.active {
+        color: var(--warning);
+    }
+
+    .btn-more {
+        background: none;
+        border: none;
+        color: var(--gray-400);
+        cursor: pointer;
+        padding: 0.5rem;
+        border-radius: 6px;
+        transition: var(--transition);
+    }
+
+    .btn-more:hover {
+        background: var(--gray-100);
+        color: var(--gray-600);
+    }
+
+    /* Progreso del Hábito */
+    .habit-progress {
+        margin-bottom: 1rem;
+    }
+
+    .progress-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .progress-label {
+        color: var(--gray-600);
+        font-weight: 500;
+    }
+
+    .progress-stats {
+        color: var(--gray-700);
+        font-weight: 600;
+    }
+
+    .progress-bar {
+        height: 6px;
+        background: var(--gray-200);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #10b981, #84cc16);
+        border-radius: 3px;
+        transition: width 0.5s ease;
+    }
+
+    /* Estadísticas del Hábito */
+    .habit-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background: var(--gray-50);
+        border-radius: var(--border-radius-xs);
+    }
+
+    .stat-item {
+        text-align: center;
+    }
+
+    .stat-item i {
+        color: #10b981;
+        margin-bottom: 0.25rem;
+        font-size: 0.9rem;
+    }
+
+    .stat-value {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: var(--gray-800);
+        display: block;
+        line-height: 1;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        color: var(--gray-500);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Botón de Completar */
+    .btn-complete {
+        width: 100%;
+        padding: 0.75rem;
+        background: var(--gray-100);
+        color: var(--gray-700);
+        border: 2px solid var(--gray-300);
+        border-radius: var(--border-radius-xs);
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--transition);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .btn-complete:hover {
+        background: var(--gray-200);
+        border-color: var(--gray-400);
+    }
+
+    .btn-complete.completed {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        border-color: #10b981;
+    }
+
+    .btn-complete.completed:hover {
+        background: rgba(16, 185, 129, 0.2);
+    }
+
+    /* Estadísticas Rápidas */
+    .quick-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .quick-stats .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: var(--gray-50);
+        border-radius: var(--border-radius-xs);
+        border: 1px solid var(--gray-200);
+    }
+
+    .quick-stats .stat-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1rem;
+        flex-shrink: 0;
+    }
+
+    .quick-stats .stat-icon.completed { background: #10b981; }
+    .quick-stats .stat-icon.week { background: #3b82f6; }
+    .quick-stats .stat-icon.month { background: #8b5cf6; }
+    .quick-stats .stat-icon.streak { background: #f59e0b; }
+
+    .quick-stats .stat-content {
+        flex: 1;
+    }
+
+    .quick-stats .stat-value {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: var(--gray-800);
+    }
+
+    .quick-stats .stat-label {
+        font-size: 0.8rem;
+        color: var(--gray-500);
+        font-weight: 500;
+    }
+
+    /* Categorías */
+    .categories-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .category-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem;
+        background: var(--gray-50);
+        border-radius: var(--border-radius-xs);
+        border: 1px solid var(--gray-200);
+    }
+
+    .category-name {
+        font-weight: 600;
+        color: var(--gray-700);
+    }
+
+    .category-count {
+        background: var(--gray-200);
+        color: var(--gray-600);
+        padding: 0.25rem 0.5rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+
+    /* Formulario de Predicción */
+    .prediction-form {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: var(--gray-700);
+        font-size: 0.9rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid var(--gray-300);
+        border-radius: var(--border-radius-xs);
+        font-size: 0.9rem;
+        transition: var(--transition);
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #10b981;
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    }
+
+    .prediction-result {
+        background: var(--gray-50);
+        border-radius: var(--border-radius-xs);
+        padding: 1.5rem;
+        border: 1px solid var(--gray-200);
+    }
+
+    .prediction-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 1rem;
     }
 
-    .recommendation-category {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-weight: 700;
+    .prediction-header h4 {
+        margin: 0;
         color: var(--gray-800);
-        font-size: 0.95rem;
+        font-size: 1.1rem;
+    }
+
+    .prediction-content p {
+        color: var(--gray-700);
+        margin-bottom: 1rem;
+        line-height: 1.5;
+    }
+
+    .prediction-factors h5 {
+        color: var(--gray-700);
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .prediction-factors ul {
+        margin: 0;
+        padding-left: 1rem;
+        color: var(--gray-600);
+    }
+
+    .prediction-factors li {
+        margin-bottom: 0.25rem;
+        font-size: 0.85rem;
+    }
+
+    /* Estilos específicos para componentes de IA en Hábitos */
+    .ai-habits-section {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .habits-content {
+            grid-template-columns: 1fr;
+        }
+        
+        .habits-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .habit-stats {
+            grid-template-columns: 1fr;
+        }
+        
+        .quick-stats .stat-item {
+            flex-direction: column;
+            text-align: center;
+            gap: 0.5rem;
+        }
+    }
+
+    /* Utiliza los mismos estilos de IA que en Finanzas para consistencia */
+    .alerts-card,
+    .recommendations-card,
+    .patterns-card,
+    .prediction-card {
+        border-left: 4px solid #8b5cf6;
+        background: linear-gradient(135deg, #faf5ff, #f3e8ff);
+    }
+
+    .alert-item,
+    .recommendation-item,
+    .pattern-item {
+        background: white;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--border-radius-xs);
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        transition: var(--transition);
+    }
+
+    .alert-item:hover,
+    .recommendation-item:hover,
+    .pattern-item:hover {
+        transform: translateX(4px);
+        box-shadow: var(--shadow-sm);
     }
 
     .confidence-badge {
@@ -2876,231 +1257,18 @@
         border-radius: 12px;
         font-size: 0.75rem;
         font-weight: 700;
+    }
+
+    .type-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: 700;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
     }
 
-    .recommendation-text {
-        color: var(--gray-700);
-        margin-bottom: 1rem;
-        font-size: 0.9rem;
-        line-height: 1.5;
-    }
-
-    .recommendation-details {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-        margin-bottom: 1rem;
-    }
-
-    .detail-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 0.85rem;
-    }
-
-    .detail-label {
-        color: var(--gray-600);
-        font-weight: 500;
-    }
-
-    .detail-value {
-        font-weight: 700;
-    }
-
-    .detail-value.positive {
-        color: var(--success);
-    }
-
-    .detail-value.savings {
-        color: var(--primary-purple);
-    }
-
-    .recommendation-reasoning {
-        border-top: 1px solid var(--gray-200);
-        padding-top: 0.75rem;
-    }
-
-    /* Patrones de IA */
-    .patterns-card {
-        border-left: 4px solid #f59e0b;
-        background: linear-gradient(135deg, #fffbeb, #fef3c7);
-    }
-
-    .patterns-section {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-    }
-
-    .pattern-title {
-        font-size: 1rem;
-        font-weight: 700;
-        color: var(--gray-800);
-        margin-bottom: 1rem;
-        padding-bottom: 0.5rem;
-        border-bottom: 1px solid var(--gray-200);
-    }
-
-    .patterns-list {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .pattern-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem;
-        border-radius: var(--border-radius-xs);
-        background: white;
-        border: 1px solid var(--gray-200);
-        transition: var(--transition);
-    }
-
-    .pattern-item:hover {
-        transform: translateX(4px);
-        box-shadow: var(--shadow-sm);
-    }
-
-    .pattern-info {
-        display: flex;
-        flex-direction: column;
-        gap: 0.25rem;
-    }
-
-    .pattern-name {
-        font-weight: 600;
-        color: var(--gray-800);
-        font-size: 0.9rem;
-    }
-
-    .pattern-amount {
-        font-size: 0.8rem;
-        color: var(--gray-500);
-        font-weight: 500;
-    }
-
-    .pattern-trend {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.8rem;
-        font-weight: 600;
-        padding: 0.25rem 0.75rem;
-        border-radius: 12px;
-    }
-
-    .pattern-trend.increasing {
-        background: rgba(239, 68, 68, 0.1);
-        color: var(--danger);
-    }
-
-    .pattern-trend.decreasing {
-        background: rgba(16, 185, 129, 0.1);
-        color: var(--success);
-    }
-
-    .pattern-percentage {
-        color: var(--gray-500);
-        font-weight: 500;
-    }
-
-    .pattern-weekly {
-        margin-top: 1rem;
-    }
-
-    .weekly-patterns {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-
-    .day-pattern {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        padding: 0.75rem;
-        border-radius: var(--border-radius-xs);
-        background: white;
-        border: 1px solid var(--gray-200);
-    }
-
-    .day-name {
-        font-weight: 600;
-        color: var(--gray-700);
-        width: 80px;
-        font-size: 0.9rem;
-    }
-
-    .day-bar {
-        flex: 1;
-        height: 8px;
-        background: var(--gray-200);
-        border-radius: 4px;
-        overflow: hidden;
-    }
-
-    .day-fill {
-        height: 100%;
-        background: linear-gradient(90deg, var(--primary-orange), #f97316);
-        border-radius: 4px;
-        transition: width 0.5s ease;
-    }
-
-    .day-amount {
-        font-weight: 700;
-        color: var(--gray-800);
-        font-size: 0.9rem;
-        width: 70px;
-        text-align: right;
-    }
-
-    /* Badge de IA */
-    .badge.bg-purple {
-        background: linear-gradient(135deg, #8b5cf6, #7c3aed) !important;
-        color: white;
-    }
-
-    /* Responsive para componentes de IA */
-    @@media (max-width: 768px) {
-        .alert-item {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.75rem;
-        }
-        
-        .alert-severity {
-            align-self: flex-end;
-        }
-        
-        .predictions-grid {
-            grid-template-columns: 1fr;
-        }
-        
-        .recommendation-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.5rem;
-        }
-        
-        .pattern-item {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.75rem;
-        }
-        
-        .day-pattern {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.5rem;
-        }
-        
-        .day-bar {
-            width: 100%;
-        }
-    }
+    .type-badge.timeoptimization { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+    .type-badge.consistency { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    .type-badge.progression { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+    .type-badge.newhabit { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
 </style>

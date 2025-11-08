@@ -1311,6 +1311,51 @@
           }
         }
       },
+      "Microsoft.ML.FastTree/4.0.3": {
+        "type": "package",
+        "dependencies": {
+          "Microsoft.ML": "4.0.3"
+        },
+        "compile": {
+          "lib/netstandard2.0/Microsoft.ML.FastTree.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/netstandard2.0/Microsoft.ML.FastTree.dll": {
+            "related": ".xml"
+          }
+        },
+        "build": {
+          "build/netstandard2.0/Microsoft.ML.FastTree.props": {}
+        },
+        "runtimeTargets": {
+          "runtimes/linux-x64/native/libFastTreeNative.so": {
+            "assetType": "native",
+            "rid": "linux-x64"
+          },
+          "runtimes/linux-x64/native/libFastTreeNative.so.dbg": {
+            "assetType": "native",
+            "rid": "linux-x64"
+          },
+          "runtimes/osx-x64/native/libFastTreeNative.dylib": {
+            "assetType": "native",
+            "rid": "osx-x64"
+          },
+          "runtimes/osx-x64/native/libFastTreeNative.dylib.dwarf": {
+            "assetType": "native",
+            "rid": "osx-x64"
+          },
+          "runtimes/win-x64/native/FastTreeNative.dll": {
+            "assetType": "native",
+            "rid": "win-x64"
+          },
+          "runtimes/win-x86/native/FastTreeNative.dll": {
+            "assetType": "native",
+            "rid": "win-x86"
+          }
+        }
+      },
       "Microsoft.ML.Mkl.Redist/4.0.3": {
         "type": "package",
         "compile": {
@@ -5011,6 +5056,30 @@
         "microsoft.ml.dataview.4.0.3.nupkg.sha512",
         "microsoft.ml.dataview.nuspec",
         "mlnetlogo.png"
+      ]
+    },
+    "Microsoft.ML.FastTree/4.0.3": {
+      "sha512": "uDseMgkYvMUSobX99IbwXYWsaiUMBn4ldfD89icRqLskNg5JxhaQBGR03/Do64RkpZPNg+Eq0fhKvKQMn/kxRQ==",
+      "type": "package",
+      "path": "microsoft.ml.fasttree/4.0.3",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE",
+        "PACKAGE.md",
+        "THIRD-PARTY-NOTICES.TXT",
+        "build/netstandard2.0/Microsoft.ML.FastTree.props",
+        "lib/netstandard2.0/Microsoft.ML.FastTree.dll",
+        "lib/netstandard2.0/Microsoft.ML.FastTree.xml",
+        "microsoft.ml.fasttree.4.0.3.nupkg.sha512",
+        "microsoft.ml.fasttree.nuspec",
+        "mlnetlogo.png",
+        "runtimes/linux-x64/native/libFastTreeNative.so",
+        "runtimes/linux-x64/native/libFastTreeNative.so.dbg",
+        "runtimes/osx-x64/native/libFastTreeNative.dylib",
+        "runtimes/osx-x64/native/libFastTreeNative.dylib.dwarf",
+        "runtimes/win-x64/native/FastTreeNative.dll",
+        "runtimes/win-x86/native/FastTreeNative.dll"
       ]
     },
     "Microsoft.ML.Mkl.Redist/4.0.3": {
@@ -9507,6 +9576,7 @@
       "Microsoft.Extensions.Caching.Abstractions >= 9.0.9",
       "Microsoft.Extensions.Caching.StackExchangeRedis >= 9.0.9",
       "Microsoft.ML >= 4.0.3",
+      "Microsoft.ML.FastTree >= 4.0.3",
       "Microsoft.ML.TimeSeries >= 4.0.3",
       "Npgsql.EntityFrameworkCore.PostgreSQL >= 8.0.0",
       "QuestPDF >= 2024.7.1",
@@ -9601,6 +9671,10 @@
             "version": "[9.0.9, )"
           },
           "Microsoft.ML": {
+            "target": "Package",
+            "version": "[4.0.3, )"
+          },
+          "Microsoft.ML.FastTree": {
             "target": "Package",
             "version": "[4.0.3, )"
           },

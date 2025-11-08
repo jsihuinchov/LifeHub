@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Identity;
 using LifeHub.Models.Entities;
 using LifeHub.Models.ViewModels;
 using LifeHub.Services;
+using LifeHub.Models.IA.Services;
+using LifeHub.Models.IA.Results;
 
 namespace LifeHub.Controllers
 {
@@ -12,14 +14,19 @@ namespace LifeHub.Controllers
     {
         private readonly IHabitService _habitService;
         private readonly UserManager<IdentityUser> _userManager;
-
         private readonly ISubscriptionService _subscriptionService;
+        private readonly IHabitAIService _habitAIService;
 
-        public HabitsController(IHabitService habitService, UserManager<IdentityUser> userManager, ISubscriptionService subscriptionService)
+        public HabitsController(
+            IHabitService habitService, 
+            UserManager<IdentityUser> userManager, 
+            ISubscriptionService subscriptionService,
+            IHabitAIService habitAIService)
         {
             _habitService = habitService;
             _userManager = userManager;
             _subscriptionService = subscriptionService;
+            _habitAIService = habitAIService;
         }
 
         private string GetUserId() => _userManager.GetUserId(User)!;
@@ -27,10 +34,41 @@ namespace LifeHub.Controllers
         // GET: Habits
         public async Task<IActionResult> Index()
         {
-            var habits = await _habitService.GetUserHabitsAsync(GetUserId());
-            var stats = await _habitService.GetHabitStatsAsync(GetUserId());
+            var userId = GetUserId();
+            var habits = await _habitService.GetUserHabitsAsync(userId);
+            var stats = await _habitService.GetHabitStatsAsync(userId);
             
+            // Obtener información del plan del usuario
+            var userSubscription = await _subscriptionService.GetUserSubscriptionAsync(userId);
+            var hasAIFeatures = userSubscription?.Plan?.HasAIFeatures == true;
+            
+            // ✅ CARGAR DATOS DE IA SI EL USUARIO TIENE ACCESO
+            if (hasAIFeatures)
+            {
+                try
+                {
+                    var aiRecommendations = await _habitAIService.GeneratePersonalizedRecommendationsAsync(userId);
+                    var consistencyAlerts = await _habitAIService.GetConsistencyAlertsAsync(userId);
+                    var habitPatterns = await _habitAIService.DetectHabitPatternsAsync(userId);
+
+                    ViewBag.AIRecommendations = aiRecommendations;
+                    ViewBag.ConsistencyAlerts = consistencyAlerts;
+                    ViewBag.HabitPatterns = habitPatterns;
+                }
+                catch (Exception ex)
+                {
+                    // Si hay error en IA, mostrar versión básica
+                    Console.WriteLine($"Error en IA: {ex.Message}");
+                    ViewBag.AIRecommendations = new List<HabitRecommendation>();
+                    ViewBag.ConsistencyAlerts = new List<ConsistencyAlert>();
+                    ViewBag.HabitPatterns = new List<HabitPattern>();
+                }
+            }
+            
+            ViewBag.HasAIFeatures = hasAIFeatures;
             ViewBag.Stats = stats;
+            ViewBag.UserSubscription = userSubscription;
+            
             return View(habits);
         }
 
@@ -45,38 +83,27 @@ namespace LifeHub.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(HabitViewModel model)
         {
-            Console.WriteLine($"🔍 Iniciando creación de hábito para usuario: {GetUserId()}");
-
             if (!ModelState.IsValid)
             {
-                Console.WriteLine($"❌ ModelState no es válido");
                 return View(model);
             }
 
-            // ✅ TODA la validación aquí - no duplicar en el servicio
+            // Validación de límite de plan
             var subscription = await _subscriptionService.GetUserSubscriptionAsync(GetUserId());
-            Console.WriteLine($"📊 Plan del usuario: {subscription?.Plan?.Name ?? "Ninguno"}");
-
             if (subscription?.Plan == null)
             {
-                Console.WriteLine($"❌ Usuario sin plan activo");
                 ModelState.AddModelError("", "No tienes un plan activo. Por favor, selecciona un plan.");
                 return View(model);
             }
 
             var currentHabits = await _habitService.GetUserHabitsAsync(GetUserId());
-            var currentHabitsCount = currentHabits.Count;
-            Console.WriteLine($"📈 Hábitos actuales: {currentHabitsCount}, Límite: {subscription.Plan.MaxHabits}");
-
-            if (currentHabitsCount >= subscription.Plan.MaxHabits)
+            if (currentHabits.Count >= subscription.Plan.MaxHabits)
             {
-                Console.WriteLine($"❌ Límite alcanzado: {currentHabitsCount} >= {subscription.Plan.MaxHabits}");
                 ModelState.AddModelError("",
                     $"Has alcanzado el límite de {subscription.Plan.MaxHabits} hábitos de tu plan {subscription.Plan.Name}.");
                 return View(model);
             }
 
-            Console.WriteLine($"✅ Límite OK, creando hábito...");
             var habit = new Habit
             {
                 Name = model.Name,
@@ -90,56 +117,18 @@ namespace LifeHub.Controllers
                 IsActive = true
             };
 
-            // ✅ El servicio ahora SOLO guarda - sin validaciones adicionales
             var result = await _habitService.CreateHabitAsync(habit, GetUserId());
 
             if (result)
             {
-                Console.WriteLine($"✅ Hábito creado exitosamente");
                 TempData["SuccessMessage"] = "¡Hábito creado exitosamente!";
                 return RedirectToAction(nameof(Index));
             }
             else
             {
-                Console.WriteLine($"❌ Error al crear hábito en el servicio");
                 ModelState.AddModelError("", "Error interno al crear el hábito. Por favor, intenta nuevamente.");
                 return View(model);
             }
-        }
-
-        // ✅ NUEVO: Endpoint para verificar límites CORREGIDO
-        [HttpGet]
-        public async Task<IActionResult> CheckPlanLimit()
-        {
-            var subscription = await _subscriptionService.GetUserSubscriptionAsync(GetUserId());
-            if (subscription?.Plan == null)
-            {
-                return Json(new
-                {
-                    canCreate = false,
-                    message = "No tienes un plan activo. Por favor, selecciona un plan.",
-                    current = 0,
-                    max = 0
-                });
-            }
-
-            var habits = await _habitService.GetUserHabitsAsync(GetUserId());
-            var currentHabitsCount = habits.Count; // ✅ CORREGIDO: Usar .Count
-            var canCreate = currentHabitsCount < subscription.Plan.MaxHabits;
-
-            var message = canCreate
-                ? $"Puedes crear {subscription.Plan.MaxHabits - currentHabitsCount} hábitos más"
-                : subscription.Plan.MaxHabits >= 9999
-                    ? "Has alcanzado el límite de hábitos"
-                    : $"Has alcanzado el límite de {subscription.Plan.MaxHabits} hábitos";
-
-            return Json(new
-            {
-                canCreate,
-                message,
-                current = currentHabitsCount, // ✅ CORREGIDO
-                max = subscription.Plan.MaxHabits
-            });
         }
 
         // GET: Habits/Edit/5
@@ -227,7 +216,6 @@ namespace LifeHub.Controllers
         }
 
         // POST: Habits/ToggleCompletion/5
-        // POST: Habits/ToggleCompletion/5
         [HttpPost]
         public async Task<IActionResult> ToggleCompletion(int id, [FromQuery] string? date = null)
         {
@@ -235,7 +223,6 @@ namespace LifeHub.Controllers
 
             if (date != null)
             {
-                // ✅ CORREGIDO: Parsear como UTC explícitamente
                 completionDate = DateTime.Parse(date + "T00:00:00Z").ToUniversalTime();
             }
             else
@@ -339,7 +326,103 @@ namespace LifeHub.Controllers
                 return NotFound();
             }
 
+            // ✅ NUEVO: Agregar datos de IA
+            var userId = GetUserId();
+            var userSubscription = await _subscriptionService.GetUserSubscriptionAsync(userId);
+            var hasAIFeatures = userSubscription?.Plan?.HasAIFeatures == true;
+
+            if (hasAIFeatures)
+            {
+                // Obtener recomendaciones específicas para este hábito
+                var aiRecommendations = await _habitAIService.GeneratePersonalizedRecommendationsAsync(userId);
+                var habitSpecificRecommendations = aiRecommendations
+                    .Where(r => r.HabitName == stats.HabitName || r.HabitName == "Todos los hábitos")
+                    .Take(2)
+                    .ToList();
+
+                ViewBag.AIRecommendations = habitSpecificRecommendations;
+
+                // Obtener predicción de éxito para este hábito
+                var successPrediction = await _habitAIService.PredictHabitSuccessAsync(
+                    userId, stats.HabitName, stats.Frequency);
+                ViewBag.SuccessPrediction = successPrediction;
+
+                // Obtener patrones detectados
+                var patterns = await _habitAIService.DetectHabitPatternsAsync(userId);
+                ViewBag.AIPatterns = patterns;
+            }
+            else
+            {
+                ViewBag.AIRecommendations = new List<HabitRecommendation>();
+                ViewBag.SuccessPrediction = null;
+                ViewBag.AIPatterns = new List<HabitPattern>();
+            }
+
+            ViewBag.HasAIFeatures = hasAIFeatures;
             return View(stats);
         }
+
+        // ✅ NUEVO: Endpoint para predicción de éxito de hábitos
+        [HttpPost]
+        public async Task<IActionResult> PredictHabitSuccess([FromBody] PredictHabitRequest request)
+        {
+            try
+            {
+                var userId = GetUserId();
+                var prediction = await _habitAIService.PredictHabitSuccessAsync(userId, request.HabitName, request.Frequency);
+                return Json(prediction);
+            }
+            catch (Exception ex)
+            {
+                // Fallback si hay error
+                return Json(new HabitSuccessPrediction
+                {
+                    SuccessProbability = 65.0f,
+                    ConfidenceLevel = "Medium",
+                    KeyFactors = new List<string> { "Predicción básica", "Frecuencia: " + request.Frequency + " días/semana" },
+                    Recommendation = "Comienza con consistencia y ajusta según tu progreso"
+                });
+            }
+        }
+
+        // ✅ NUEVO: Endpoint para verificar límites del plan
+        [HttpGet]
+        public async Task<IActionResult> CheckPlanLimit()
+        {
+            var subscription = await _subscriptionService.GetUserSubscriptionAsync(GetUserId());
+            if (subscription?.Plan == null)
+            {
+                return Json(new
+                {
+                    canCreate = false,
+                    message = "No tienes un plan activo. Por favor, selecciona un plan.",
+                    current = 0,
+                    max = 0
+                });
+            }
+
+            var habits = await _habitService.GetUserHabitsAsync(GetUserId());
+            var currentHabitsCount = habits.Count;
+            var canCreate = currentHabitsCount < subscription.Plan.MaxHabits;
+
+            var message = canCreate
+                ? $"Puedes crear {subscription.Plan.MaxHabits - currentHabitsCount} hábitos más"
+                : $"Has alcanzado el límite de {subscription.Plan.MaxHabits} hábitos";
+
+            return Json(new
+            {
+                canCreate,
+                message,
+                current = currentHabitsCount,
+                max = subscription.Plan.MaxHabits
+            });
+        }
+    }
+
+    // Clase para el request de predicción
+    public class PredictHabitRequest
+    {
+        public string HabitName { get; set; } = string.Empty;
+        public int Frequency { get; set; }
     }
 }

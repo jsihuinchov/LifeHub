@@ -90,6 +90,10 @@
               "target": "Package",
               "version": "[4.0.3, )"
             },
+            "Microsoft.ML.FastTree": {
+              "target": "Package",
+              "version": "[4.0.3, )"
+            },
             "Microsoft.ML.TimeSeries": {
               "target": "Package",
               "version": "[4.0.3, )"

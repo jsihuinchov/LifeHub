@@ -119,8 +119,12 @@ builder.Services.AddHttpClient<IMedicationApiService, RxNormService>();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<IGoogleAuthService, GoogleAuthService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
+
 builder.Services.AddSingleton<MLContext>();
 builder.Services.AddScoped<IFinanceAIService, FinanceAIService>();
+builder.Services.AddScoped<IHabitAIService, HabitAIService>();
+builder.Services.AddScoped<IHabitMLService, HabitMLService>();
+builder.Services.AddScoped<PatternDetectionService>();
 
 // Logging
 builder.Services.AddLogging();

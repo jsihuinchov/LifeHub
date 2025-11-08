@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "t2/BPwmnheawT2Tk8/z0vMHg3yFzCjGXTQfLMVZiEHjE/pHklnALCwJfrHOaBK+6OOUrUzy1pp9t2utq6DV2pw==",
+  "dgSpecHash": "/0xkIVUa7ZEVE0/8TB04elpGIrnZO4axUSd2naXLRQM8R8P8YSu+lXSAasNhOUj19VrGVsmrEkdb7aevZHa28A==",
   "success": true,
   "projectFilePath": "C:\\Users\\Pc\\LifeHub\\LifeHub.csproj",
   "expectedPackageFiles": [
@@ -62,6 +62,7 @@
     "C:\\Users\\Pc\\.nuget\\packages\\microsoft.ml\\4.0.3\\microsoft.ml.4.0.3.nupkg.sha512",
     "C:\\Users\\Pc\\.nuget\\packages\\microsoft.ml.cpumath\\4.0.3\\microsoft.ml.cpumath.4.0.3.nupkg.sha512",
     "C:\\Users\\Pc\\.nuget\\packages\\microsoft.ml.dataview\\4.0.3\\microsoft.ml.dataview.4.0.3.nupkg.sha512",
+    "C:\\Users\\Pc\\.nuget\\packages\\microsoft.ml.fasttree\\4.0.3\\microsoft.ml.fasttree.4.0.3.nupkg.sha512",
     "C:\\Users\\Pc\\.nuget\\packages\\microsoft.ml.mkl.redist\\4.0.3\\microsoft.ml.mkl.redist.4.0.3.nupkg.sha512",
     "C:\\Users\\Pc\\.nuget\\packages\\microsoft.ml.timeseries\\4.0.3\\microsoft.ml.timeseries.4.0.3.nupkg.sha512",
     "C:\\Users\\Pc\\.nuget\\packages\\microsoft.net.http.headers\\2.2.0\\microsoft.net.http.headers.2.2.0.nupkg.sha512",
