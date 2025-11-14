@@ -1,297 +1,834 @@
-@model LifeHub.Models.ViewModels.HealthDashboardViewModel
+@model LifeHub.Models.ViewModels.WellnessDashboardViewModel
 @{
-    ViewData["Title"] = "Dashboard de Salud";
+    ViewData["Title"] = "Mi Bienestar - Dashboard";
 }
 
-<div class="health-dashboard container-fluid py-4">
-
-    <!-- 🔹 ENCABEZADO -->
-    <div class="dashboard-header d-flex justify-content-between align-items-center flex-wrap mb-4">
-        <div>
-            <h1 class="dashboard-title mb-1">
-                <i class="fas fa-heartbeat text-danger me-2"></i> Tu Bienestar
-            </h1>
-            <p class="text-muted mb-0">Monitorea tu salud, citas y medicamentos en un solo espacio 💊</p>
-        </div>
-
-        <div class="d-flex flex-wrap gap-2 mt-3 mt-md-0">
-            <a href="@Url.Action("CreateAppointment")" class="btn btn-primary-gradient">
-                <i class="fas fa-calendar-plus me-1"></i> Nueva Cita
-            </a>
-            <a href="@Url.Action("CreateMedication")" class="btn btn-success-gradient">
-                <i class="fas fa-pills me-1"></i> Nuevo Medicamento
-            </a>
-        </div>
-    </div>
-
-    <!-- 🔹 ALERTAS -->
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success shadow-sm alert-modern">
-            <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
-        </div>
-    }
-
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="alert alert-danger shadow-sm alert-modern">
-            <i class="fas fa-exclamation-circle me-2"></i>@TempData["ErrorMessage"]
-        </div>
-    }
-
-    <!-- 🔹 ESTADÍSTICAS -->
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-md-3">
-            <div class="stats-card bg-gradient-primary">
-                <i class="fas fa-calendar-check"></i>
-                <div>
-                    <h3>@Model.Stats.TotalAppointments</h3>
-                    <p>Citas Totales</p>
-                </div>
+<div class="wellness-dashboard">
+    <!-- HEADER MEJORADO -->
+    <div class="dashboard-header mb-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <div>
+                <h1 class="dashboard-title">
+                    <i class="fas fa-heartbeat me-2"></i>Mi Bienestar
+                </h1>
+                <p class="dashboard-subtitle">Tu centro de salud personal - Todo en un solo lugar</p>
             </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="stats-card bg-gradient-warning">
-                <i class="fas fa-clock"></i>
-                <div>
-                    <h3>@Model.Stats.UpcomingAppointments</h3>
-                    <p>Próximas</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="stats-card bg-gradient-success">
-                <i class="fas fa-pills"></i>
-                <div>
-                    <h3>@Model.Stats.ActiveMedications</h3>
-                    <p>Medicamentos</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="stats-card bg-gradient-info">
-                <i class="fas fa-check-double"></i>
-                <div>
-                    <h3>@Model.Stats.CompletedAppointments</h3>
-                    <p>Completadas</p>
-                </div>
+            <div class="header-actions">
+                <a href="@Url.Action("Diary", "Health")" class="btn btn-primary me-2">
+                    <i class="fas fa-plus me-1"></i>Registrar Día
+                </a>
+                <a href="@Url.Action("CreateAppointment", "Health")" class="btn btn-success">
+                    <i class="fas fa-calendar-plus me-1"></i>Nueva Cita
+                </a>
             </div>
         </div>
     </div>
 
-    <!-- 🔹 CONTENIDO PRINCIPAL -->
-    <div class="row g-4">
-        <!-- Próximas Citas -->
-        <div class="col-lg-6">
-            <div class="card dashboard-card">
-                <div class="card-header">
-                    <h5><i class="fas fa-calendar-day me-2 text-primary"></i>Próximas Citas</h5>
-                    <a href="@Url.Action("Appointments")" class="small text-decoration-none">Ver todas</a>
+    <!-- SECCIÓN 1: ESTADO ACTUAL (LO MÁS IMPORTANTE PRIMERO) -->
+    <div class="row mb-4">
+        <!-- ESTADO DE HOY -->
+        <div class="col-lg-8">
+            <div class="card daily-check-card mb-4">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-day me-2"></i>Mi Día de Hoy
+                        <small class="fs-6 ms-2">@DateTime.Now.ToString("dddd, dd MMMM yyyy")</small>
+                    </h5>
+                    <div>
+                        @if (Model.TodayCheck != null)
+                        {
+                            <a href="@Url.Action("Diary", "Health")" class="btn btn-sm btn-light">
+                                <i class="fas fa-edit me-1"></i>Actualizar
+                            </a>
+                        }
+                        else
+                        {
+                            <a href="@Url.Action("Diary", "Health")" class="btn btn-sm btn-light">
+                                <i class="fas fa-plus me-1"></i>Registrar
+                            </a>
+                        }
+                    </div>
                 </div>
+                
                 <div class="card-body">
-                    @if (Model.UpcomingAppointments.Any())
+                    @if (Model.TodayCheck != null)
                     {
-                        <ul class="list-group list-group-flush">
-                            @foreach (var appointment in Model.UpcomingAppointments.Take(5))
-                            {
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <strong>@appointment.Title</strong><br />
-                                        <small class="text-muted">
-                                            <i class="fas fa-clock me-1"></i>@appointment.AppointmentDate.ToString("dd/MM/yyyy HH:mm")
-                                        </small>
+                        <div class="today-summary">
+                            <div class="row text-center mb-4">
+                                <div class="col-4">
+                                    <div class="today-stat">
+                                        <div class="stat-value">
+                                            @switch (Model.TodayCheck.GeneralWellness)
+                                            {
+                                                case LifeHub.Models.Entities.WellnessLevel.Excelente:
+                                                    <span class="text-success">😊 Excelente</span>
+                                                    break;
+                                                case LifeHub.Models.Entities.WellnessLevel.Bueno:
+                                                    <span class="text-info">🙂 Bueno</span>
+                                                    break;
+                                                case LifeHub.Models.Entities.WellnessLevel.Regular:
+                                                    <span class="text-warning">😐 Regular</span>
+                                                    break;
+                                                case LifeHub.Models.Entities.WellnessLevel.Malo:
+                                                    <span class="text-danger">😔 Malo</span>
+                                                    break;
+                                                case LifeHub.Models.Entities.WellnessLevel.Terrible:
+                                                    <span class="text-danger">😫 Terrible</span>
+                                                    break;
+                                            }
+                                        </div>
+                                        <div class="stat-label">Estado General</div>
                                     </div>
-                                    <a href="@Url.Action("EditAppointment", new { id = appointment.Id })" class="btn btn-outline-primary btn-sm rounded-pill">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                </li>
+                                </div>
+                                <div class="col-4">
+                                    <div class="today-stat">
+                                        <div class="stat-value text-primary">
+                                            @Model.TodayCheck.EnergyLevel<small>/10</small>
+                                        </div>
+                                        <div class="stat-label">Nivel de Energía</div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="today-stat">
+                                        <div class="stat-value text-info">
+                                            @Model.TodayCheck.SleepQuality<small>/10</small>
+                                        </div>
+                                        <div class="stat-label">Calidad de Sueño</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if (Model.TodayCheck.SelectedSymptoms.Any())
+                            {
+                                <div class="symptoms-today mb-3">
+                                    <h6><i class="fas fa-exclamation-circle me-2 text-warning"></i>Síntomas Reportados</h6>
+                                    <div class="symptoms-tags mt-2">
+                                        @foreach (var symptom in Model.TodayCheck.SelectedSymptoms)
+                                        {
+                                            <span class="symptom-tag">
+                                                @switch(symptom.ToString())
+                                                {
+                                                    case "Headache": <text>🤕 Dolor cabeza</text>; break;
+                                                    case "Fatigue": <text>😴 Fatiga</text>; break;
+                                                    case "Nausea": <text>🤢 Náuseas</text>; break;
+                                                    case "Palpitations": <text>💓 Palpitaciones</text>; break;
+                                                    case "Fever": <text>🤒 Fiebre</text>; break;
+                                                    case "LossOfAppetite": <text>🍽️ Falta apetito</text>; break;
+                                                    case "Anxiety": <text>😰 Ansiedad</text>; break;
+                                                    case "Depression": <text>😞 Depresión</text>; break;
+                                                    case "SleepProblems": <text>💤 Problemas sueño</text>; break;
+                                                    case "JointPain": <text>🦵 Dolor articular</text>; break;
+                                                    case "Dizziness": <text>🌀 Mareos</text>; break;
+                                                    case "Other": <text>📝 Otro</text>; break;
+                                                }
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
                             }
-                        </ul>
+
+                            @if (!string.IsNullOrEmpty(Model.TodayCheck.QuickNote))
+                            {
+                                <div class="quick-note-today">
+                                    <h6><i class="fas fa-sticky-note me-2 text-info"></i>Nota del Día</h6>
+                                    <p class="mb-0 p-2 bg-light rounded">"@Model.TodayCheck.QuickNote"</p>
+                                </div>
+                            }
+                        </div>
                     }
                     else
                     {
-                        <div class="empty-state">
-                            <i class="fas fa-calendar-times fa-2x mb-2 text-muted"></i>
-                            <p>No hay citas próximas</p>
-                            <a href="@Url.Action("CreateAppointment")" class="btn btn-primary btn-sm">+ Crear Cita</a>
+                        <div class="text-center py-4">
+                            <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">¿Cómo estás hoy?</h5>
+                            <p class="text-muted mb-4">Tómate 2 minutos para registrar tu estado y obtener insights personalizados</p>
+                            <a href="@Url.Action("Diary", "Health")" class="btn btn-primary btn-lg">
+                                <i class="fas fa-plus me-2"></i>Registrar Mi Día
+                            </a>
                         </div>
                     }
                 </div>
             </div>
         </div>
 
-        <!-- Medicamentos -->
-        <div class="col-lg-6">
-            <div class="card dashboard-card">
-                <div class="card-header">
-                    <h5><i class="fas fa-pills me-2 text-success"></i>Medicamentos Activos</h5>
-                    <a href="@Url.Action("Medications")" class="small text-decoration-none">Ver todos</a>
+        <!-- PANEL LATERAL: RESUMEN Y ACCIONES -->
+        <div class="col-lg-4">
+            <!-- RESUMEN SEMANAL -->
+            <div class="card stats-card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>📊 Resumen de la Semana</h6>
+                </div>
+                <div class="card-body">
+                    <div class="weekly-stats">
+                        <div class="stat-item">
+                            <div class="stat-number text-primary">@Model.CurrentStreak</div>
+                            <div class="stat-label">Días consecutivos</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number text-success">@Model.AverageEnergy</div>
+                            <div class="stat-label">Energía promedio</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number text-info">@Model.AverageSleepQuality</div>
+                            <div class="stat-label">Sueño promedio</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">
+                                @switch (Model.MostCommonWellness)
+                                {
+                                    case LifeHub.Models.Entities.WellnessLevel.Excelente:
+                                        <span class="text-success">😊</span>
+                                        break;
+                                    case LifeHub.Models.Entities.WellnessLevel.Bueno:
+                                        <span class="text-info">🙂</span>
+                                        break;
+                                    case LifeHub.Models.Entities.WellnessLevel.Regular:
+                                        <span class="text-warning">😐</span>
+                                        break;
+                                    case LifeHub.Models.Entities.WellnessLevel.Malo:
+                                        <span class="text-danger">😔</span>
+                                        break;
+                                    case LifeHub.Models.Entities.WellnessLevel.Terrible:
+                                        <span class="text-danger">😫</span>
+                                        break;
+                                }
+                            </div>
+                            <div class="stat-label">Estado común</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACCIONES RÁPIDAS -->
+            <div class="card quick-actions-card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>⚡ Acciones Rápidas</h6>
+                </div>
+                <div class="card-body">
+                    <div class="quick-actions-grid">
+                        <a href="@Url.Action("CreateMedication", "Health")" class="quick-action-btn">
+                            <i class="fas fa-pills"></i>
+                            <span>Agregar Medicamento</span>
+                        </a>
+                        <a href="@Url.Action("CreateAppointment", "Health")" class="quick-action-btn">
+                            <i class="fas fa-calendar-plus"></i>
+                            <span>Nueva Cita</span>
+                        </a>
+                        <a href="@Url.Action("History", "Health")" class="quick-action-btn">
+                            <i class="fas fa-history"></i>
+                            <span>Ver Historial</span>
+                        </a>
+                        <a href="@Url.Action("MedicalReport", "Health")" class="quick-action-btn">
+                            <i class="fas fa-file-medical"></i>
+                            <span>Reporte Médico</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECCIÓN 2: ALERTAS Y RECOMENDACIONES -->
+    @if (Model.HealthInsights.Any() || Model.LowStockMedications.Any())
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card focus-card">
+                    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-bullhorn me-2"></i>🎯 Atención y Recomendaciones</h5>
+                        <small>Actualizado hoy</small>
+                    </div>
+                    <div class="card-body">
+                        <!-- Insights de Salud -->
+                        @if (Model.HealthInsights.Any())
+                        {
+                            <div class="mb-3">
+                                <h6><i class="fas fa-lightbulb me-2 text-info"></i>Insights de Tu Salud</h6>
+                                <div class="insights-grid">
+                                    @foreach (var insight in Model.HealthInsights)
+                                    {
+                                        <div class="insight-item">
+                                            @Html.Raw(insight)
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Alertas de Medicamentos -->
+                        @if (Model.LowStockMedications.Any())
+                        {
+                            <div>
+                                <h6><i class="fas fa-exclamation-triangle me-2 text-danger"></i>Acciones Necesarias</h6>
+                                <div class="alert-items">
+                                    @foreach (var med in Model.LowStockMedications)
+                                    {
+                                        <div class="alert-item">
+                                            <strong>@med.Name</strong> - Solo quedan @med.TotalQuantity unidades
+                                            @if (med.TotalQuantity <= med.LowStockAlert)
+                                            {
+                                                <span class="badge bg-danger ms-2">¡Stock crítico!</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning ms-2">Stock bajo</span>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- SECCIÓN 3: HERRAMIENTAS PRINCIPALES -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h3 class="section-title">
+                <i class="fas fa-toolbox me-2"></i>🛠️ Mis Herramientas de Salud
+            </h3>
+            
+            <div class="row">
+                <!-- DIARIO Y SEGUIMIENTO -->
+                <div class="col-md-4 mb-3">
+                    <div class="card tool-card">
+                        <div class="card-body text-center">
+                            <div class="tool-icon mb-3">
+                                <i class="fas fa-book-medical fa-3x text-primary"></i>
+                            </div>
+                            <h5 class="card-title">Diario de Salud</h5>
+                            <p class="card-text text-muted small">Registro diario de síntomas, energía y bienestar</p>
+                            <div class="tool-links mt-3">
+                                <a href="@Url.Action("Diary", "Health")" class="btn btn-outline-primary btn-sm me-2">
+                                    <i class="fas fa-edit"></i> Registrar
+                                </a>
+                                <a href="@Url.Action("History", "Health")" class="btn btn-outline-info btn-sm">
+                                    <i class="fas fa-history"></i> Historial
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MEDICAMENTOS -->
+                <div class="col-md-4 mb-3">
+                    <div class="card tool-card">
+                        <div class="card-body text-center">
+                            <div class="tool-icon mb-3">
+                                <i class="fas fa-pills fa-3x text-success"></i>
+                            </div>
+                            <h5 class="card-title">Gestión de Medicamentos</h5>
+                            <p class="card-text text-muted small">Control de stock, recordatorios y seguimiento</p>
+                            <div class="tool-links mt-3">
+                                <a href="@Url.Action("Medications", "Health")" class="btn btn-outline-success btn-sm me-2">
+                                    <i class="fas fa-list"></i> Ver Todos
+                                </a>
+                                <a href="@Url.Action("CreateMedication", "Health")" class="btn btn-success btn-sm">
+                                    <i class="fas fa-plus"></i> Agregar
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CITAS MÉDICAS -->
+                <div class="col-md-4 mb-3">
+                    <div class="card tool-card">
+                        <div class="card-body text-center">
+                            <div class="tool-icon mb-3">
+                                <i class="fas fa-calendar-check fa-3x text-primary"></i>
+                            </div>
+                            <h5 class="card-title">Citas Médicas</h5>
+                            <p class="card-text text-muted small">Agenda, recordatorios y preparación</p>
+                            <div class="tool-links mt-3">
+                                <a href="@Url.Action("Appointments", "Health")" class="btn btn-outline-primary btn-sm me-2">
+                                    <i class="fas fa-list"></i> Ver Citas
+                                </a>
+                                <a href="@Url.Action("CreateAppointment", "Health")" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus"></i> Nueva
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECCIÓN 4: ANÁLISIS Y REPORTES -->
+    <div class="row">
+        <div class="col-12">
+            <h3 class="section-title">
+                <i class="fas fa-chart-bar me-2 text-info"></i>📈 Análisis y Reportes
+                <small class="text-muted fs-6">Información detallada de tu salud</small>
+            </h3>
+            
+            <div class="row">
+                <!-- PATRONES DE SALUD -->
+                <div class="col-md-6 mb-3">
+                    <div class="card analysis-feature-card">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="feature-icon me-3">
+                                    <i class="fas fa-project-diagram fa-2x text-info"></i>
+                                </div>
+                                <div>
+                                    <h5 class="card-title mb-1">Patrones de Salud</h5>
+                                    <p class="card-text text-muted small mb-0">Descubre tendencias en tu bienestar</p>
+                                </div>
+                            </div>
+                            <div class="analysis-feature-description">
+                                <p class="small text-muted mb-3">
+                                    📊 <strong>Analiza patrones</strong> en tus síntomas, niveles de energía y calidad de sueño para entender mejor tu salud.
+                                </p>
+                                <div class="d-grid">
+                                    <a href="@Url.Action("HealthPatterns", "Health")" class="btn btn-info">
+                                        <i class="fas fa-chart-line me-2"></i>Ver Patrones
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REPORTES MÉDICOS -->
+                <div class="col-md-6 mb-3">
+                    <div class="card analysis-feature-card">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="feature-icon me-3">
+                                    <i class="fas fa-file-medical fa-2x text-primary"></i>
+                                </div>
+                                <div>
+                                    <h5 class="card-title mb-1">Reportes Médicos</h5>
+                                    <p class="card-text text-muted small mb-0">Resúmenes completos de tu salud</p>
+                                </div>
+                            </div>
+                            <div class="analysis-feature-actions">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <a href="@Url.Action("MedicalReport", "Health")" class="btn btn-outline-primary btn-sm w-100">
+                                            <i class="fas fa-file-pdf me-1"></i>Reporte
+                                        </a>
+                                    </div>
+                                    <div class="col-6">
+                                        <a href="@Url.Action("Stats", "Health")" class="btn btn-outline-success btn-sm w-100">
+                                            <i class="fas fa-chart-bar me-1"></i>Estadísticas
+                                        </a>
+                                    </div>
+                                    <div class="col-12 mt-2">
+                                        <a href="@Url.Action("Insights", "Health")" class="btn btn-outline-warning btn-sm w-100">
+                                            <i class="fas fa-lightbulb me-1"></i>Insights
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECCIÓN 5: VISTA RÁPIDA DE DATOS -->
+    <div class="row mt-4">
+        <!-- MEDICAMENTOS ACTIVOS -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="fas fa-pills me-2"></i>💊 Medicamentos Activos</h6>
+                    <span class="badge bg-light text-success">@Model.ActiveMedications.Count</span>
                 </div>
                 <div class="card-body">
                     @if (Model.ActiveMedications.Any())
                     {
-                        <ul class="list-group list-group-flush">
-                            @foreach (var medication in Model.ActiveMedications.Take(5))
+                        <div class="medication-list">
+                            @foreach (var med in Model.ActiveMedications.Take(4))
                             {
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <strong>@medication.Name</strong><br />
-                                        <small class="text-muted">@medication.Dosage - @medication.Frequency</small>
+                                <div class="medication-item d-flex justify-content-between align-items-center p-2 border-bottom">
+                                    <div class="flex-grow-1">
+                                        <strong class="d-block">@med.Name</strong>
+                                        <small class="text-muted">@med.Dosage - @med.Frequency</small>
                                     </div>
-                                    <a href="@Url.Action("EditMedication", new { id = medication.Id })" class="btn btn-outline-success btn-sm rounded-pill">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                </li>
+                                    <div class="text-end">
+                                        @if (med.TotalQuantity <= med.LowStockAlert)
+                                        {
+                                            <span class="badge bg-danger">@med.TotalQuantity</span>
+                                            <small class="d-block text-danger">Stock bajo</small>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">@med.TotalQuantity</span>
+                                            <small class="d-block text-muted">restantes</small>
+                                        }
+                                    </div>
+                                </div>
                             }
-                        </ul>
+                        </div>
+                        <div class="mt-3">
+                            <a href="@Url.Action("Medications", "Health")" class="btn btn-outline-success btn-sm w-100">
+                                <i class="fas fa-list me-1"></i>Gestionar Todos los Medicamentos
+                            </a>
+                        </div>
                     }
                     else
                     {
-                        <div class="empty-state">
-                            <i class="fas fa-pills fa-2x mb-2 text-muted"></i>
-                            <p>No hay medicamentos activos</p>
-                            <a href="@Url.Action("CreateMedication")" class="btn btn-success btn-sm">+ Agregar Medicamento</a>
+                        <div class="text-center py-3">
+                            <i class="fas fa-pills fa-2x text-muted mb-2"></i>
+                            <p class="text-muted mb-2">No hay medicamentos activos</p>
+                            <a href="@Url.Action("CreateMedication", "Health")" class="btn btn-success btn-sm">
+                                <i class="fas fa-plus me-1"></i>Agregar Primer Medicamento
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- PRÓXIMAS CITAS -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="fas fa-calendar me-2"></i>📅 Próximas Citas</h6>
+                    <span class="badge bg-light text-primary">@Model.UpcomingAppointments.Count</span>
+                </div>
+                <div class="card-body">
+                    @if (Model.UpcomingAppointments.Any())
+                    {
+                        <div class="appointment-list">
+                            @foreach (var appointment in Model.UpcomingAppointments.Take(3))
+                            {
+                                <div class="appointment-item p-2 border-bottom">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <strong class="d-block">@appointment.Title</strong>
+                                            <small class="text-muted d-block">
+                                                <i class="fas fa-user-md me-1"></i>
+                                                @(appointment.DoctorName ?? "Doctor no especificado")
+                                            </small>
+                                            <small class="text-muted">
+                                                <i class="fas fa-clock me-1"></i>
+                                                @appointment.AppointmentDate.ToString("dd/MM/yyyy HH:mm")
+                                            </small>
+                                        </div>
+                                        <div class="text-end">
+                                            <a href="@Url.Action("AppointmentPreparation", "Health", new { id = appointment.Id })" 
+                                               class="btn btn-sm btn-outline-primary" title="Preparar cita">
+                                                <i class="fas fa-clipboard-check"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <div class="mt-3">
+                            <a href="@Url.Action("Appointments", "Health")" class="btn btn-outline-primary btn-sm w-100">
+                                <i class="fas fa-list me-1"></i>Ver Todas las Citas
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-3">
+                            <i class="fas fa-calendar-plus fa-2x text-muted mb-2"></i>
+                            <p class="text-muted mb-2">No hay citas programadas</p>
+                            <a href="@Url.Action("CreateAppointment", "Health")" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus me-1"></i>Programar Primera Cita
+                            </a>
                         </div>
                     }
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- 🔹 ACCIONES RÁPIDAS -->
-    <div class="quick-actions mt-4">
-        <h4 class="text-primary fw-bold mb-3">
-            <i class="bi bi-rocket-takeoff-fill me-2 text-primary"></i> Acciones Rápidas
-        </h4>
-        <div class="d-flex flex-wrap gap-2">
-            <a href="@Url.Action("CreateAppointment")" class="btn btn-outline-primary btn-quick">
-                <i class="bi bi-calendar-plus me-1"></i> Nueva Cita
-            </a>
-            <a href="@Url.Action("CreateMedication")" class="btn btn-outline-success btn-quick">
-                <i class="bi bi-capsule-pill me-1"></i> Nuevo Medicamento
-            </a>
-            <a href="@Url.Action("Appointments")" class="btn btn-outline-info btn-quick">
-                <i class="bi bi-list-task me-1"></i> Ver Citas
-            </a>
-            <a href="@Url.Action("Medications")" class="btn btn-outline-warning btn-quick">
-                <i class="bi bi-prescription2 me-1"></i> Ver Medicamentos
-            </a>
-            <a href="@Url.Action("Stats")" class="btn btn-outline-danger btn-quick">
-                <i class="bi bi-bar-chart-line me-1"></i> Estadísticas
-            </a>
-        </div>
-    </div>
 </div>
 
+@section Styles {
+    <style>
+        .wellness-dashboard {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
 
-<style>
-/* ======= CONTENEDOR ======= */
-.health-dashboard {
-    background: linear-gradient(180deg, #f8fbff, #ffffff);
-    min-height: 100vh;
-    font-family: "Poppins", sans-serif;
-}
+        .dashboard-title {
+            color: #2c3e50;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            font-size: 2.2rem;
+        }
 
-/* ======= ENCABEZADO ======= */
-.dashboard-title {
-    font-weight: 700;
-    font-size: 2rem;
-    color: #1a2a6c;
-}
+        .dashboard-subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+            font-weight: 400;
+        }
 
-/* ======= BOTONES GRADIENTE ======= */
-.btn-primary-gradient {
-    background: linear-gradient(135deg, #4facfe, #00f2fe);
-    color: #fff !important;
-    border: none;
-    border-radius: 12px;
-    padding: 10px 22px;
-    font-weight: 600;
-}
-.btn-success-gradient {
-    background: linear-gradient(135deg, #43cea2, #185a9d);
-    color: #fff !important;
-    border: none;
-    border-radius: 12px;
-    padding: 10px 22px;
-    font-weight: 600;
-}
+        .section-title {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 12px;
+            margin-bottom: 25px;
+            font-weight: 600;
+        }
 
-/* ======= ALERTAS ======= */
-.alert-modern {
-    border-radius: 14px;
-    font-weight: 500;
-}
+        /* Tarjetas de herramientas */
+        .tool-card {
+            border: none;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            background: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            height: 100%;
+        }
 
-/* ======= TARJETAS DE ESTADÍSTICAS ======= */
-.stats-card {
-    border-radius: 16px;
-    padding: 18px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    color: #fff;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-}
-.stats-card i {
-    font-size: 2rem;
-}
-.stats-card h3 {
-    margin: 0;
-    font-weight: 700;
-}
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
 
-/* ======= TARJETAS ======= */
-.dashboard-card {
-    border: none;
-    border-radius: 18px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.05);
-}
-.card-header {
-    background: #f9fafc;
-    font-weight: 600;
-}
+        .tool-icon {
+            transition: transform 0.3s ease;
+        }
 
-/* ======= ESTADOS VACÍOS ======= */
-.empty-state {
-    text-align: center;
-    padding: 40px 0;
-    color: #888;
-}
+        .tool-card:hover .tool-icon {
+            transform: scale(1.1);
+        }
 
-/* ======= ACCIONES RÁPIDAS ======= */
-.quick-actions {
-    background: #fff;
-    border-radius: 18px;
-    padding: 25px;
-    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05);
-}
-.btn-quick {
-    border-radius: 10px;
-    font-weight: 600;
-    padding: 10px 18px;
-    transition: all 0.25s ease;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-.btn-quick i {
-    font-size: 1.1rem;
-}
-.btn-quick:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-}
+        .tool-links {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        }
 
-/* ======= GRADIENTES ======= */
-.bg-gradient-primary { background: linear-gradient(135deg, #3a8ef6, #005bea); }
-.bg-gradient-warning { background: linear-gradient(135deg, #f7971e, #ffd200); }
-.bg-gradient-success { background: linear-gradient(135deg, #43cea2, #185a9d); }
-.bg-gradient-info { background: linear-gradient(135deg, #36d1dc, #5b86e5); }
+        /* Tarjetas de análisis */
+        .analysis-feature-card {
+            border: none;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            background: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            height: 100%;
+        }
 
-/* ======= RESPONSIVE ======= */
-@@media (max-width: 768px) {
-    .dashboard-title { font-size: 1.6rem; text-align: center; }
-    .stats-card { flex-direction: column; text-align: center; }
+        .analysis-feature-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .feature-icon {
+            transition: transform 0.3s ease;
+        }
+
+        .analysis-feature-card:hover .feature-icon {
+            transform: scale(1.05);
+        }
+
+        /* Acciones rápidas */
+        .quick-actions-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .quick-action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #495057;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+            text-align: center;
+        }
+
+        .quick-action-btn:hover {
+            background: white;
+            border-color: #28a745;
+            color: #28a745;
+            text-decoration: none;
+            transform: translateY(-2px);
+        }
+
+        .quick-action-btn i {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+
+        .quick-action-btn span {
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        /* Resto de estilos mejorados */
+        .daily-check-card {
+            border-left: 4px solid #007bff;
+        }
+
+        .stats-card {
+            border-left: 4px solid #17a2b8;
+        }
+
+        .focus-card {
+            border-left: 4px solid #ffc107;
+            background: linear-gradient(135deg, #fff9e6 0%, #ffffff 100%);
+        }
+
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .today-summary {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .today-stat {
+            padding: 10px;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .weekly-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .stat-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .symptoms-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .symptom-tag {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            border: 1px solid #bbdefb;
+            font-weight: 500;
+        }
+
+        .medication-item, .appointment-item {
+            transition: background-color 0.2s;
+            border-radius: 6px;
+        }
+
+        .medication-item:hover, .appointment-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .insights-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .insight-item {
+            padding: 12px 15px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #17a2b8;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .alert-items {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .alert-item {
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 6px;
+            border-left: 3px solid #ffc107;
+        }
+
+        @@media (max-width: 768px) {
+            .header-actions {
+                margin-top: 15px;
+                width: 100%;
+                display: flex;
+                gap: 10px;
+            }
+            
+            .header-actions .btn {
+                flex: 1;
+            }
+            
+            .weekly-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .quick-actions-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tool-links {
+                flex-direction: column;
+            }
+
+            .dashboard-title {
+                font-size: 1.8rem;
+            }
+        }
+
+        @@media (max-width: 576px) {
+            .today-summary .row {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .today-summary .col-4 {
+                width: 100%;
+            }
+        }
+    </style>
 }
-</style>

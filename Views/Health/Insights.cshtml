@@ -1,0 +1,588 @@
+@model List<string>
+@{
+    ViewData["Title"] = "Insights de Salud";
+}
+
+<div class="health-insights">
+    <div class="insights-header text-center mb-5">
+        <h1 class="insights-title">
+            <i class="fas fa-brain me-2"></i>Análisis Inteligente
+        </h1>
+        <p class="insights-subtitle">Patrones y recomendaciones basadas en tus datos de salud</p>
+    </div>
+
+    <!-- NAVEGACIÓN RÁPIDA -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body py-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <div>
+                            <h6 class="mb-0">Navegación Rápida</h6>
+                        </div>
+                        <div class="nav-buttons">
+                            <a href="@Url.Action("Index", "Health")" class="btn btn-outline-primary btn-sm me-2">
+                                <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                            </a>
+                            <a href="@Url.Action("Diary", "Health")" class="btn btn-outline-success btn-sm me-2">
+                                <i class="fas fa-clipboard-check me-1"></i>Registrar Día
+                            </a>
+                            <a href="@Url.Action("History", "Health")" class="btn btn-outline-info btn-sm">
+                                <i class="fas fa-history me-1"></i>Historial
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.Any())
+    {
+        <div class="row">
+            <!-- INSIGHTS PRINCIPALES -->
+            <div class="col-lg-8">
+                <div class="card insights-main-card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>🎯 Insights Detectados</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="insights-list">
+                            @for (int i = 0; i < Model.Count; i++)
+                            {
+                                var insight = Model[i];
+                                var insightType = GetInsightType(insight);
+                                
+                                <div class="insight-item alert @GetInsightAlertClass(insightType)">
+                                    <div class="d-flex">
+                                        <div class="flex-shrink-0 me-3">
+                                            <i class="@GetInsightIcon(insightType) fa-lg"></i>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h6 class="alert-heading mb-2">@GetInsightTitle(insightType)</h6>
+                                            @Html.Raw(insight)
+                                        </div>
+                                        <div class="flex-shrink-0">
+                                            <span class="badge @GetInsightBadgeClass(insightType)">
+                                                @GetInsightPriority(insightType)
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PATRONES DETECTADOS -->
+                <div class="card mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-project-diagram me-2"></i>🔄 Patrones Detectados</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="patterns-grid">
+                            @if (Model.Any(i => i.Contains("energía baja") || i.Contains("Fatiga")))
+                            {
+                                <div class="pattern-item">
+                                    <div class="pattern-icon text-warning">
+                                        <i class="fas fa-battery-quarter fa-2x"></i>
+                                    </div>
+                                    <div class="pattern-content">
+                                        <h6>Baja Energía Recurrente</h6>
+                                        <p class="text-muted mb-2">Sueles reportar niveles de energía por debajo de tu promedio</p>
+                                        <div class="pattern-tags">
+                                            <span class="pattern-tag">Consistente</span>
+                                            <span class="pattern-tag">Días laborables</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            
+                            @if (Model.Any(i => i.Contains("sueño") && i.Contains("mejorar")))
+                            {
+                                <div class="pattern-item">
+                                    <div class="pattern-icon text-info">
+                                        <i class="fas fa-moon fa-2x"></i>
+                                    </div>
+                                    <div class="pattern-content">
+                                        <h6>Calidad de Sueño Variable</h6>
+                                        <p class="text-muted mb-2">Tu sueño muestra fluctuaciones que podrían optimizarse</p>
+                                        <div class="pattern-tags">
+                                            <span class="pattern-tag">Nocturno</span>
+                                            <span class="pattern-tag">Interrumpido</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            
+                            @if (Model.Any(i => i.Contains("Dolor de cabeza") || i.Contains("aparece frecuentemente")))
+                            {
+                                <div class="pattern-item">
+                                    <div class="pattern-icon text-danger">
+                                        <i class="fas fa-head-side-virus fa-2x"></i>
+                                    </div>
+                                    <div class="pattern-content">
+                                        <h6>Síntomas Frecuentes</h6>
+                                        <p class="text-muted mb-2">Ciertos síntomas aparecen regularmente en tus registros</p>
+                                        <div class="pattern-tags">
+                                            <span class="pattern-tag">Recurrente</span>
+                                            <span class="pattern-tag">Monitorizar</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Patrón general -->
+                            <div class="pattern-item">
+                                <div class="pattern-icon text-success">
+                                    <i class="fas fa-chart-line fa-2x"></i>
+                                </div>
+                                <div class="pattern-content">
+                                    <h6>Compromiso con tu Salud</h6>
+                                    <p class="text-muted mb-2">Mantienes un buen registro de tu bienestar diario</p>
+                                    <div class="pattern-tags">
+                                        <span class="pattern-tag">Consistente</span>
+                                        <span class="pattern-tag">Proactivo</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RECOMENDACIONES ACCIONABLES -->
+            <div class="col-lg-4">
+                <div class="card recommendations-card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>💡 Acciones Sugeridas</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="action-list">
+                            @if (Model.Any(i => i.Contains("energía baja") || i.Contains("fatiga")))
+                            {
+                                <div class="action-item">
+                                    <div class="action-header">
+                                        <i class="fas fa-bolt text-warning me-2"></i>
+                                        <strong>⚡ Mejorar Niveles de Energía</strong>
+                                    </div>
+                                    <ul class="action-steps">
+                                        <li>Establece una rutina de sueño consistente</li>
+                                        <li>Mantén hidratación constante durante el día</li>
+                                        <li>Programa pausas activas cada 2 horas de trabajo</li>
+                                        <li>Considera snacks energéticos saludables</li>
+                                    </ul>
+                                    <div class="action-priority">
+                                        <span class="badge bg-warning">Prioridad Alta</span>
+                                    </div>
+                                </div>
+                            }
+                            
+                            @if (Model.Any(i => i.Contains("sueño") && i.Contains("mejorar")))
+                            {
+                                <div class="action-item">
+                                    <div class="action-header">
+                                        <i class="fas fa-moon text-info me-2"></i>
+                                        <strong>🌙 Optimizar Higiene del Sueño</strong>
+                                    </div>
+                                    <ul class="action-steps">
+                                        <li>Evita pantallas 1 hora antes de dormir</li>
+                                        <li>Mantén tu habitación oscura y fresca</li>
+                                        <li>Establece una rutina relajante nocturna</li>
+                                        <li>Consistencia en horarios de sueño</li>
+                                    </ul>
+                                    <div class="action-priority">
+                                        <span class="badge bg-info">Prioridad Media</span>
+                                    </div>
+                                </div>
+                            }
+                            
+                            @if (Model.Any(i => i.Contains("Dolor de cabeza") || i.Contains("ansiedad")))
+                            {
+                                <div class="action-item">
+                                    <div class="action-header">
+                                        <i class="fas fa-heartbeat text-danger me-2"></i>
+                                        <strong>😌 Manejo del Estrés</strong>
+                                    </div>
+                                    <ul class="action-steps">
+                                        <li>Practica respiración profunda 5 min/día</li>
+                                        <li>Incorpora pausas conscientes en tu día</li>
+                                        <li>Ejercicio suave regular (yoga, caminata)</li>
+                                        <li>Identifica y reduce desencadenantes</li>
+                                    </ul>
+                                    <div class="action-priority">
+                                        <span class="badge bg-danger">Prioridad Alta</span>
+                                    </div>
+                                </div>
+                            }
+
+                            <!-- Recomendación general -->
+                            <div class="action-item">
+                                <div class="action-header">
+                                    <i class="fas fa-chart-line text-success me-2"></i>
+                                    <strong>📊 Seguimiento Continuo</strong>
+                                </div>
+                                <ul class="action-steps">
+                                    <li>Mantén el registro diario consistente</li>
+                                    <li>Revisa tendencias semanales</li>
+                                    <li>Comparte insights con tu médico</li>
+                                    <li>Ajusta basado en patrones detectados</li>
+                                </ul>
+                                <div class="action-priority">
+                                    <span class="badge bg-success">Continuo</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RESUMEN DE BIENESTAR -->
+                <div class="card">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="fas fa-star me-2"></i>⭐ Tu Salud en Perspectiva</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="wellness-summary">
+                            <div class="summary-item">
+                                <div class="summary-label">Compromiso</div>
+                                <div class="summary-value">
+                                    <div class="progress">
+                                        <div class="progress-bar bg-success" style="width: 85%">85%</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-label">Energía</div>
+                                <div class="summary-value">
+                                    <div class="progress">
+                                        <div class="progress-bar @(Model.Any(i => i.Contains("energía baja")) ? "bg-warning" : "bg-success")" 
+                                             style="width: @(Model.Any(i => i.Contains("energía baja")) ? "65%" : "80%")">
+                                            @(Model.Any(i => i.Contains("energía baja")) ? "65%" : "80%")
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-label">Sueño</div>
+                                <div class="summary-value">
+                                    <div class="progress">
+                                        <div class="progress-bar @(Model.Any(i => i.Contains("sueño") && i.Contains("mejorar")) ? "bg-info" : "bg-success")" 
+                                             style="width: @(Model.Any(i => i.Contains("sueño") && i.Contains("mejorar")) ? "70%" : "85%")">
+                                            @(Model.Any(i => i.Contains("sueño") && i.Contains("mejorar")) ? "70%" : "85%")
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="summary-item">
+                                <div class="summary-label">Síntomas</div>
+                                <div class="summary-value">
+                                    <div class="progress">
+                                        <div class="progress-bar @(Model.Any(i => i.Contains("frecuentemente")) ? "bg-warning" : "bg-success")" 
+                                             style="width: @(Model.Any(i => i.Contains("frecuentemente")) ? "60%" : "90%")">
+                                            @(Model.Any(i => i.Contains("frecuentemente")) ? "60%" : "90%")
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                <h4 class="text-muted">Datos Insuficientes</h4>
+                <p class="text-muted mb-4">Registra tu bienestar durante algunos días para obtener insights personalizados</p>
+                <div class="d-grid gap-2 d-md-block">
+                    <a href="@Url.Action("Diary", "Health")" class="btn btn-primary btn-lg me-md-2">
+                        <i class="fas fa-plus me-2"></i>Comenzar Registro
+                    </a>
+                    <a href="@Url.Action("Index", "Health")" class="btn btn-outline-secondary btn-lg">
+                        <i class="fas fa-tachometer-alt me-2"></i>Ir al Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@functions {
+    private string GetInsightType(string insight)
+    {
+        if (insight.Contains("💤") || insight.Contains("energía baja")) return "warning";
+        if (insight.Contains("🌙") || insight.Contains("sueño")) return "info";
+        if (insight.Contains("🔍") || insight.Contains("frecuentemente")) return "danger";
+        if (insight.Contains("⚡") || insight.Contains("excelente")) return "success";
+        return "primary";
+    }
+
+    private string GetInsightAlertClass(string type)
+    {
+        return type switch
+        {
+            "warning" => "alert-warning",
+            "info" => "alert-info",
+            "danger" => "alert-danger",
+            "success" => "alert-success",
+            _ => "alert-primary"
+        };
+    }
+
+    private string GetInsightIcon(string type)
+    {
+        return type switch
+        {
+            "warning" => "fas fa-exclamation-triangle",
+            "info" => "fas fa-info-circle",
+            "danger" => "fas fa-exclamation-circle",
+            "success" => "fas fa-check-circle",
+            _ => "fas fa-lightbulb"
+        };
+    }
+
+    private string GetInsightTitle(string type)
+    {
+        return type switch
+        {
+            "warning" => "Atención Requerida",
+            "info" => "Recomendación",
+            "danger" => "Patrón Detectado",
+            "success" => "¡Buenas Noticias!",
+            _ => "Insight"
+        };
+    }
+
+    private string GetInsightBadgeClass(string type)
+    {
+        return type switch
+        {
+            "warning" => "bg-warning",
+            "info" => "bg-info",
+            "danger" => "bg-danger",
+            "success" => "bg-success",
+            _ => "bg-primary"
+        };
+    }
+
+    private string GetInsightPriority(string type)
+    {
+        return type switch
+        {
+            "warning" => "Alta",
+            "info" => "Media",
+            "danger" => "Crítica",
+            "success" => "Baja",
+            _ => "Media"
+        };
+    }
+}
+
+<style>
+    .health-insights {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .insights-title {
+        color: #2c3e50;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .insights-subtitle {
+        color: #7f8c8d;
+        font-size: 1.1rem;
+    }
+
+    .nav-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    /* Tarjetas principales */
+    .insights-main-card, .recommendations-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-header {
+        border-radius: 15px 15px 0 0 !important;
+        font-weight: 600;
+    }
+
+    /* Items de insights */
+    .insight-item {
+        border: none;
+        border-radius: 10px;
+        margin-bottom: 15px;
+        border-left: 4px solid;
+    }
+
+    .insight-item.alert-warning { border-left-color: #ffc107; }
+    .insight-item.alert-info { border-left-color: #17a2b8; }
+    .insight-item.alert-danger { border-left-color: #dc3545; }
+    .insight-item.alert-success { border-left-color: #28a745; }
+    .insight-item.alert-primary { border-left-color: #007bff; }
+
+    .alert-heading {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Patrones detectados */
+    .patterns-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .pattern-item {
+        display: flex;
+        align-items: flex-start;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        border-left: 4px solid #17a2b8;
+    }
+
+    .pattern-icon {
+        margin-right: 15px;
+        min-width: 50px;
+        text-align: center;
+    }
+
+    .pattern-content {
+        flex: 1;
+    }
+
+    .pattern-content h6 {
+        margin-bottom: 5px;
+        color: #2c3e50;
+    }
+
+    .pattern-tags {
+        display: flex;
+        gap: 5px;
+        margin-top: 8px;
+    }
+
+    .pattern-tag {
+        background: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        color: #6c757d;
+        border: 1px solid #dee2e6;
+    }
+
+    /* Lista de acciones */
+    .action-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .action-item {
+        background: white;
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid #e9ecef;
+        transition: transform 0.2s;
+    }
+
+    .action-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .action-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .action-steps {
+        margin-bottom: 10px;
+        padding-left: 20px;
+    }
+
+    .action-steps li {
+        margin-bottom: 5px;
+        font-size: 0.9rem;
+        color: #495057;
+    }
+
+    .action-priority {
+        text-align: right;
+    }
+
+    /* Resumen de bienestar */
+    .wellness-summary {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .summary-item {
+        display: flex;
+        justify-content: between;
+        align-items: center;
+    }
+
+    .summary-label {
+        flex: 1;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .summary-value {
+        flex: 2;
+    }
+
+    .progress {
+        height: 8px;
+        border-radius: 4px;
+    }
+
+    /* Responsive */
+    @@media (max-width: 768px) {
+        .pattern-item {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .pattern-icon {
+            margin-right: 0;
+            margin-bottom: 10px;
+        }
+        
+        .summary-item {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .summary-value {
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        .nav-buttons {
+            flex-direction: column;
+            width: 100%;
+        }
+        
+        .nav-buttons .btn {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+    }
+</style>

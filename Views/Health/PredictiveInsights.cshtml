@@ -1,0 +1,223 @@
+@model List<string>
+@{
+    ViewData["Title"] = "Insights Predictivos";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="display-6">🔮 Insights Predictivos</h1>
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                </a>
+            </div>
+            <p class="text-muted">Recomendaciones inteligentes basadas en tus patrones de salud</p>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-crystal-ball fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No hay insights disponibles aún</h5>
+                        <p class="text-muted mb-4">
+                            Los insights predictivos se generan automáticamente después de que registres 
+                            tu bienestar durante varios días.
+                        </p>
+                        <div class="row justify-content-center">
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6>💡 Para obtener insights:</h6>
+                                        <ul class="text-start small text-muted">
+                                            <li>Registra tu bienestar diario</li>
+                                            <li>Mantén consistencia por 7+ días</li>
+                                            <li>Anota síntomas cuando aparezcan</li>
+                                            <li>Registra tu medicación</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="@Url.Action("Diary")" class="btn btn-primary mt-3">
+                            <i class="fas fa-plus me-1"></i>Comenzar a Registrar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <!-- Insights Principales -->
+            <div class="col-lg-8">
+                @foreach (var insight in Model)
+                {
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0 me-3">
+                                    <div class="avatar avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center">
+                                        <i class="fas fa-lightbulb text-white"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <p class="mb-1">@insight</p>
+                                    <small class="text-muted">
+                                        <i class="fas @GetInsightIcon(insight) me-1"></i>
+                                        @GetInsightCategory(insight) • 
+                                        Basado en análisis de tus últimos registros
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Estadísticas de Insights -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Resumen de Insights</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-3">
+                            <div class="display-4 text-primary">@Model.Count</div>
+                            <small class="text-muted">Insights Generados</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <small class="text-muted d-block mb-1">Categorías:</small>
+                            @{
+                                var categories = Model.Select(GetInsightCategory).GroupBy(c => c);
+                            }
+                            @foreach (var category in categories)
+                            {
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="badge bg-light text-dark">@category.Key</span>
+                                    <small class="text-muted">@category.Count()</small>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Acciones Recomendadas -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h6 class="mb-0"><i class="fas fa-rocket me-2"></i>Acciones Sugeridas</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group list-group-flush">
+                            <div class="list-group-item d-flex align-items-center px-0">
+                                <i class="fas fa-calendar-check text-success me-3"></i>
+                                <div>
+                                    <small class="fw-bold">Registro Consistente</small>
+                                    <div class="small text-muted">Mantén tu diario de salud actualizado</div>
+                                </div>
+                            </div>
+                            <div class="list-group-item d-flex align-items-center px-0">
+                                <i class="fas fa-chart-line text-info me-3"></i>
+                                <div>
+                                    <small class="fw-bold">Revisa Patrones</small>
+                                    <div class="small text-muted">Analiza tendencias en tu salud</div>
+                                </div>
+                            </div>
+                            <div class="list-group-item d-flex align-items-center px-0">
+                                <i class="fas fa-user-md text-warning me-3"></i>
+                                <div>
+                                    <small class="fw-bold">Consulta Profesional</small>
+                                    <div class="small text-muted">Comparte insights con tu médico</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información -->
+                <div class="card border-0 shadow-sm mt-3">
+                    <div class="card-body">
+                        <h6 class="text-muted">🤖 Cómo funcionan los insights</h6>
+                        <p class="small text-muted mb-0">
+                            Los insights predictivos analizan tus patrones históricos para identificar 
+                            tendencias y ofrecer recomendaciones proactivas para tu bienestar.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección de Seguimiento -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm bg-light">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <h6>¿Quieres insights más precisos?</h6>
+                                <p class="mb-0 text-muted">
+                                    Mantén un registro consistente de tu salud y actualiza tu información 
+                                    regularmente para obtener análisis más detallados y personalizados.
+                                </p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <a href="@Url.Action("Diary")" class="btn btn-primary me-2">
+                                    <i class="fas fa-edit me-1"></i>Registrar Hoy
+                                </a>
+                                <a href="@Url.Action("HealthPatterns")" class="btn btn-outline-primary">
+                                    Ver Patrones
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@functions {
+    private string GetInsightIcon(string insight)
+    {
+        if (insight.Contains("💤") || insight.Contains("sueño") || insight.Contains("descanso"))
+            return "fa-moon";
+        if (insight.Contains("⚡") || insight.Contains("energía") || insight.Contains("energia"))
+            return "fa-battery-half";
+        if (insight.Contains("🔍") || insight.Contains("síntoma") || insight.Contains("sintoma"))
+            return "fa-stethoscope";
+        if (insight.Contains("💊") || insight.Contains("medicación") || insight.Contains("medicacion"))
+            return "fa-pills";
+        return "fa-chart-line";
+    }
+
+    private string GetInsightCategory(string insight)
+    {
+        if (insight.Contains("💤") || insight.Contains("sueño") || insight.Contains("descanso"))
+            return "Sueño";
+        if (insight.Contains("⚡") || insight.Contains("energía") || insight.Contains("energia"))
+            return "Energía";
+        if (insight.Contains("🔍") || insight.Contains("síntoma") || insight.Contains("sintoma"))
+            return "Síntomas";
+        if (insight.Contains("💊") || insight.Contains("medicación") || insight.Contains("medicacion"))
+            return "Medicación";
+        if (insight.Contains("📊") || insight.Contains("estado") || insight.Contains("bienestar"))
+            return "Estado General";
+        return "General";
+    }
+}
+
+<style>
+    .avatar {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>

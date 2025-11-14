@@ -746,5 +746,53 @@ namespace LifeHub.Services
             // Implementación para email de bienvenida
             return Task.FromResult(true);
         }
+
+        // Agregar este método en LifeHub/Services/EmailService.cs
+        // En LifeHub/Services/EmailService.cs - AGREGAR este método
+        public async Task<bool> SendSystemNotificationAsync(string toEmail, string subject, string htmlMessage, string? plainTextMessage = null)
+        {
+            try
+            {
+                var smtpConfig = GetSmtpConfig();
+
+                using var client = new SmtpClient(smtpConfig.Host, smtpConfig.Port)
+                {
+                    EnableSsl = smtpConfig.EnableSsl,
+                    Credentials = new NetworkCredential(smtpConfig.Username, smtpConfig.Password)
+                };
+
+                var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(smtpConfig.Username, "LifeHub Salud"),
+                    Subject = subject,
+                    Body = htmlMessage,
+                    IsBodyHtml = true
+                };
+
+                // Agregar versión texto plano si se proporciona
+                if (!string.IsNullOrEmpty(plainTextMessage))
+                {
+                    var plainTextView = AlternateView.CreateAlternateViewFromString(
+                        plainTextMessage, null, "text/plain");
+                    mailMessage.AlternateViews.Add(plainTextView);
+                }
+
+                mailMessage.To.Add(toEmail);
+
+                await client.SendMailAsync(mailMessage);
+                _logger.LogInformation("✅ Notificación del sistema enviada a {Email}", toEmail);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al enviar notificación del sistema a {Email}", toEmail);
+                return false;
+            }
+        }
+
+        public Task<bool> SendSystemNotificationAsync(string toEmail, string subject, string htmlMessage)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

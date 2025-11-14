@@ -1,0 +1,422 @@
+@model LifeHub.Models.ViewModels.WellnessCheckViewModel
+@{
+    ViewData["Title"] = "Mi Día de Salud";
+}
+
+<div class="health-diary">
+    <!-- HEADER -->
+    <div class="diary-header text-center mb-5">
+        <h1 class="diary-title">
+            <i class="fas fa-clipboard-check me-2"></i>Mi Día de Salud
+        </h1>
+        <p class="diary-subtitle">Tómate 2-3 minutos para registrar tu bienestar completo</p>
+        
+        @if (Model.HasEntryToday)
+        {
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle me-2"></i>
+                ¡Ya registraste tu día de hoy! Puedes actualizarlo si lo necesitas.
+            </div>
+        }
+    </div>
+
+    <!-- NAVEGACIÓN RÁPIDA -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body py-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <div>
+                            <h6 class="mb-0">Navegación Rápida</h6>
+                        </div>
+                        <div class="nav-buttons">
+                            <a href="@Url.Action("Index", "Health")" class="btn btn-outline-primary btn-sm me-2">
+                                <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                            </a>
+                            <a href="@Url.Action("History", "Health")" class="btn btn-outline-info btn-sm me-2">
+                                <i class="fas fa-history me-1"></i>Historial
+                            </a>
+                            <a href="@Url.Action("Insights", "Health")" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-chart-line me-1"></i>Insights
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORMULARIO DE 3 SECCIONES -->
+    <form id="healthDiaryForm" method="post" asp-action="SaveDailyCheck" asp-controller="Health">
+        @Html.AntiForgeryToken()
+
+        <!-- SECCIÓN 1: ESTADO GENERAL -->
+        <div class="card section-card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">🔹 Estado General (30 segundos)</h5>
+            </div>
+            <div class="card-body">
+                <div class="wellness-level-selector text-center">
+                    @foreach (var level in Enum.GetValues(typeof(LifeHub.Models.Entities.WellnessLevel)).Cast<LifeHub.Models.Entities.WellnessLevel>())
+                    {
+                        var emoji = level switch {
+                            LifeHub.Models.Entities.WellnessLevel.Excelente => "😊",
+                            LifeHub.Models.Entities.WellnessLevel.Bueno => "🙂", 
+                            LifeHub.Models.Entities.WellnessLevel.Regular => "😐",
+                            LifeHub.Models.Entities.WellnessLevel.Malo => "😔",
+                            LifeHub.Models.Entities.WellnessLevel.Terrible => "😫",
+                            _ => "😐"
+                        };
+                        
+                        <input type="radio" asp-for="GeneralWellness" value="@level" id="wellness@(level)" class="wellness-radio">
+                        <label for="wellness@(level)" class="wellness-option">
+                            <span class="wellness-emoji">@emoji</span>
+                            <span class="wellness-text">@level.ToString()</span>
+                        </label>
+                    }
+                </div>
+                <span asp-validation-for="GeneralWellness" class="text-danger"></span>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 2: SÍNTOMAS ESPECÍFICOS -->
+        <div class="card section-card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">🔹 Síntomas Específicos (1 minuto)</h5>
+            </div>
+            <div class="card-body">
+                <div class="symptoms-grid">
+                    @foreach (var symptom in Enum.GetValues(typeof(LifeHub.Models.Entities.HealthSymptom)).Cast<LifeHub.Models.Entities.HealthSymptom>())
+                    {
+                        <div class="symptom-checkbox">
+                            <input type="checkbox" id="symptom@(symptom)" value="@symptom" 
+                                   @(Model.SelectedSymptoms.Contains(symptom) ? "checked" : "") 
+                                   name="SelectedSymptoms" class="symptom-input">
+                            <label for="symptom@(symptom)" class="symptom-label">
+                                @switch(symptom.ToString())
+                                {
+                                    case "Headache": <text>🤕 Dolor de cabeza</text>; break;
+                                    case "Fatigue": <text>😴 Fatiga</text>; break;
+                                    case "Nausea": <text>🤢 Náuseas</text>; break;
+                                    case "Palpitations": <text>💓 Palpitaciones</text>; break;
+                                    case "Fever": <text>🤒 Fiebre</text>; break;
+                                    case "LossOfAppetite": <text>🍽️ Falta de apetito</text>; break;
+                                    case "Anxiety": <text>😰 Ansiedad</text>; break;
+                                    case "Depression": <text>😞 Depresión</text>; break;
+                                    case "SleepProblems": <text>💤 Problemas de sueño</text>; break;
+                                    case "JointPain": <text>🦵 Dolor articular</text>; break;
+                                    case "Dizziness": <text>🌀 Mareos</text>; break;
+                                    case "Other": <text>📝 Otro</text>; break;
+                                }
+                            </label>
+                        </div>
+                    }
+                </div>
+
+                <!-- SÍNTOMA PERSONALIZADO -->
+                <div class="mt-3">
+                    <label class="form-label">📝 Otro síntoma (especificar):</label>
+                    <input asp-for="CustomSymptom" class="form-control" placeholder="Ej: Dolor muscular, acidez, etc.">
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN 3: MÉTRICAS CUANTIFICABLES -->
+        <div class="card section-card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">🔹 Métricas Cuantificables (1 minuto)</h5>
+            </div>
+            <div class="card-body">
+                <!-- ENERGÍA -->
+                <div class="metric-slider mb-4">
+                    <label class="form-label">
+                        ⚡ Nivel de energía: <span id="energyValue">@Model.EnergyLevel</span>/10
+                    </label>
+                    <input asp-for="EnergyLevel" type="range" class="form-range energy-slider" min="1" max="10">
+                    <span asp-validation-for="EnergyLevel" class="text-danger"></span>
+                </div>
+
+                <!-- CALIDAD DE SUEÑO -->
+                <div class="metric-slider mb-4">
+                    <label class="form-label">
+                        💤 Calidad de sueño: <span id="sleepValue">@Model.SleepQuality</span>/10
+                    </label>
+                    <input asp-for="SleepQuality" type="range" class="form-range sleep-slider" min="1" max="10">
+                    <span asp-validation-for="SleepQuality" class="text-danger"></span>
+                </div>
+
+                <!-- MEDICAMENTOS -->
+                <div class="medication-section mb-3">
+                    <div class="form-check">
+                        <input asp-for="TookMedications" class="form-check-input" id="tookMeds">
+                        <label class="form-check-label" for="tookMeds">
+                            💊 ¿Tomé mis medicamentos hoy?
+                        </label>
+                    </div>
+                </div>
+
+                <!-- NOTA RÁPIDA -->
+                <div class="quick-note-section">
+                    <label class="form-label">📝 Nota rápida del día:</label>
+                    <textarea asp-for="QuickNote" class="form-control" rows="3" 
+                              placeholder="Hoy me siento más cansado de lo normal, dormí bien pero tengo dolor de cabeza..."></textarea>
+                    <span asp-validation-for="QuickNote" class="text-danger"></span>
+                </div>
+
+                <!-- NOTAS DE MEDICAMENTOS -->
+                <div class="medication-notes-section mt-3">
+                    <label class="form-label">💊 Notas sobre medicamentos (opcional):</label>
+                    <textarea asp-for="MedicationNotes" class="form-control" rows="2" 
+                              placeholder="Tomé el medicamento con comida, efectos secundarios..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- BOTÓN DE GUARDADO -->
+        <div class="text-center">
+            <button type="submit" class="btn btn-primary btn-lg save-button">
+                <i class="fas fa-save me-2"></i>
+                @(Model.HasEntryToday ? "Actualizar Mi Día" : "Guardar Mi Día")
+            </button>
+            
+            <a href="@Url.Action("Index", "Health")" class="btn btn-outline-secondary btn-lg ms-2">
+                <i class="fas fa-tachometer-alt me-2"></i>Volver al Dashboard
+            </a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        // Sliders de energía y sueño
+        document.querySelectorAll('.energy-slider, .sleep-slider').forEach(slider => {
+            const valueSpan = slider.id === 'EnergyLevel' ? 
+                document.getElementById('energyValue') : 
+                document.getElementById('sleepValue');
+            
+            slider.addEventListener('input', function() {
+                valueSpan.textContent = this.value;
+            });
+        });
+
+        // Envío del formulario con AJAX
+        document.getElementById('healthDiaryForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const submitBtn = this.querySelector('.save-button');
+            const originalText = submitBtn.innerHTML;
+            
+            try {
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+                submitBtn.disabled = true;
+                
+                const response = await fetch('@Url.Action("SaveDailyCheck", "Health")', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('¡Día guardado exitosamente! ✅', 'success');
+                    setTimeout(() => {
+                        window.location.href = '@Url.Action("Index", "Health")';
+                    }, 1500);
+                } else {
+                    showNotification(result.error || 'Error al guardar', 'error');
+                }
+            } catch (error) {
+                showNotification('Error de conexión', 'error');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        function showNotification(message, type) {
+            // Implementar notificación
+            alert(message);
+        }
+    </script>
+
+    <style>
+        .health-diary {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .diary-title {
+            color: #2c3e50;
+            font-weight: 700;
+        }
+
+        .diary-subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .section-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+
+        .section-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            border-radius: 15px 15px 0 0 !important;
+            font-weight: 600;
+        }
+
+        /* Selector de estado general */
+        .wellness-level-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .wellness-radio {
+            display: none;
+        }
+
+        .wellness-option {
+            padding: 20px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+            min-width: 120px;
+            background: white;
+        }
+
+        .wellness-radio:checked + .wellness-option {
+            border-color: #007bff;
+            background-color: #e7f3ff;
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+        }
+
+        .wellness-emoji {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .wellness-text {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        /* Grid de síntomas */
+        .symptoms-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .symptom-checkbox {
+            display: flex;
+            align-items: center;
+        }
+
+        .symptom-input {
+            display: none;
+        }
+
+        .symptom-label {
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: 100%;
+            text-align: center;
+            background: white;
+        }
+
+        .symptom-input:checked + .symptom-label {
+            border-color: #17a2b8;
+            background-color: #e3f2fd;
+            color: #17a2b8;
+            font-weight: 600;
+        }
+
+        /* Sliders mejorados */
+        .metric-slider {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #28a745;
+        }
+
+        .form-range {
+            height: 8px;
+        }
+
+        .form-range::-webkit-slider-thumb {
+            background: #28a745;
+            border: none;
+            height: 20px;
+            width: 20px;
+        }
+
+        .form-range::-moz-range-thumb {
+            background: #28a745;
+            border: none;
+            height: 20px;
+            width: 20px;
+        }
+
+        /* Botones */
+        .save-button {
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            border-radius: 25px;
+            min-width: 200px;
+        }
+
+        /* Responsive */
+        @@media (max-width: 768px) {
+            .wellness-level-selector {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .wellness-option {
+                min-width: 200px;
+            }
+            
+            .symptoms-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-buttons {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .nav-buttons .btn {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+}

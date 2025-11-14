@@ -1,0 +1,740 @@
+@{
+    ViewData["Title"] = "Asistente de Salud - Chatbot";
+    var appointmentId = ViewBag.AppointmentId as int?;
+}
+
+<div class="container-fluid h-100">
+    <div class="row h-100">
+        <!-- Sidebar con información del usuario -->
+        <div class="col-md-3 d-none d-md-block bg-light p-4 border-end">
+            <div class="text-center mb-4">
+                <div class="avatar-circle bg-primary mb-3">
+                    <i class="fas fa-user-md text-white"></i>
+                </div>
+                <h6 class="mb-1">Tu Asistente de Salud</h6>
+                <p class="text-muted small">Disponible 24/7</p>
+            </div>
+            
+            <div class="user-context-card">
+                <h6 class="text-primary mb-3">
+                    <i class="fas fa-info-circle me-2"></i>Tu Contexto
+                </h6>
+                
+                <div id="userContext" class="small">
+                    <div class="loading-spinner">
+                        <i class="fas fa-spinner fa-spin"></i> Cargando tu información...
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <h6 class="text-primary mb-3">
+                    <i class="fas fa-bolt me-2"></i>Acciones Rápidas
+                </h6>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary btn-sm quick-sidebar-action" data-action="start_appointment">
+                        <i class="fas fa-calendar-plus me-2"></i>Nueva Cita
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm quick-sidebar-action" data-action="view_medications">
+                        <i class="fas fa-pills me-2"></i>Mis Medicamentos
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm quick-sidebar-action" data-action="record_health">
+                        <i class="fas fa-heartbeat me-2"></i>Registrar Salud
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Área principal del chat -->
+        <div class="col-md-9 col-12 d-flex flex-column" style="height: 100vh;">
+            <!-- Header del chat -->
+            <div class="chat-header bg-white border-bottom p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <div class="chat-avatar me-3">
+                            <i class="fas fa-robot text-primary"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">Asistente de Salud</h5>
+                            <small class="text-muted" id="connectionStatus">
+                                <i class="fas fa-circle text-success me-1"></i>En línea
+                            </small>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button id="clearChat" class="btn btn-outline-secondary btn-sm" title="Limpiar conversación">
+                            <i class="fas fa-broom"></i>
+                        </button>
+                        <button id="toggleSidebar" class="btn btn-outline-secondary btn-sm d-md-none" title="Información">
+                            <i class="fas fa-info"></i>
+                        </button>
+                        <a href="@Url.Action("Index")" class="btn btn-outline-primary btn-sm" title="Dashboard">
+                            <i class="fas fa-home"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contenedor de mensajes -->
+            <div id="chatMessages" class="chat-messages flex-grow-1 p-3">
+                <!-- Mensajes se cargarán aquí dinámicamente -->
+            </div>
+
+            <!-- Indicador de escritura -->
+            <div id="typingIndicator" class="typing-indicator p-3" style="display: none;">
+                <div class="d-flex align-items-center text-muted">
+                    <div class="typing-dots me-2">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <small>El asistente está escribiendo...</small>
+                </div>
+            </div>
+
+            <!-- Área de entrada -->
+            <div class="chat-input-container bg-white border-top p-3">
+                <div class="input-group">
+                    <input type="text" 
+                           id="messageInput" 
+                           class="form-control border-0" 
+                           placeholder="Escribe tu mensaje o pregunta de salud..." 
+                           maxlength="1000"
+                           autocomplete="off">
+                    <button id="sendButton" class="btn btn-primary rounded-circle" disabled>
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+                
+                <!-- Sugerencias rápidas -->
+                <div id="quickSuggestions" class="mt-2">
+                    <div class="d-flex flex-wrap gap-1">
+                        <button class="btn btn-outline-secondary btn-sm suggestion-btn" data-message="¿Qué puedo hacer para mejorar mi sueño?">
+                            💤 Sueño
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm suggestion-btn" data-message="¿Cómo manejar el estrés?">
+                            😌 Estrés
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm suggestion-btn" data-message="Recomendaciones de alimentación saludable">
+                            🥗 Alimentación
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm suggestion-btn" data-message="¿Qué ejercicios son buenos para...?">
+                            🏃 Ejercicio
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para información de usuario (mobile) -->
+<div class="modal fade" id="mobileSidebarModal" tabindex="-1">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Tu Información</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="mobileUserContext">
+                    <!-- Contenido dinámico -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentAppointmentId = @(appointmentId?.ToString() ?? "null");
+        let conversationHistory = [];
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatMessages = document.getElementById('chatMessages');
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            const typingIndicator = document.getElementById('typingIndicator');
+            const clearChat = document.getElementById('clearChat');
+            const userContext = document.getElementById('userContext');
+            const mobileUserContext = document.getElementById('mobileUserContext');
+            const toggleSidebar = document.getElementById('toggleSidebar');
+            const mobileSidebarModal = new bootstrap.Modal('#mobileSidebarModal');
+
+            // Inicializar chat
+            initializeChat();
+            loadUserContext();
+
+            // Event listeners
+            messageInput.addEventListener('input', updateSendButton);
+            messageInput.addEventListener('keypress', handleKeyPress);
+            sendButton.addEventListener('click', sendMessage);
+            clearChat.addEventListener('click', clearConversation);
+            toggleSidebar.addEventListener('click', () => mobileSidebarModal.show());
+
+            // Sugerencias rápidas
+            document.querySelectorAll('.suggestion-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    messageInput.value = this.dataset.message;
+                    sendMessage();
+                });
+            });
+
+            // Acciones de sidebar
+            document.querySelectorAll('.quick-sidebar-action').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    handleQuickAction(this.dataset.action);
+                });
+            });
+
+            function initializeChat() {
+                const welcomeMessage = `¡Hola! Soy tu asistente de salud personal 🤖
+
+Estoy aquí para ayudarte con cualquier pregunta o inquietud sobre tu salud. Puedes preguntarme sobre:
+
+• 🩺 **Síntomas y condiciones**
+• 💊 **Medicamentos y tratamientos**  
+• 🥗 **Nutrición y estilo de vida**
+• 😴 **Sueño y bienestar mental**
+• 📅 **Preparación de citas médicas**
+
+¿En qué puedo asistirte hoy?`;
+
+                showBotMessage(welcomeMessage, [
+                    { text: '📅 Preparar cita', action: 'start_appointment' },
+                    { text: '💊 Mis medicamentos', action: 'view_medications' },
+                    { text: '📝 Registrar salud', action: 'record_health' },
+                    { text: '🩺 Pregunta general', action: 'health_question' }
+                ]);
+            }
+
+            async function loadUserContext() {
+                try {
+                    // Simular carga de contexto del usuario
+                    setTimeout(() => {
+                        const contextHtml = `
+                            <div class="context-item mb-2">
+                                <i class="fas fa-calendar-check text-success me-2"></i>
+                                <span>1 cita próxima</span>
+                            </div>
+                            <div class="context-item mb-2">
+                                <i class="fas fa-pills text-info me-2"></i>
+                                <span>2 medicamentos activos</span>
+                            </div>
+                            <div class="context-item">
+                                <i class="fas fa-heart text-danger me-2"></i>
+                                <span>Último registro: Hoy</span>
+                            </div>
+                        `;
+                        userContext.innerHTML = contextHtml;
+                        mobileUserContext.innerHTML = contextHtml;
+                    }, 1000);
+                } catch (error) {
+                    console.error('Error loading user context:', error);
+                }
+            }
+
+            function updateSendButton() {
+                const hasText = messageInput.value.trim().length > 0;
+                sendButton.disabled = !hasText;
+            }
+
+            function handleKeyPress(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            }
+
+            async function sendMessage() {
+                const message = messageInput.value.trim();
+                if (!message) return;
+
+                // Limpiar y deshabilitar entrada
+                messageInput.value = '';
+                updateSendButton();
+                messageInput.disabled = true;
+                sendButton.disabled = true;
+
+                // Mostrar mensaje del usuario
+                showUserMessage(message);
+                showTypingIndicator();
+
+                try {
+                    const response = await fetchWithTimeout('@Url.Action("SendMessage", "Health")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ message: message })
+                    }, 30000); // 30 segundos timeout
+
+                    const data = await response.json();
+                    hideTypingIndicator();
+
+                    if (data.success) {
+                        showBotMessage(data.response.message, data.response.quickActions);
+                    } else {
+                        showErrorMessage(data.error || 'Error procesando tu mensaje. Por favor, intenta de nuevo.');
+                    }
+                } catch (error) {
+                    hideTypingIndicator();
+                    if (error.name === 'TimeoutError') {
+                        showErrorMessage('La respuesta está tardando más de lo esperado. Por favor, intenta con una pregunta más específica.');
+                    } else {
+                        showErrorMessage('Error de conexión. Por favor, verifica tu internet e intenta de nuevo.');
+                    }
+                } finally {
+                    // Rehabilitar entrada
+                    messageInput.disabled = false;
+                    messageInput.focus();
+                }
+            }
+
+            async function fetchWithTimeout(url, options, timeout) {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+                try {
+                    const response = await fetch(url, {
+                        ...options,
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
+                    return response;
+                } catch (error) {
+                    clearTimeout(timeoutId);
+                    if (error.name === 'AbortError') {
+                        throw new Error('TimeoutError');
+                    }
+                    throw error;
+                }
+            }
+
+            function showUserMessage(message) {
+                const messageDiv = createMessageElement('user', message);
+                chatMessages.appendChild(messageDiv);
+                scrollToBottom();
+                
+                // Agregar al historial
+                conversationHistory.push({ type: 'user', content: message });
+            }
+
+            function showBotMessage(message, quickActions = []) {
+                const messageDiv = createMessageElement('bot', message);
+                chatMessages.appendChild(messageDiv);
+                scrollToBottom();
+
+                // Mostrar acciones rápidas si las hay
+                if (quickActions && quickActions.length > 0) {
+                    showQuickActions(quickActions);
+                }
+                
+                // Agregar al historial
+                conversationHistory.push({ type: 'bot', content: message });
+            }
+
+            function createMessageElement(type, content) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${type}-message`;
+                
+                const avatar = type === 'user' ? 
+                    '<i class="fas fa-user"></i>' : 
+                    '<i class="fas fa-robot"></i>';
+                
+                const timestamp = new Date().toLocaleTimeString('es-ES', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+
+                messageDiv.innerHTML = `
+                    <div class="message-avatar ${type}">
+                        ${avatar}
+                    </div>
+                    <div class="message-content">
+                        <div class="message-bubble">
+                            <div class="message-text">${formatMessage(content)}</div>
+                            <div class="message-time">${timestamp}</div>
+                        </div>
+                    </div>
+                `;
+
+                return messageDiv;
+            }
+
+            function showQuickActions(actions) {
+                // Limpiar acciones anteriores
+                const existingActions = document.querySelector('.quick-actions-container');
+                if (existingActions) {
+                    existingActions.remove();
+                }
+
+                const actionsContainer = document.createElement('div');
+                actionsContainer.className = 'quick-actions-container mt-2';
+
+                actions.forEach(action => {
+                    const button = document.createElement('button');
+                    button.className = 'btn btn-outline-primary btn-sm me-2 mb-2 quick-action';
+                    button.innerHTML = action.text;
+                    button.onclick = () => handleQuickAction(action.action);
+                    actionsContainer.appendChild(button);
+                });
+
+                chatMessages.appendChild(actionsContainer);
+                scrollToBottom();
+            }
+
+            function handleQuickAction(action) {
+                if (action.startsWith('prepare_appointment:')) {
+                    const appointmentId = parseInt(action.split(':')[1]);
+                    startAppointmentPreparation(appointmentId);
+                } else if (action === 'start_appointment') {
+                    window.location.href = '@Url.Action("Appointments", "Health")';
+                } else if (action === 'view_medications' || action === 'manage_medications') {
+                    window.location.href = '@Url.Action("Medications", "Health")';
+                } else if (action === 'view_appointments') {
+                    window.location.href = '@Url.Action("Appointments", "Health")';
+                } else if (action === 'record_health') {
+                    window.location.href = '@Url.Action("Diary", "Health")';
+                } else if (action === 'view_patterns') {
+                    window.location.href = '@Url.Action("HealthPatterns", "Health")';
+                } else if (action === 'go_dashboard') {
+                    window.location.href = '@Url.Action("Index", "Health")';
+                } else {
+                    // Para acciones de conversación, enviar como mensaje
+                    messageInput.value = action;
+                    sendMessage();
+                }
+            }
+
+            async function startAppointmentPreparation(appointmentId) {
+                showTypingIndicator();
+                
+                try {
+                    const response = await fetch('@Url.Action("StartAppointmentPreparation", "Health")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ appointmentId: appointmentId })
+                    });
+
+                    const data = await response.json();
+                    hideTypingIndicator();
+
+                    if (data.success) {
+                        showBotMessage(data.response.message, data.response.quickActions);
+                    // Ocultar sugerencias cuando estamos en modo preparación
+                        document.getElementById('quickSuggestions').style.display = 'none';
+                    } else {
+                        showErrorMessage('Error al preparar la cita. Por favor, intenta de nuevo.');
+                    }
+                } catch (error) {
+                    hideTypingIndicator();
+                    showErrorMessage('Error de conexión al preparar la cita.');
+                }
+            }
+
+            function clearConversation() {
+                if (conversationHistory.length === 0) return;
+                
+                if (confirm('¿Estás seguro de que quieres limpiar toda la conversación?')) {
+                    chatMessages.innerHTML = '';
+                    conversationHistory = [];
+                    document.getElementById('quickSuggestions').style.display = 'block';
+                    initializeChat();
+                }
+            }
+
+            function showTypingIndicator() {
+                typingIndicator.style.display = 'block';
+                scrollToBottom();
+            }
+
+            function hideTypingIndicator() {
+                typingIndicator.style.display = 'none';
+            }
+
+            function scrollToBottom() {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+
+            function formatMessage(text) {
+                // Formato mejorado de markdown
+                return escapeHtml(text)
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/```([^`]+)```/g, '<pre><code>$1</code></pre>')
+                    .replace(/`([^`]+)`/g, '<code>$1</code>')
+                    .replace(/\n/g, '<br>');
+            }
+
+            function escapeHtml(unsafe) {
+                return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+
+            function showErrorMessage(message) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-warning alert-dismissible fade show mt-2';
+                errorDiv.innerHTML = `
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                chatMessages.appendChild(errorDiv);
+                scrollToBottom();
+                
+                // Auto-remover después de 5 segundos
+                setTimeout(() => {
+                    if (errorDiv.parentNode) {
+                        errorDiv.remove();
+                    }
+                }, 5000);
+            }
+        });
+    </script>
+
+    <style>
+        .container-fluid {
+            min-height: 100vh;
+        }
+
+        /* Avatar circles */
+        .avatar-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .chat-avatar {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #e9ecef;
+        }
+
+        /* User context card */
+        .user-context-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .context-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        /* Chat messages */
+        .chat-messages {
+            background: #f8f9fa;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1rem;
+        }
+
+        .message {
+            display: flex;
+            align-items: flex-end;
+            gap: 0.75rem;
+        }
+
+        .user-message {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.8rem;
+        }
+
+        .message-avatar.user {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message-avatar.bot {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .message-content {
+            max-width: 70%;
+        }
+
+        .message-bubble {
+            background: white;
+            padding: 0.75rem 1rem;
+            border-radius: 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        .user-message .message-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .bot-message .message-bubble {
+            border-bottom-left-radius: 4px;
+            background: white;
+        }
+
+        .message-text {
+            line-height: 1.4;
+            margin-bottom: 0.25rem;
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            text-align: right;
+        }
+
+        .user-message .message-time {
+            text-align: right;
+        }
+
+        .bot-message .message-time {
+            text-align: left;
+        }
+
+        /* Chat input */
+        .chat-input-container {
+            background: white;
+            border-top: 1px solid #e9ecef;
+        }
+
+        #messageInput {
+            border-radius: 25px;
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+            border: 2px solid #e9ecef !important;
+        }
+
+        #messageInput:focus {
+            border-color: #007bff !important;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.1);
+        }
+
+        #sendButton {
+            width: 45px;
+            height: 45px;
+            border: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        #sendButton:disabled {
+            opacity: 0.5;
+            background: #6c757d;
+        }
+
+        /* Quick actions */
+        .quick-actions-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .quick-action, .suggestion-btn {
+            transition: all 0.2s ease;
+            border-radius: 20px;
+        }
+
+        .quick-action:hover, .suggestion-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        /* Typing indicator */
+        .typing-indicator {
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 3px;
+        }
+
+        .typing-dots span {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #6c757d;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+        @@keyframes typing {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Loading spinner */
+        .loading-spinner {
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        /* Responsive */
+        @@media (max-width: 768px) {
+            .chat-messages {
+                padding: 0.75rem;
+            }
+            
+            .message-content {
+                max-width: 85%;
+            }
+            
+            .message-bubble {
+                padding: 0.6rem 0.8rem;
+            }
+        }
+
+        /* Scrollbar personalizado */
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+}

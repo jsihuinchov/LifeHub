@@ -115,16 +115,6 @@
                                         <span class="feature-label">Presupuestos</span>
                                     </div>
                                 </div>
-
-                                <div class="feature-item">
-                                    <div class="feature-icon">
-                                        <i class="fas fa-users"></i>
-                                    </div>
-                                    <div class="feature-content">
-                                        <span class="feature-value">@(subscription.Plan.HasCommunityAccess ? "Incluido" : "No incluido")</span>
-                                        <span class="feature-label">Comunidad</span>
-                                    </div>
-                                </div>
                             </div>
 
                             <div class="plan-status">
@@ -408,51 +398,6 @@
                             <a href="@Url.Action("Index", "Health")" class="btn btn-module">
                                 <i class="fas fa-arrow-right"></i>
                             </a>
-                        </div>
-                        
-                        <!-- Módulo de Comunidad -->
-                        <div class="module-item @(ShouldShowCommunity(subscription) ? "" : "module-disabled")">
-                            <div class="module-icon community-icon">
-                                <i class="fas fa-users"></i>
-                            </div>
-                            <div class="module-content">
-                                <h4>Comunidad</h4>
-                                <p>Conecta con otros usuarios, comparte progresos y motívate</p>
-                                <div class="module-stats">
-                                    @if (ShouldShowCommunity(subscription))
-                                    {
-                                        <span class="stat"><i class="fas fa-user-friends"></i> @communityMembers miembros</span>
-                                        <span class="stat"><i class="fas fa-comments"></i> @activeDiscussions discusiones</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="stat premium-badge">
-                                            <i class="fas fa-crown me-1"></i> Requiere Plan Premium
-                                        </span>
-                                    }
-                                </div>
-                                @if (ShouldShowCommunity(subscription))
-                                {
-                                    <div class="module-progress">
-                                        <div class="progress-text">Actividad: @communityActivity%</div>
-                                        <div class="progress-bar">
-                                            <div class="progress-fill" style="width: @communityActivity%"></div>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                            @if (ShouldShowCommunity(subscription))
-                            {
-                                <a href="@Url.Action("Index", "Community")" class="btn btn-module">
-                                    <i class="fas fa-arrow-right"></i>
-                                </a>
-                            }
-                            else
-                            {
-                                <a href="@Url.Action("Index", "Plans")" class="btn btn-module disabled" title="Actualiza tu plan para acceder a la comunidad">
-                                    <i class="fas fa-lock"></i>
-                                </a>
-                            }
                         </div>
                     </div>
                 </div>

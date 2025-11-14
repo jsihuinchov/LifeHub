@@ -1,0 +1,171 @@
+@model List<LifeHub.Models.Services.HealthPattern>
+@{
+    ViewData["Title"] = "Patrones de Salud";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="display-6">🧠 Patrones de Salud Detectados</h1>
+                <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                </a>
+            </div>
+            <p class="text-muted">Análisis inteligente de tus patrones de bienestar y síntomas</p>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-info">
+                    <h5>📊 Comienza a registrar tu bienestar</h5>
+                    <p class="mb-0">Los patrones se detectarán automáticamente después de varios días de registro continuo.</p>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Resumen de Patrones -->
+        <div class="col-md-4 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Resumen de Patrones</h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.Any())
+                    {
+                        var patternTypes = Model.GroupBy(p => p.PatternType);
+                        <div class="mb-3">
+                            <small class="text-muted">Total de patrones detectados:</small>
+                            <h4 class="text-primary">@Model.Count</h4>
+                        </div>
+                        @foreach (var type in patternTypes)
+                        {
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="badge bg-info">@type.Key</span>
+                                <span class="fw-bold">@type.Count()</span>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No hay suficientes datos para el análisis.</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Información -->
+            <div class="card border-0 shadow-sm mt-3">
+                <div class="card-body">
+                    <h6 class="text-muted">💡 Cómo funcionan los patrones</h6>
+                    <ul class="small text-muted mb-0">
+                        <li>Se analizan correlaciones entre síntomas</li>
+                        <li>Se detectan patrones temporales</li>
+                        <li>Se identifican factores que afectan tu energía</li>
+                        <li>Basado en los últimos 60 días de datos</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Patrones -->
+        <div class="col-md-8">
+            @if (Model.Any())
+            {
+                foreach (var pattern in Model.OrderByDescending(p => p.Confidence))
+                {
+                    <div class="card border-0 shadow-sm mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <span class="badge @GetPatternBadgeClass(pattern.PatternType) mb-2">
+                                        @GetPatternIcon(pattern.PatternType) @pattern.PatternType
+                                    </span>
+                                    <h6 class="mb-1">@pattern.Description</h6>
+                                </div>
+                                <div class="text-end">
+                                    <small class="text-muted">Confianza</small>
+                                    <div class="progress" style="width: 80px; height: 8px;">
+                                        <div class="progress-bar @GetConfidenceClass(pattern.Confidence)" 
+                                             role="progressbar" 
+                                             style="width: @((int)(pattern.Confidence * 100))%">
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">@((int)(pattern.Confidence * 100))%</small>
+                                </div>
+                            </div>
+                            
+                            @if (pattern.RelatedFactors.Any())
+                            {
+                                <div class="mt-2">
+                                    <small class="text-muted">Factores relacionados:</small>
+                                    <div class="mt-1">
+                                        @foreach (var factor in pattern.RelatedFactors.Take(3))
+                                        {
+                                            <span class="badge bg-light text-dark border me-1 small">@factor</span>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                            
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i>Detectado el @pattern.DetectedAt.ToString("dd/MM/yyyy")
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No hay patrones detectados aún</h5>
+                    <p class="text-muted">Continúa registrando tu bienestar diario para descubrir patrones.</p>
+                    <a href="@Url.Action("Diary")" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Registrar Día Actual
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@functions {
+    private string GetPatternBadgeClass(string patternType)
+    {
+        return patternType.ToLower() switch
+        {
+            "symptomcluster" => "bg-danger",
+            "temporal" => "bg-warning",
+            "correlation" => "bg-success",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetPatternIcon(string patternType)
+    {
+        return patternType.ToLower() switch
+        {
+            "symptomcluster" => "🤕",
+            "temporal" => "🕒",
+            "correlation" => "🔗",
+            _ => "📊"
+        };
+    }
+
+    private string GetConfidenceClass(double confidence)
+    {
+        return confidence switch
+        {
+            > 0.8 => "bg-success",
+            > 0.6 => "bg-warning",
+            _ => "bg-danger"
+        };
+    }
+}

@@ -1,0 +1,226 @@
+@model LifeHub.Models.Services.AppointmentPreparation
+@{
+    ViewData["Title"] = "Preparación para Cita Médica";
+    var appointment = ViewBag.Appointment as LifeHub.Models.Entities.MedicalAppointment;
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-6">🤖 Preparación Inteligente para Cita</h1>
+                    @if (appointment != null)
+                    {
+                        <p class="text-muted mb-0">
+                            <strong>@appointment.Title</strong> con 
+                            @if (!string.IsNullOrEmpty(appointment.DoctorName))
+                            {
+                                <text>Dr. @appointment.DoctorName</text>
+                            }
+                            else
+                            {
+                                <text>el médico</text>
+                            }
+                            - @appointment.AppointmentDate.ToString("dd/MM/yyyy HH:mm")
+                        </p>
+                    }
+                </div>
+                <div>
+                    <a href="@Url.Action("Appointments")" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left"></i> Volver a Citas
+                    </a>
+                    <button class="btn btn-primary" onclick="window.print()">
+                        <i class="fas fa-print"></i> Imprimir Preparación
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Checklist -->
+        <div class="col-lg-4 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="fas fa-check-circle me-2"></i>Checklist de Preparación</h6>
+                    <small>@Model.Checklist.Items.Count items</small>
+                </div>
+                <div class="card-body">
+                    @if (Model.Checklist.Items.Any())
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var item in Model.Checklist.Items)
+                            {
+                                <div class="list-group-item d-flex align-items-center px-0">
+                                    <input type="checkbox" class="form-check-input me-3 checklist-item" 
+                                           id="checklist-@item.GetHashCode()">
+                                    <label class="form-check-label flex-grow-1 @(item.IsImportant ? "fw-bold" : "")" 
+                                           for="checklist-@item.GetHashCode()">
+                                        @item.Description
+                                        @if (item.IsImportant)
+                                        {
+                                            <span class="badge bg-danger ms-1">Importante</span>
+                                        }
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No hay items en el checklist.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Preguntas para el Doctor -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-question-circle me-2"></i>Preguntas para el Doctor</h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.QuestionsForDoctor.Any())
+                    {
+                        <ol class="mb-0">
+                            @foreach (var question in Model.QuestionsForDoctor)
+                            {
+                                <li class="mb-2">@question</li>
+                            }
+                        </ol>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No se generaron preguntas específicas.</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Documentos a Llevar -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-file-medical me-2"></i>Documentos a Llevar</h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.DocumentsToBring.Any())
+                    {
+                        <ul class="mb-0">
+                            @foreach (var document in Model.DocumentsToBring)
+                            {
+                                <li>@document</li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No se especificaron documentos.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Pasos de Preparación -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="fas fa-list-check me-2"></i>Pasos de Preparación</h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.PreparationSteps.Any())
+                    {
+                        <ol class="mb-0">
+                            @foreach (var step in Model.PreparationSteps)
+                            {
+                                <li class="mb-2">@step</li>
+                            }
+                        </ol>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No hay pasos de preparación específicos.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Iniciador de Conversación -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0"><i class="fas fa-comment-medical me-2"></i>Iniciador de Conversación</h6>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(Model.ConversationStarter))
+                    {
+                        <blockquote class="blockquote mb-0">
+                            <p class="fst-italic">"@Model.ConversationStarter"</p>
+                        </blockquote>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No se generó un iniciador de conversación.</p>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.SpecialInstructions))
+                    {
+                        <hr>
+                        <h6 class="text-muted">Instrucciones Especiales:</h6>
+                        <p class="mb-0 small">@Model.SpecialInstructions</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nota de IA -->
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-info">
+                <div class="d-flex">
+                    <i class="fas fa-robot fa-2x me-3"></i>
+                    <div>
+                        <h6 class="alert-heading">Preparación Generada por IA</h6>
+                        <p class="mb-0">Esta preparación fue generada automáticamente basada en tu historial médico y el tipo de cita. Revísala y personalízala según tus necesidades.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Guardar estado del checklist en localStorage
+        document.addEventListener('DOMContentLoaded', function() {
+            const checklistItems = document.querySelectorAll('.checklist-item');
+            
+            // Cargar estado guardado
+            checklistItems.forEach(item => {
+                const itemId = item.id;
+                const savedState = localStorage.getItem(itemId);
+                if (savedState === 'true') {
+                    item.checked = true;
+                }
+                
+                // Guardar estado al cambiar
+                item.addEventListener('change', function() {
+                    localStorage.setItem(itemId, this.checked);
+                });
+            });
+            
+            // Limpiar checklist al imprimir
+            document.querySelector('button[onclick="window.print()"]').addEventListener('click', function() {
+                setTimeout(() => {
+                    checklistItems.forEach(item => {
+                        item.checked = false;
+                        localStorage.setItem(item.id, 'false');
+                    });
+                }, 1000);
+            });
+        });
+    </script>
+}
