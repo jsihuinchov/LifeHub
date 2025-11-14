@@ -4,41 +4,76 @@
 }
 
 <div class="health-container">
-    <div class="row justify-content-center">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="dashboard-title">
+                <i class="fas fa-edit me-2"></i>Editar Medicamento
+            </h1>
+            <p class="dashboard-subtitle">Actualiza la información de @Model.Name</p>
+        </div>
+        <div class="nav-buttons">
+            <a href="@Url.Action("Index", "Health")" class="btn btn-outline-primary me-2">
+                <i class="fas fa-arrow-left me-1"></i>Dashboard
+            </a>
+            <a href="@Url.Action("Medications", "Health")" class="btn btn-outline-secondary">
+                <i class="fas fa-list me-1"></i>Ver Todos
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
         <div class="col-lg-8">
             <div class="card">
-                <div class="card-header bg-warning text-white">
-                    <h3 class="card-title mb-0">
-                        <i class="fas fa-edit me-2"></i>Editar Medicamento
-                    </h3>
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-pills me-2"></i>Editar Información</h5>
                 </div>
                 <div class="card-body">
-                    <form asp-action="EditMedication" method="post">
+                    <form id="editMedicationForm" method="post" asp-action="EditMedication">
                         @Html.AntiForgeryToken()
                         <input type="hidden" asp-for="Id" />
-                        
-                        <!-- Información de búsqueda (solo informativa en edición) -->
-                        <div class="mb-4 p-3 border rounded bg-light">
-                            <h6><i class="fas fa-info-circle me-1"></i>Información</h6>
-                            <p class="mb-0 small">
-                                Para buscar medicamentos en la base de datos global RxNorm, 
-                                <a href="@Url.Action("CreateMedication")" class="text-warning fw-bold">crea un nuevo medicamento</a> 
-                                y usa la función de búsqueda integrada.
-                            </p>
+
+                        <!-- BÚSQUEDA RxNorm -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">🔍 Buscar en Base de Datos de Medicamentos</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="medicationSearch" 
+                                       placeholder="Ej: Paracetamol, Ibuprofeno, Amoxicilina..." 
+                                       autocomplete="off"
+                                       value="@Model.Name">
+                                <button type="button" class="btn btn-outline-primary" id="searchButton">
+                                    <i class="fas fa-search me-1"></i>Buscar
+                                </button>
+                            </div>
+                            <small class="text-muted">Busca en la base de datos global RxNorm NIH</small>
+                            
+                            <!-- RESULTADOS DE BÚSQUEDA -->
+                            <div id="searchResults" class="mt-2" style="display: none;">
+                                <div class="card">
+                                    <div class="card-header py-2">
+                                        <small class="fw-bold">💊 Resultados de búsqueda:</small>
+                                    </div>
+                                    <div class="card-body p-2" id="resultsContainer" style="max-height: 200px; overflow-y: auto;">
+                                        <!-- Los resultados se cargan aquí -->
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label asp-for="Name" class="form-label">Nombre del Medicamento *</label>
-                                    <input asp-for="Name" class="form-control" placeholder="Ej: Paracetamol, Ibuprofeno...">
+                                    <input asp-for="Name" class="form-control" 
+                                           placeholder="Ej: Paracetamol, Ibuprofeno..." 
+                                           required id="medicationName">
                                     <span asp-validation-for="Name" class="text-danger"></span>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label asp-for="Dosage" class="form-label">Dosis</label>
-                                    <input asp-for="Dosage" class="form-control" placeholder="Ej: 500mg, 1 comprimido...">
+                                    <input asp-for="Dosage" class="form-control" 
+                                           placeholder="Ej: 500mg, 10ml..." id="medicationDosage">
                                     <span asp-validation-for="Dosage" class="text-danger"></span>
                                 </div>
                             </div>
@@ -48,17 +83,17 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label asp-for="Frequency" class="form-label">Frecuencia</label>
-                                    <input asp-for="Frequency" class="form-control" placeholder="Ej: Cada 8 horas, 1 vez al día...">
+                                    <input asp-for="Frequency" class="form-control" 
+                                           placeholder="Ej: Cada 8 horas, 1 vez al día...">
                                     <span asp-validation-for="Frequency" class="text-danger"></span>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label asp-for="IsActive" class="form-label">Estado</label>
-                                    <div class="form-check form-switch mt-2">
-                                        <input asp-for="IsActive" class="form-check-input" type="checkbox" role="switch">
-                                        <label asp-for="IsActive" class="form-check-label">Medicamento activo</label>
-                                    </div>
+                                    <label asp-for="TotalQuantity" class="form-label">Cantidad Total *</label>
+                                    <input asp-for="TotalQuantity" type="number" class="form-control" 
+                                           min="0" required>
+                                    <span asp-validation-for="TotalQuantity" class="text-danger"></span>
                                 </div>
                             </div>
                         </div>
@@ -66,39 +101,161 @@
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label asp-for="StartDate" class="form-label">Fecha de Inicio</label>
-                                    <input asp-for="StartDate" type="date" class="form-control">
-                                    <span asp-validation-for="StartDate" class="text-danger"></span>
+                                    <label asp-for="LowStockAlert" class="form-label">Alerta de Stock Bajo *</label>
+                                    <input asp-for="LowStockAlert" type="number" class="form-control" 
+                                           min="1" required>
+                                    <small class="text-muted">Te avisaremos cuando el stock llegue a este número</small>
+                                    <span asp-validation-for="LowStockAlert" class="text-danger"></span>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label asp-for="EndDate" class="form-label">Fecha de Fin (Opcional)</label>
-                                    <input asp-for="EndDate" type="date" class="form-control">
-                                    <span asp-validation-for="EndDate" class="text-danger"></span>
+                                    <label asp-for="DosagePerIntake" class="form-label">Dosis por Toma</label>
+                                    <input asp-for="DosagePerIntake" type="number" class="form-control" 
+                                           min="1">
+                                    <span asp-validation-for="DosagePerIntake" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="TimesPerDay" class="form-label">Veces al Día</label>
+                                    <input asp-for="TimesPerDay" type="number" class="form-control" 
+                                           min="1">
+                                    <span asp-validation-for="TimesPerDay" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="StartDate" class="form-label">Fecha de Inicio</label>
+                                    <input asp-for="StartDate" type="date" class="form-control">
+                                    <span asp-validation-for="StartDate" class="text-danger"></span>
                                 </div>
                             </div>
                         </div>
 
                         <div class="mb-3">
                             <label asp-for="Notes" class="form-label">Notas Adicionales</label>
-                            <textarea asp-for="Notes" class="form-control" rows="4" 
-                                      placeholder="Instrucciones especiales, efectos secundarios, contraindicaciones..."></textarea>
+                            <textarea asp-for="Notes" class="form-control" rows="3" 
+                                      placeholder="Instrucciones especiales, efectos secundarios, observaciones..."></textarea>
                             <span asp-validation-for="Notes" class="text-danger"></span>
                         </div>
 
-                        <div class="d-flex justify-content-between">
-                            <a href="@Url.Action("Medications")" class="btn btn-secondary">
-                                <i class="fas fa-arrow-left me-1"></i>Volver a Medicamentos
-                            </a>
-                            <div>
-                                <a href="@Url.Action("Medications")" class="btn btn-outline-danger me-2">Cancelar</a>
-                                <button type="submit" class="btn btn-warning">
-                                    <i class="fas fa-save me-1"></i>Actualizar Medicamento
-                                </button>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3 form-check">
+                                    <input asp-for="IsActive" class="form-check-input">
+                                    <label asp-for="IsActive" class="form-check-label">Medicamento Activo</label>
+                                    <span asp-validation-for="IsActive" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3 form-check">
+                                    <input asp-for="RequiresPrescription" class="form-check-input">
+                                    <label asp-for="RequiresPrescription" class="form-check-label">Requiere Receta</label>
+                                    <span asp-validation-for="RequiresPrescription" class="text-danger"></span>
+                                </div>
                             </div>
                         </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="@Url.Action("Medications", "Health")" class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-times me-1"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Actualizar Medicamento
+                            </button>
+                        </div>
                     </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- INFORMACIÓN ACTUAL -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>📊 Información Actual</h6>
+                </div>
+                <div class="card-body">
+                    <div class="medication-info">
+                        <div class="info-item">
+                            <small class="text-muted">Estado:</small>
+                            <div class="fw-bold @(Model.IsActive ? "text-success" : "text-secondary")">
+                                @(Model.IsActive ? "Activo" : "Inactivo")
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <small class="text-muted">Stock actual:</small>
+                            <div class="fw-bold @(Model.TotalQuantity <= Model.LowStockAlert ? "text-warning" : "text-success")">
+                                @Model.TotalQuantity unidades
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <small class="text-muted">Alerta de stock:</small>
+                            <div class="fw-bold">@Model.LowStockAlert unidades</div>
+                        </div>
+                        @if (Model.StartDate.HasValue)
+                        {
+                            <div class="info-item">
+                                <small class="text-muted">Inicio de tratamiento:</small>
+                                <div class="fw-bold">@Model.StartDate.Value.ToString("dd/MM/yyyy")</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- PANEL DE AYUDA RxNorm -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>💡 Búsqueda Inteligente</h6>
+                </div>
+                <div class="card-body">
+                    <div class="tips-list">
+                        <div class="tip-item">
+                            <strong>Base de Datos Global</strong>
+                            <p class="small text-muted mb-2">Usamos RxNorm NIH con más de 20,000 medicamentos</p>
+                        </div>
+                        <div class="tip-item">
+                            <strong>Búsqueda en Español</strong>
+                            <p class="small text-muted mb-2">Busca en español, traducimos automáticamente</p>
+                        </div>
+                        <div class="tip-item">
+                            <strong>Información Precisa</strong>
+                            <p class="small text-muted mb-0">Dosis y formas farmacéuticas exactas</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CALCULADORA DE DURACIÓN -->
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="fas fa-calculator me-2"></i>🧮 Calculadora de Stock</h6>
+                </div>
+                <div class="card-body">
+                    <div class="calculator">
+                        <div class="mb-3">
+                            <label class="form-label small">Stock actual:</label>
+                            <input type="number" class="form-control form-control-sm" id="stockInput" 
+                                   value="@Model.TotalQuantity">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Dosis por día:</label>
+                            <input type="number" class="form-control form-control-sm" id="dailyDoseInput" 
+                                   value="@(Model.DosagePerIntake * Model.TimesPerDay)">
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-warning w-100" onclick="calculateDuration()">
+                            Calcular Duración
+                        </button>
+                        <div class="mt-3 p-2 bg-light rounded">
+                            <small class="text-muted">Duración estimada:</small>
+                            <div id="durationResult" class="fw-bold text-primary">-</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -106,59 +263,335 @@
 </div>
 
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-    
     <script>
-        $(document).ready(function () {
-            // Formatear fechas para los inputs date
-            @if (Model.StartDate.HasValue)
-            {
-                <text>
-                $('#StartDate').val('@Model.StartDate.Value.ToString("yyyy-MM-dd")');
-                </text>
-            }
+        // Búsqueda en tiempo real
+        let searchTimeout;
+        document.getElementById('medicationSearch').addEventListener('input', function(e) {
+            clearTimeout(searchTimeout);
+            const searchTerm = e.target.value.trim();
             
-            @if (Model.EndDate.HasValue)
-            {
-                <text>
-                $('#EndDate').val('@Model.EndDate.Value.ToString("yyyy-MM-dd")');
-                </text>
+            if (searchTerm.length >= 2) {
+                searchTimeout = setTimeout(() => {
+                    searchMedications(searchTerm);
+                }, 500);
+            } else {
+                hideResults();
             }
         });
+
+        // Búsqueda por botón
+        document.getElementById('searchButton').addEventListener('click', function() {
+            const searchTerm = document.getElementById('medicationSearch').value.trim();
+            if (searchTerm.length >= 2) {
+                searchMedications(searchTerm);
+            }
+        });
+
+        // Búsqueda con Enter
+        document.getElementById('medicationSearch').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const searchTerm = this.value.trim();
+                if (searchTerm.length >= 2) {
+                    searchMedications(searchTerm);
+                }
+            }
+        });
+
+        async function searchMedications(searchTerm) {
+            const searchButton = document.getElementById('searchButton');
+            const originalHtml = searchButton.innerHTML;
+            
+            try {
+                // Mostrar loading
+                searchButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Buscando...';
+                searchButton.disabled = true;
+
+                const response = await fetch(`@Url.Action("SearchMedications", "Health")?term=${encodeURIComponent(searchTerm)}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    displayResults(data.results, data.source);
+                } else {
+                    showError('Error en la búsqueda: ' + (data.error || 'Intenta nuevamente'));
+                }
+            } catch (error) {
+                console.error('Error searching medications:', error);
+                showError('Error de conexión. Usando base local...');
+                // Fallback a búsqueda local
+                fallbackSearch(searchTerm);
+            } finally {
+                searchButton.innerHTML = originalHtml;
+                searchButton.disabled = false;
+            }
+        }
+
+        function displayResults(results, source) {
+            const resultsContainer = document.getElementById('resultsContainer');
+            const searchResults = document.getElementById('searchResults');
+            
+            if (!results || results.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-search fa-2x mb-2"></i>
+                        <p class="mb-0">No se encontraron resultados</p>
+                        <small>Intenta con otro término de búsqueda</small>
+                    </div>
+                `;
+                searchResults.style.display = 'block';
+                return;
+            }
+
+            let html = `<div class="text-muted small mb-2">Fuente: ${source}</div>`;
+            
+            results.forEach(med => {
+                const strength = med.strength ? `<span class="badge bg-info">${med.strength}</span>` : '';
+                const dosageForm = med.dosageForm ? `<span class="badge bg-secondary">${med.dosageForm}</span>` : '';
+                
+                html += `
+                    <div class="search-result-item p-2 border-bottom" 
+                         onclick="selectMedication('${med.name.replace(/'/g, "\\'")}', '${med.strength || ''}', '${med.dosageForm || ''}')">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong class="med-name">${med.name}</strong>
+                                <div class="mt-1">
+                                    ${strength}
+                                    ${dosageForm}
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-right text-muted mt-1"></i>
+                        </div>
+                    </div>
+                `;
+            });
+
+            resultsContainer.innerHTML = html;
+            searchResults.style.display = 'block';
+        }
+
+        function selectMedication(name, strength, dosageForm) {
+            // Llenar el formulario con los datos seleccionados
+            document.getElementById('medicationName').value = name;
+            
+            if (strength) {
+                document.getElementById('medicationDosage').value = strength;
+            }
+            
+            // Actualizar campo de búsqueda
+            document.getElementById('medicationSearch').value = name;
+            
+            // Ocultar resultados
+            hideResults();
+            
+            // Mostrar confirmación
+            showSuccess(`✅ "${name}" seleccionado`);
+        }
+
+        function hideResults() {
+            document.getElementById('searchResults').style.display = 'none';
+        }
+
+        function showError(message) {
+            const resultsContainer = document.getElementById('resultsContainer');
+            resultsContainer.innerHTML = `
+                <div class="alert alert-warning py-2 mb-0">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    ${message}
+                </div>
+            `;
+            document.getElementById('searchResults').style.display = 'block';
+        }
+
+        function showSuccess(message) {
+            // Crear notificación temporal
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-success alert-dismissible fade show position-fixed';
+            alert.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+            alert.innerHTML = `
+                <i class="fas fa-check-circle me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alert);
+            
+            // Auto-remover después de 3 segundos
+            setTimeout(() => {
+                if (alert.parentNode) {
+                    alert.parentNode.removeChild(alert);
+                }
+            }, 3000);
+        }
+
+        function fallbackSearch(searchTerm) {
+            // Base de datos local de respaldo
+            const localMeds = [
+                { name: "Paracetamol", strength: "500mg", dosageForm: "Tableta" },
+                { name: "Ibuprofeno", strength: "400mg", dosageForm: "Tableta" },
+                { name: "Amoxicilina", strength: "500mg", dosageForm: "Cápsula" },
+                { name: "Omeprazol", strength: "20mg", dosageForm: "Cápsula" },
+                { name: "Loratadina", strength: "10mg", dosageForm: "Tableta" },
+                { name: "Metformina", strength: "850mg", dosageForm: "Tableta" },
+                { name: "Losartán", strength: "50mg", dosageForm: "Tableta" },
+                { name: "Atorvastatina", strength: "20mg", dosageForm: "Tableta" },
+                { name: "Clonazepam", strength: "2mg", dosageForm: "Tableta" },
+                { name: "Sertralina", strength: "50mg", dosageForm: "Tableta" }
+            ];
+
+            const results = localMeds.filter(med => 
+                med.name.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+
+            displayResults(results, "Base Local de Respaldo");
+        }
+
+        // Calculadora de duración
+        function calculateDuration() {
+            const stock = parseInt(document.getElementById('stockInput').value) || 0;
+            const dailyDose = parseInt(document.getElementById('dailyDoseInput').value) || 1;
+            
+            if (stock > 0 && dailyDose > 0) {
+                const days = Math.floor(stock / dailyDose);
+                const result = document.getElementById('durationResult');
+                
+                if (days > 0) {
+                    result.textContent = `${days} día${days !== 1 ? 's' : ''}`;
+                    result.className = 'fw-bold text-success';
+                } else {
+                    result.textContent = 'Stock insuficiente';
+                    result.className = 'fw-bold text-danger';
+                }
+            }
+        }
+
+        // Actualizar calculadora cuando cambien los campos del formulario
+        document.getElementById('TotalQuantity').addEventListener('input', function() {
+            document.getElementById('stockInput').value = this.value;
+            calculateDuration();
+        });
+
+        document.getElementById('DosagePerIntake').addEventListener('input', updateDailyDose);
+        document.getElementById('TimesPerDay').addEventListener('input', updateDailyDose);
+
+        function updateDailyDose() {
+            const dosagePerIntake = parseInt(document.getElementById('DosagePerIntake').value) || 1;
+            const timesPerDay = parseInt(document.getElementById('TimesPerDay').value) || 1;
+            const dailyDose = dosagePerIntake * timesPerDay;
+            document.getElementById('dailyDoseInput').value = dailyDose;
+            calculateDuration();
+        }
+
+        // Inicializar calculadora
+        updateDailyDose();
+        calculateDuration();
     </script>
 
     <style>
         .health-container {
-            padding: 20px;
             max-width: 1200px;
             margin: 0 auto;
+            padding: 20px;
+        }
+
+        .dashboard-title {
+            color: #2c3e50;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .search-result-item {
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border-radius: 4px;
+        }
+
+        .search-result-item:hover {
+            background-color: #e3f2fd;
+        }
+
+        .med-name {
+            color: #2c3e50;
+        }
+
+        .search-result-item .badge {
+            font-size: 0.7rem;
         }
 
         .card {
             border: none;
-            border-radius: 15px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         .card-header {
-            border-radius: 15px 15px 0 0 !important;
-            padding: 20px;
+            border-radius: 12px 12px 0 0 !important;
+            font-weight: 600;
         }
 
-        .form-control {
-            border-radius: 10px;
-            border: 2px solid #e9ecef;
-            transition: all 0.3s;
+        .medication-info {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
-        .form-control:focus {
-            border-color: #ffc107;
-            box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e9ecef;
         }
 
-        .form-check-input:checked {
-            background-color: #ffc107;
-            border-color: #ffc107;
+        .info-item:last-child {
+            border-bottom: none;
+        }
+
+        .tips-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .tip-item {
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .tip-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .calculator {
+            font-size: 0.9rem;
+        }
+
+        @@media (max-width: 768px) {
+            .nav-buttons {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .nav-buttons .btn {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+            
+            .info-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
         }
     </style>
 }

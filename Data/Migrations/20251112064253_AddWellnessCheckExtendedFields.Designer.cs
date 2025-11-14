@@ -13,8 +13,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace LifeHub.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251017072251_AddHabitFavorites")]
-    partial class AddHabitFavorites
+    [Migration("20251112064253_AddWellnessCheckExtendedFields")]
+    partial class AddWellnessCheckExtendedFields
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -65,7 +65,7 @@ namespace LifeHub.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Budgets");
+                    b.ToTable("budgets", (string)null);
                 });
 
             modelBuilder.Entity("LifeHub.Models.Entities.Community", b =>
@@ -105,7 +105,7 @@ namespace LifeHub.Data.Migrations
 
                     b.HasIndex("OwnerId");
 
-                    b.ToTable("Communities");
+                    b.ToTable("communities", (string)null);
                 });
 
             modelBuilder.Entity("LifeHub.Models.Entities.CommunityMember", b =>
@@ -136,7 +136,7 @@ namespace LifeHub.Data.Migrations
                     b.HasIndex("CommunityId", "UserId")
                         .IsUnique();
 
-                    b.ToTable("CommunityMembers");
+                    b.ToTable("community_members", (string)null);
                 });
 
             modelBuilder.Entity("LifeHub.Models.Entities.ContactMessage", b =>
@@ -177,7 +177,7 @@ namespace LifeHub.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("ContactMessages");
+                    b.ToTable("contact_messages", (string)null);
                 });
 
             modelBuilder.Entity("LifeHub.Models.Entities.FinancialTransaction", b =>
@@ -232,7 +232,7 @@ namespace LifeHub.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("FinancialTransactions");
+                    b.ToTable("financial_transactions", (string)null);
                 });
 
             modelBuilder.Entity("LifeHub.Models.Entities.Habit", b =>
@@ -294,7 +294,7 @@ namespace LifeHub.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Habits");
+                    b.ToTable("habits", (string)null);
                 });
 
             modelBuilder.Entity("LifeHub.Models.Entities.HabitCompletion", b =>
@@ -328,98 +328,309 @@ namespace LifeHub.Data.Migrations
                     b.HasIndex("HabitId", "CompletionDate")
                         .IsUnique();
 
-                    b.ToTable("HabitCompletions");
+                    b.ToTable("habit_completions", (string)null);
                 });
 
             modelBuilder.Entity("LifeHub.Models.Entities.MedicalAppointment", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("AppointmentDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("appointment_date");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
 
                     b.Property<string>("DoctorName")
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("doctor_name");
 
                     b.Property<int>("Duration")
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("duration");
+
+                    b.Property<string>("HealthConcerns")
+                        .HasColumnType("text")
+                        .HasColumnName("health_concerns");
 
                     b.Property<string>("Location")
-                        .HasColumnType("text");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("location");
+
+                    b.Property<string>("NextSteps")
+                        .HasColumnType("text")
+                        .HasColumnName("next_steps");
 
                     b.Property<string>("Notes")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<string>("PostAppointmentSummary")
+                        .HasColumnType("text")
+                        .HasColumnName("post_appointment_summary");
+
+                    b.Property<string>("QuestionsForDoctor")
+                        .HasColumnType("text")
+                        .HasColumnName("questions_for_doctor");
 
                     b.Property<bool>("ReminderSent")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("reminder_sent");
 
                     b.Property<string>("Specialty")
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("specialty");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("title");
 
                     b.Property<string>("UserId")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
 
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("MedicalAppointments");
+                    b.ToTable("medical_appointments", (string)null);
                 });
 
             modelBuilder.Entity("LifeHub.Models.Entities.Medication", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
 
                     b.Property<string>("Dosage")
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("dosage");
+
+                    b.Property<int>("DosagePerIntake")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("dosage_per_intake");
 
                     b.Property<DateTime?>("EndDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("end_date");
 
                     b.Property<string>("Frequency")
-                        .HasColumnType("text");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("frequency");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<DateTime?>("LastTaken")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_taken");
+
+                    b.Property<int>("LowStockAlert")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(5)
+                        .HasColumnName("low_stock_alert");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
 
                     b.Property<string>("Notes")
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("notes");
+
+                    b.Property<bool>("RequiresPrescription")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("requires_prescription");
 
                     b.Property<DateTime?>("StartDate")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("start_date");
+
+                    b.Property<int>("TimesPerDay")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1)
+                        .HasColumnName("times_per_day");
+
+                    b.Property<int>("TotalQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0)
+                        .HasColumnName("total_quantity");
 
                     b.Property<string>("UserId")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
 
                     b.HasKey("Id");
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Medications");
+                    b.ToTable("medications", (string)null);
+                });
+
+            modelBuilder.Entity("LifeHub.Models.Entities.UserProfile", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Bio")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("bio");
+
+                    b.Property<bool>("EmailNotifications")
+                        .HasColumnType("boolean")
+                        .HasColumnName("email_notifications");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("location");
+
+                    b.Property<string>("PrivacySettings")
+                        .HasColumnType("text")
+                        .HasColumnName("privacy_settings");
+
+                    b.Property<bool>("PushNotifications")
+                        .HasColumnType("boolean")
+                        .HasColumnName("push_notifications");
+
+                    b.Property<string>("SocialLinks")
+                        .HasColumnType("text")
+                        .HasColumnName("social_links");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("WebsiteUrl")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("website_url");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("user_profiles", (string)null);
+                });
+
+            modelBuilder.Entity("LifeHub.Models.Entities.WellnessCheck", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CheckDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("check_date");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CustomSymptom")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("custom_symptom");
+
+                    b.Property<int>("EnergyLevel")
+                        .HasColumnType("integer")
+                        .HasColumnName("energy_level");
+
+                    b.Property<int>("GeneralWellness")
+                        .HasColumnType("integer")
+                        .HasColumnName("general_wellness");
+
+                    b.Property<string>("MedicationNotes")
+                        .HasColumnType("text")
+                        .HasColumnName("medication_notes");
+
+                    b.Property<string>("Mood")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("neutral")
+                        .HasColumnName("mood");
+
+                    b.Property<string>("QuickNote")
+                        .HasColumnType("text")
+                        .HasColumnName("quick_note");
+
+                    b.Property<int>("SleepQuality")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(5)
+                        .HasColumnName("sleep_quality");
+
+                    b.Property<string>("Symptoms")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasDefaultValue("")
+                        .HasColumnName("symptoms");
+
+                    b.Property<bool>("TookMedications")
+                        .HasColumnType("boolean")
+                        .HasColumnName("took_medications");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "CheckDate")
+                        .IsUnique();
+
+                    b.ToTable("wellness_checks", (string)null);
                 });
 
             modelBuilder.Entity("LifeHub.Models.SubscriptionPlan", b =>
@@ -787,12 +998,10 @@ namespace LifeHub.Data.Migrations
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
                     b.Property<string>("LoginProvider")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                        .HasColumnType("text");
 
                     b.Property<string>("ProviderKey")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                        .HasColumnType("text");
 
                     b.Property<string>("ProviderDisplayName")
                         .HasColumnType("text");
@@ -829,12 +1038,10 @@ namespace LifeHub.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("LoginProvider")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Name")
-                        .HasMaxLength(128)
-                        .HasColumnType("character varying(128)");
+                        .HasColumnType("text");
 
                     b.Property<string>("Value")
                         .HasColumnType("text");
@@ -928,6 +1135,28 @@ namespace LifeHub.Data.Migrations
                 });
 
             modelBuilder.Entity("LifeHub.Models.Entities.Medication", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LifeHub.Models.Entities.UserProfile", b =>
+                {
+                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("LifeHub.Models.Entities.WellnessCheck", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", "User")
                         .WithMany()

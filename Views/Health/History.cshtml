@@ -1,0 +1,632 @@
+@model List<LifeHub.Models.Entities.WellnessCheck>
+@{
+    ViewData["Title"] = "Historial de Bienestar";
+    var stats = ViewBag.Stats as dynamic;
+}
+
+<div class="health-history">
+    <div class="history-header text-center mb-5">
+        <h1 class="history-title">
+            <i class="fas fa-chart-line me-2"></i>Mi Evolución
+        </h1>
+        <p class="history-subtitle">Revisa tu progreso y tendencias de salud</p>
+    </div>
+
+    <!-- NAVEGACIÓN RÁPIDA -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body py-3">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                        <div>
+                            <h6 class="mb-0">Navegación Rápida</h6>
+                        </div>
+                        <div class="nav-buttons">
+                            <a href="@Url.Action("Index", "Health")" class="btn btn-outline-primary btn-sm me-2">
+                                <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                            </a>
+                            <a href="@Url.Action("Diary", "Health")" class="btn btn-outline-success btn-sm me-2">
+                                <i class="fas fa-clipboard-check me-1"></i>Registrar Día
+                            </a>
+                            <a href="@Url.Action("Insights", "Health")" class="btn btn-outline-info btn-sm">
+                                <i class="fas fa-brain me-1"></i>Insights
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FILTROS RÁPIDOS -->
+    <div class="card filter-card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label"><i class="fas fa-calendar me-1"></i>Período:</label>
+                    <select class="form-select" id="periodFilter">
+                        <option value="7">Última semana</option>
+                        <option value="30" selected>Último mes</option>
+                        <option value="90">Últimos 3 meses</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label"><i class="fas fa-chart-bar me-1"></i>Métrica principal:</label>
+                    <select class="form-select" id="metricFilter">
+                        <option value="energy">⚡ Energía</option>
+                        <option value="sleep">💤 Sueño</option>
+                        <option value="wellness">😊 Estado General</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label"><i class="fas fa-stethoscope me-1"></i>Filtrar por síntoma:</label>
+                    <select class="form-select" id="symptomFilter">
+                        <option value="all">Todos los síntomas</option>
+                        <option value="Headache">🤕 Dolor cabeza</option>
+                        <option value="Fatigue">😴 Fatiga</option>
+                        <option value="Anxiety">😰 Ansiedad</option>
+                        <option value="SleepProblems">💤 Problemas sueño</option>
+                        <option value="Other">📝 Otros</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ESTADÍSTICAS RÁPIDAS -->
+    @if (stats != null)
+    {
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="stat-card text-center">
+                    <div class="stat-value text-primary">@stats.AverageEnergy</div>
+                    <div class="stat-label">Energía promedio</div>
+                    <div class="stat-trend">
+                        @if (stats.AverageEnergy > 7)
+                        {
+                            <span class="text-success"><i class="fas fa-arrow-up"></i> Excelente</span>
+                        }
+                        else if (stats.AverageEnergy > 5)
+                        {
+                            <span class="text-warning"><i class="fas fa-minus"></i> Normal</span>
+                        }
+                        else
+                        {
+                            <span class="text-danger"><i class="fas fa-arrow-down"></i> Baja</span>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stat-card text-center">
+                    <div class="stat-value text-info">@stats.AverageSleep</div>
+                    <div class="stat-label">Sueño promedio</div>
+                    <div class="stat-trend">
+                        @if (stats.AverageSleep > 7)
+                        {
+                            <span class="text-success"><i class="fas fa-arrow-up"></i> Óptimo</span>
+                        }
+                        else if (stats.AverageSleep > 5)
+                        {
+                            <span class="text-warning"><i class="fas fa-minus"></i> Regular</span>
+                        }
+                        else
+                        {
+                            <span class="text-danger"><i class="fas fa-arrow-down"></i> Pobre</span>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stat-card text-center">
+                    <div class="stat-value">
+                        @if (stats.MostCommonWellness != null)
+                        {
+                            @switch (stats.MostCommonWellness.ToString())
+                            {
+                                case "Excelente": <text>😊</text>; break;
+                                case "Bueno": <text>🙂</text>; break;
+                                case "Regular": <text>😐</text>; break;
+                                case "Malo": <text>😔</text>; break;
+                                case "Terrible": <text>😫</text>; break;
+                                default: <text>😐</text>; break;
+                            }
+                        }
+                        else
+                        {
+                            <text>😐</text>
+                        }
+                    </div>
+                    <div class="stat-label">Estado común</div>
+                    <div class="stat-trend">
+                        @if (stats.MostCommonWellness != null)
+                        {
+                            <span class="text-info">@stats.MostCommonWellness</span>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="stat-card text-center">
+                    <div class="stat-value text-success">@Model.Count</div>
+                    <div class="stat-label">Días registrados</div>
+                    <div class="stat-trend">
+                        <span class="text-success"><i class="fas fa-calendar-check"></i> Activo</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- GRÁFICA SIMPLE DE TENDENCIAS -->
+    @if (Model.Any())
+    {
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>📈 Tendencia de Energía (Últimos 7 días)</h5>
+            </div>
+            <div class="card-body">
+                <div class="energy-chart">
+                    @{
+                        var last7Days = Model.OrderBy(c => c.CheckDate).Take(7).ToList();
+                    }
+                    <div class="chart-bars">
+                        @foreach (var day in last7Days)
+                        {
+                            var height = day.EnergyLevel * 10;
+                            <div class="chart-bar-container">
+                                <div class="chart-bar" style="height: @(height)px; background: @(day.EnergyLevel >= 7 ? "#28a745" : day.EnergyLevel >= 5 ? "#ffc107" : "#dc3545");">
+                                    <span class="chart-value">@day.EnergyLevel</span>
+                                </div>
+                                <div class="chart-label">
+                                    @day.CheckDate.ToString("ddd")<br>
+                                    <small>@day.CheckDate.ToString("dd/MM")</small>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- LISTA DE REGISTROS -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i>📋 Registros Diarios</h5>
+        </div>
+        <div class="card-body">
+            @if (Model.Any())
+            {
+                <div class="timeline">
+                    @foreach (var check in Model.OrderByDescending(c => c.CheckDate))
+                    {
+                        <div class="timeline-item">
+                            <div class="timeline-date">
+                                <div class="date-day">@check.CheckDate.ToString("dd")</div>
+                                <div class="date-month">@check.CheckDate.ToString("MMM")</div>
+                                <div class="date-weekday">@check.CheckDate.ToString("ddd")</div>
+                            </div>
+                            <div class="timeline-content">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <!-- ESTADO GENERAL -->
+                                        <span class="wellness-badge 
+                                            @(check.GeneralWellness == LifeHub.Models.Entities.WellnessLevel.Excelente ? "badge-excellent" :
+                                              check.GeneralWellness == LifeHub.Models.Entities.WellnessLevel.Bueno ? "badge-good" :
+                                              check.GeneralWellness == LifeHub.Models.Entities.WellnessLevel.Regular ? "badge-regular" :
+                                              check.GeneralWellness == LifeHub.Models.Entities.WellnessLevel.Malo ? "badge-bad" : "badge-terrible")">
+                                            @switch (check.GeneralWellness)
+                                            {
+                                                case LifeHub.Models.Entities.WellnessLevel.Excelente: <text>😊 Excelente</text>; break;
+                                                case LifeHub.Models.Entities.WellnessLevel.Bueno: <text>🙂 Bueno</text>; break;
+                                                case LifeHub.Models.Entities.WellnessLevel.Regular: <text>😐 Regular</text>; break;
+                                                case LifeHub.Models.Entities.WellnessLevel.Malo: <text>😔 Malo</text>; break;
+                                                case LifeHub.Models.Entities.WellnessLevel.Terrible: <text>😫 Terrible</text>; break;
+                                            }
+                                        </span>
+
+                                        <!-- MÉTRICAS NUMÉRICAS -->
+                                        <span class="metric-pill">
+                                            <i class="fas fa-bolt me-1"></i>@check.EnergyLevel/10
+                                        </span>
+                                        <span class="metric-pill">
+                                            <i class="fas fa-moon me-1"></i>@check.SleepQuality/10
+                                        </span>
+
+                                        @if (check.TookMedications)
+                                        {
+                                            <span class="metric-pill medication-taken">
+                                                <i class="fas fa-pills me-1"></i>Medicado
+                                            </span>
+                                        }
+                                    </div>
+                                    <small class="text-muted">
+                                        @check.CheckDate.ToString("HH:mm")
+                                    </small>
+                                </div>
+                                
+                                <!-- SÍNTOMAS -->
+                                @if (check.GetSymptomsList().Any())
+                                {
+                                    <div class="symptoms-section mb-2">
+                                        <strong class="section-title">Síntomas:</strong>
+                                        <div class="symptoms-tags">
+                                            @foreach (var symptom in check.GetSymptomsList())
+                                            {
+                                                <span class="symptom-tag">
+                                                    @switch(symptom.ToString())
+                                                    {
+                                                        case "Headache": <text>🤕 Dolor cabeza</text>; break;
+                                                        case "Fatigue": <text>😴 Fatiga</text>; break;
+                                                        case "Nausea": <text>🤢 Náuseas</text>; break;
+                                                        case "Palpitations": <text>💓 Palpitaciones</text>; break;
+                                                        case "Fever": <text>🤒 Fiebre</text>; break;
+                                                        case "LossOfAppetite": <text>🍽️ Falta apetito</text>; break;
+                                                        case "Anxiety": <text>😰 Ansiedad</text>; break;
+                                                        case "Depression": <text>😞 Depresión</text>; break;
+                                                        case "SleepProblems": <text>💤 Problemas sueño</text>; break;
+                                                        case "JointPain": <text>🦵 Dolor articular</text>; break;
+                                                        case "Dizziness": <text>🌀 Mareos</text>; break;
+                                                        case "Other": <text>📝 Otro</text>; break;
+                                                        default: <text>@symptom.ToString()</text>; break;
+                                                    }
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+
+                                @if (!string.IsNullOrEmpty(check.CustomSymptom))
+                                {
+                                    <div class="custom-symptom mb-2">
+                                        <strong class="section-title">Síntoma personalizado:</strong>
+                                        <span class="custom-symptom-text">@check.CustomSymptom</span>
+                                    </div>
+                                }
+
+                                <!-- NOTAS -->
+                                @if (!string.IsNullOrEmpty(check.QuickNote))
+                                {
+                                    <div class="quick-note-section">
+                                        <strong class="section-title">Nota del día:</strong>
+                                        <div class="quick-note">
+                                            <i class="fas fa-quote-left me-1 text-muted"></i>
+                                            @check.QuickNote
+                                            <i class="fas fa-quote-right ms-1 text-muted"></i>
+                                        </div>
+                                    </div>
+                                }
+
+                                @if (!string.IsNullOrEmpty(check.MedicationNotes))
+                                {
+                                    <div class="medication-notes-section mt-2">
+                                        <strong class="section-title">Notas de medicación:</strong>
+                                        <div class="medication-notes">
+                                            <i class="fas fa-pills me-1 text-muted"></i>
+                                            @check.MedicationNotes
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-chart-bar fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No hay registros aún</h4>
+                    <p class="text-muted mb-4">Comienza a registrar tu bienestar diario para ver tu evolución</p>
+                    <a href="@Url.Action("Diary", "Health")" class="btn btn-primary btn-lg">
+                        <i class="fas fa-plus me-2"></i>Crear Primer Registro
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Filtro de período
+        document.getElementById('periodFilter')?.addEventListener('change', function() {
+            const days = this.value;
+            window.location.href = `@Url.Action("History", "Health")?days=${days}`;
+        });
+
+        // Filtros interactivos (simulados)
+        document.getElementById('metricFilter')?.addEventListener('change', function() {
+            console.log('Métrica seleccionada:', this.value);
+        });
+
+        document.getElementById('symptomFilter')?.addEventListener('change', function() {
+            const selectedSymptom = this.value;
+            if (selectedSymptom === 'all') {
+                document.querySelectorAll('.timeline-item').forEach(item => item.style.display = 'flex');
+            } else {
+                document.querySelectorAll('.timeline-item').forEach(item => {
+                    const symptomsText = item.textContent.toLowerCase();
+                    const shouldShow = symptomsText.includes(selectedSymptom.toLowerCase());
+                    item.style.display = shouldShow ? 'flex' : 'none';
+                });
+            }
+        });
+    </script>
+
+    <style>
+        .health-history {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .history-title {
+            color: #2c3e50;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .history-subtitle {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .filter-card {
+            border-left: 4px solid #17a2b8;
+        }
+
+        /* Tarjetas de estadísticas */
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-trend {
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        /* Gráfica simple */
+        .energy-chart {
+            padding: 20px 0;
+        }
+
+        .chart-bars {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            height: 120px;
+            padding: 0 20px;
+        }
+
+        .chart-bar-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            margin: 0 5px;
+        }
+
+        .chart-bar {
+            width: 30px;
+            border-radius: 4px 4px 0 0;
+            position: relative;
+            transition: height 0.3s ease;
+        }
+
+        .chart-value {
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-weight: bold;
+            font-size: 0.8rem;
+            color: #333;
+        }
+
+        .chart-label {
+            margin-top: 8px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+        }
+
+        .timeline-item {
+            display: flex;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .timeline-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateX(5px);
+        }
+
+        .timeline-date {
+            min-width: 80px;
+            text-align: center;
+            padding-right: 20px;
+            border-right: 2px solid #e9ecef;
+            margin-right: 20px;
+        }
+
+        .date-day {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .date-month {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            text-transform: uppercase;
+        }
+
+        .date-weekday {
+            font-size: 0.8rem;
+            color: #95a5a6;
+            margin-top: 4px;
+        }
+
+        .timeline-content {
+            flex: 1;
+        }
+
+        /* Badges y etiquetas */
+        .wellness-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-right: 8px;
+        }
+
+        .badge-excellent { background: #d4edda; color: #155724; }
+        .badge-good { background: #d1ecf1; color: #0c5460; }
+        .badge-regular { background: #fff3cd; color: #856404; }
+        .badge-bad { background: #f8d7da; color: #721c24; }
+        .badge-terrible { background: #e2e3e5; color: #383d41; }
+
+        .metric-pill {
+            background: #f8f9fa;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            color: #495057;
+            margin-right: 6px;
+            border: 1px solid #dee2e6;
+        }
+
+        .medication-taken {
+            background: #d4edda;
+            color: #155724;
+            border-color: #c3e6cb;
+        }
+
+        /* Síntomas y notas */
+        .section-title {
+            font-size: 0.9rem;
+            color: #495057;
+            margin-right: 8px;
+        }
+
+        .symptoms-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 5px;
+        }
+
+        .symptom-tag {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            border: 1px solid #bbdefb;
+        }
+
+        .custom-symptom-text {
+            background: #fff3cd;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-style: italic;
+            color: #856404;
+        }
+
+        .quick-note, .medication-notes {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 3px solid #28a745;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .medication-notes {
+            border-left-color: #17a2b8;
+        }
+
+        /* Responsive */
+        @@media (max-width: 768px) {
+            .timeline-item {
+                flex-direction: column;
+            }
+            
+            .timeline-date {
+                border-right: none;
+                border-bottom: 2px solid #e9ecef;
+                margin-right: 0;
+                margin-bottom: 15px;
+                padding-right: 0;
+                padding-bottom: 15px;
+                text-align: left;
+            }
+            
+            .date-day, .date-month, .date-weekday {
+                display: inline-block;
+                margin-right: 10px;
+            }
+            
+            .chart-bars {
+                flex-wrap: wrap;
+                height: auto;
+            }
+            
+            .chart-bar-container {
+                margin-bottom: 20px;
+                flex: 0 0 25%;
+            }
+
+            .nav-buttons {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .nav-buttons .btn {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+        }
+    </style>
+}

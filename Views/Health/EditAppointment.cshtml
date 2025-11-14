@@ -4,31 +4,46 @@
 }
 
 <div class="health-container">
-    <div class="row justify-content-center">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="dashboard-title">
+                <i class="fas fa-edit me-2"></i>Editar Cita Médica
+            </h1>
+            <p class="dashboard-subtitle">Actualiza la información de la cita: @Model.Title</p>
+        </div>
+        <div class="nav-buttons">
+            <a href="@Url.Action("Index", "Health")" class="btn btn-outline-primary me-2">
+                <i class="fas fa-arrow-left me-1"></i>Dashboard
+            </a>
+            <a href="@Url.Action("Appointments", "Health")" class="btn btn-outline-secondary">
+                <i class="fas fa-list me-1"></i>Ver Todas
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
         <div class="col-lg-8">
             <div class="card">
-                <div class="card-header bg-warning text-white">
-                    <h3 class="card-title mb-0">
-                        <i class="fas fa-edit me-2"></i>Editar Cita Médica
-                    </h3>
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Editar Información</h5>
                 </div>
                 <div class="card-body">
-                    <form asp-action="EditAppointment" method="post">
+                    <form id="editAppointmentForm" method="post" asp-action="EditAppointment">
                         @Html.AntiForgeryToken()
                         <input type="hidden" asp-for="Id" />
-                        
+
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label asp-for="Title" class="form-label">Título de la cita *</label>
-                                    <input asp-for="Title" class="form-control" placeholder="Ej: Consulta anual, Control rutinario...">
+                                    <label asp-for="Title" class="form-label">Título de la Cita *</label>
+                                    <input asp-for="Title" class="form-control" required>
                                     <span asp-validation-for="Title" class="text-danger"></span>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label asp-for="DoctorName" class="form-label">Nombre del Doctor</label>
-                                    <input asp-for="DoctorName" class="form-control" placeholder="Dr. Juan Pérez">
+                                    <label asp-for="DoctorName" class="form-label">Nombre del Médico</label>
+                                    <input asp-for="DoctorName" class="form-control">
                                     <span asp-validation-for="DoctorName" class="text-danger"></span>
                                 </div>
                             </div>
@@ -38,14 +53,14 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label asp-for="Specialty" class="form-label">Especialidad</label>
-                                    <input asp-for="Specialty" class="form-control" placeholder="Ej: Cardiología, Dermatología...">
+                                    <input asp-for="Specialty" class="form-control">
                                     <span asp-validation-for="Specialty" class="text-danger"></span>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label asp-for="Location" class="form-label">Ubicación</label>
-                                    <input asp-for="Location" class="form-control" placeholder="Ej: Hospital Central, Clínica...">
+                                    <input asp-for="Location" class="form-control">
                                     <span asp-validation-for="Location" class="text-danger"></span>
                                 </div>
                             </div>
@@ -55,38 +70,101 @@
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label asp-for="AppointmentDate" class="form-label">Fecha y Hora *</label>
-                                    <input asp-for="AppointmentDate" type="datetime-local" class="form-control">
+                                    <input asp-for="AppointmentDate" type="datetime-local" class="form-control" required>
                                     <span asp-validation-for="AppointmentDate" class="text-danger"></span>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label asp-for="Duration" class="form-label">Duración (minutos) *</label>
-                                    <input asp-for="Duration" type="number" class="form-control" min="1" max="480">
+                                    <input asp-for="Duration" type="number" class="form-control" min="1" required>
                                     <span asp-validation-for="Duration" class="text-danger"></span>
                                 </div>
                             </div>
                         </div>
 
                         <div class="mb-3">
+                            <label asp-for="HealthConcerns" class="form-label">Motivo de la Consulta</label>
+                            <textarea asp-for="HealthConcerns" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="HealthConcerns" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="QuestionsForDoctor" class="form-label">Preguntas para el Médico</label>
+                            <textarea asp-for="QuestionsForDoctor" class="form-control" rows="3"></textarea>
+                            <span asp-validation-for="QuestionsForDoctor" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
                             <label asp-for="Notes" class="form-label">Notas Adicionales</label>
-                            <textarea asp-for="Notes" class="form-control" rows="4" 
-                                      placeholder="Síntomas, preguntas para el doctor, preparación necesaria..."></textarea>
+                            <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
                             <span asp-validation-for="Notes" class="text-danger"></span>
                         </div>
 
-                        <div class="d-flex justify-content-between">
-                            <a href="@Url.Action("Appointments")" class="btn btn-secondary">
-                                <i class="fas fa-arrow-left me-1"></i>Volver a Citas
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="@Url.Action("Appointments", "Health")" class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-times me-1"></i>Cancelar
                             </a>
-                            <div>
-                                <a href="@Url.Action("Appointments")" class="btn btn-outline-danger me-2">Cancelar</a>
-                                <button type="submit" class="btn btn-warning">
-                                    <i class="fas fa-save me-1"></i>Actualizar Cita
-                                </button>
-                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Actualizar Cita
+                            </button>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <!-- INFORMACIÓN DE LA CITA -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>📊 Información Actual</h6>
+                </div>
+                <div class="card-body">
+                    <div class="appointment-info">
+                        <div class="info-item">
+                            <small class="text-muted">Estado:</small>
+                            <div class="fw-bold @(Model.AppointmentDate < DateTime.Now ? "text-secondary" : "text-success")">
+                                @(Model.AppointmentDate < DateTime.Now ? "Completada" : "Programada")
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <small class="text-muted">Fecha programada:</small>
+                            <div class="fw-bold">@Model.AppointmentDate.ToString("dd/MM/yyyy HH:mm")</div>
+                        </div>
+                        <div class="info-item">
+                            <small class="text-muted">Duración:</small>
+                            <div class="fw-bold">@Model.Duration minutos</div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(Model.DoctorName))
+                        {
+                            <div class="info-item">
+                                <small class="text-muted">Médico:</small>
+                                <div class="fw-bold">@Model.DoctorName</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- ACCIONES RÁPIDAS -->
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>⚡ Acciones Rápidas</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="@Url.Action("Appointments", "Health")" class="btn btn-outline-primary">
+                            <i class="fas fa-arrow-left me-2"></i>Volver a la Lista
+                        </a>
+                        <form method="post" action="@Url.Action("DeleteAppointment", "Health", new { id = Model.Id })" 
+                              onsubmit="return confirm('¿Estás seguro de que quieres eliminar esta cita?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-outline-danger w-100">
+                                <i class="fas fa-trash me-2"></i>Eliminar Cita
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -94,54 +172,90 @@
 </div>
 
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-    
     <script>
-        $(document).ready(function () {
-            // ✅ CORREGIDO: Usar UTC para la fecha mínima
-            var now = new Date();
-            var utcDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-            $('#AppointmentDate').attr('min', utcDateTime);
+        // Validación de fecha futura para citas no completadas
+        document.getElementById('editAppointmentForm').addEventListener('submit', function(e) {
+            const appointmentDate = new Date(document.getElementById('AppointmentDate').value);
+            const now = new Date();
             
-            @if (ViewContext.RouteData.Values["Action"]?.ToString() == "EditAppointment")
-            {
-                // Para editar, formatear la fecha existente
-                <text>
-                var appointmentDate = new Date('@Model.AppointmentDate.ToString("yyyy-MM-ddTHH:mm")');
-                var localDateTime = new Date(appointmentDate.getTime() - appointmentDate.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-                $('#AppointmentDate').val(localDateTime);
-                </text>
+            if (appointmentDate <= now) {
+                if (!confirm('Esta cita está programada para una fecha pasada. ¿Estás seguro de que quieres guardar los cambios?')) {
+                    e.preventDefault();
+                    return false;
+                }
             }
         });
     </script>
-
-    <style>
-        .health-container {
-            padding: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .card {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-        }
-
-        .card-header {
-            border-radius: 15px 15px 0 0 !important;
-            padding: 20px;
-        }
-
-        .form-control {
-            border-radius: 10px;
-            border: 2px solid #e9ecef;
-            transition: all 0.3s;
-        }
-
-        .form-control:focus {
-            border-color: #ffc107;
-            box-shadow: 0 0 0 0.2rem rgba(255, 193, 7, 0.25);
-        }
-    </style>
 }
+
+<style>
+    .health-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .dashboard-title {
+        color: #2c3e50;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .dashboard-subtitle {
+        color: #7f8c8d;
+        font-size: 1.1rem;
+    }
+
+    .nav-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-header {
+        border-radius: 12px 12px 0 0 !important;
+        font-weight: 600;
+    }
+
+    .appointment-info {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .info-item:last-child {
+        border-bottom: none;
+    }
+
+    @@media (max-width: 768px) {
+        .nav-buttons {
+            flex-direction: column;
+            width: 100%;
+        }
+        
+        .nav-buttons .btn {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        
+        .info-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+    }
+</style>

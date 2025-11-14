@@ -1,104 +1,205 @@
 @model List<LifeHub.Models.Entities.MedicalAppointment>
 @{
-    ViewData["Title"] = "Citas Médicas";
-    
-    // Función helper para truncar texto
-    string Truncate(string text, int length)
-    {
-        if (string.IsNullOrEmpty(text)) return text;
-        return text.Length <= length ? text : text.Substring(0, length) + "...";
-    }
+    ViewData["Title"] = "Mis Citas Médicas";
 }
 
 <div class="health-container">
+    <!-- HEADER CON NAVEGACIÓN -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h1 class="dashboard-title">
-                <i class="fas fa-calendar-alt me-2"></i>Citas Médicas
+                <i class="fas fa-calendar me-2"></i>Mis Citas Médicas
             </h1>
-            <p class="dashboard-subtitle">Gestiona todas tus citas médicas</p>
+            <p class="dashboard-subtitle">Organiza y gestiona tus consultas médicas</p>
         </div>
-        <a href="@Url.Action("CreateAppointment")" class="btn btn-primary">
-            <i class="fas fa-plus me-1"></i>Nueva Cita
-        </a>
+        <div class="nav-buttons">
+            <a href="@Url.Action("Index", "Health")" class="btn btn-outline-primary me-2">
+                <i class="fas fa-arrow-left me-1"></i>Dashboard
+            </a>
+            <a href="@Url.Action("CreateAppointment", "Health")" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i>Nueva Cita
+            </a>
+        </div>
     </div>
 
-    <!-- Filtros -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-4">
-                    <label class="form-label">Filtrar por estado:</label>
-                    <select class="form-select" id="statusFilter">
-                        <option value="all">Todas las citas</option>
-                        <option value="upcoming">Próximas</option>
-                        <option value="past">Pasadas</option>
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">Filtrar por especialidad:</label>
-                    <input type="text" class="form-control" id="specialtyFilter" placeholder="Especialidad...">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label">&nbsp;</label>
-                    <button class="btn btn-outline-secondary w-100" id="clearFilters">
-                        <i class="fas fa-times me-1"></i>Limpiar Filtros
-                    </button>
-                </div>
+    <!-- ESTADÍSTICAS RÁPIDAS -->
+    <div class="row mb-4">
+        @{
+            var upcomingAppointments = Model.Where(a => a.AppointmentDate >= DateTime.Now).ToList();
+            var pastAppointments = Model.Where(a => a.AppointmentDate < DateTime.Now).ToList();
+            var thisWeekAppointments = Model.Where(a => a.AppointmentDate >= DateTime.Now && a.AppointmentDate <= DateTime.Now.AddDays(7)).ToList();
+        }
+        <div class="col-md-3 mb-3">
+            <div class="stat-card text-center">
+                <div class="stat-value text-primary">@upcomingAppointments.Count</div>
+                <div class="stat-label">Próximas</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stat-card text-center">
+                <div class="stat-value text-success">@thisWeekAppointments.Count</div>
+                <div class="stat-label">Esta Semana</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stat-card text-center">
+                <div class="stat-value text-info">@pastAppointments.Count</div>
+                <div class="stat-label">Pasadas</div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="stat-card text-center">
+                <div class="stat-value text-warning">@Model.Count</div>
+                <div class="stat-label">Total</div>
             </div>
         </div>
     </div>
 
-    <!-- Lista de Citas -->
-    <div class="card">
+    <!-- PRÓXIMAS CITAS -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0"><i class="fas fa-clock me-2"></i>📅 Próximas Citas</h5>
+        </div>
+        <div class="card-body">
+            @if (upcomingAppointments.Any())
+            {
+                <div class="appointments-list">
+                    @foreach (var appointment in upcomingAppointments.OrderBy(a => a.AppointmentDate).Take(5))
+                    {
+                        <div class="appointment-item">
+                            <div class="appointment-info">
+                                <div class="appointment-main">
+                                    <h6 class="appointment-title">@appointment.Title</h6>
+                                    <div class="appointment-details">
+                                        <span class="appointment-date">
+                                            <i class="fas fa-calendar me-1"></i>
+                                            @appointment.AppointmentDate.ToString("dd/MM/yyyy HH:mm")
+                                        </span>
+                                        @if (!string.IsNullOrEmpty(appointment.DoctorName))
+                                        {
+                                            <span class="appointment-doctor">
+                                                <i class="fas fa-user-md me-1"></i>
+                                                @appointment.DoctorName
+                                            </span>
+                                        }
+                                        @if (!string.IsNullOrEmpty(appointment.Specialty))
+                                        {
+                                            <span class="appointment-specialty">
+                                                <i class="fas fa-stethoscope me-1"></i>
+                                                @appointment.Specialty
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="appointment-actions">
+                                    <a href="@Url.Action("EditAppointment", "Health", new { id = appointment.Id })" 
+                                       class="btn btn-sm btn-outline-primary" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="post" action="@Url.Action("DeleteAppointment", "Health", new { id = appointment.Id })" 
+                                          class="d-inline"
+                                          onsubmit="return confirm('¿Estás seguro de que quieres eliminar esta cita?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                            @if (!string.IsNullOrEmpty(appointment.Notes))
+                            {
+                                <div class="appointment-notes">
+                                    <i class="fas fa-sticky-note me-1 text-muted"></i>
+                                    @appointment.Notes
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+                @if (upcomingAppointments.Count > 5)
+                {
+                    <div class="text-center mt-3">
+                        <a href="#all-appointments" class="btn btn-outline-success btn-sm">
+                            Ver todas las @upcomingAppointments.Count citas próximas
+                        </a>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-center py-4">
+                    <i class="fas fa-calendar-plus fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No tienes citas próximas programadas</p>
+                    <a href="@Url.Action("CreateAppointment", "Health")" class="btn btn-success">
+                        <i class="fas fa-plus me-1"></i>Programar Primera Cita
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- TODAS LAS CITAS -->
+    <div class="card" id="all-appointments">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0"><i class="fas fa-list me-2"></i>Todas las Citas</h5>
+        </div>
         <div class="card-body">
             @if (Model.Any())
             {
                 <div class="table-responsive">
-                    <table class="table table-hover" id="appointmentsTable">
+                    <table class="table table-hover">
                         <thead>
                             <tr>
-                                <th>Título</th>
-                                <th>Doctor</th>
-                                <th>Especialidad</th>
                                 <th>Fecha y Hora</th>
-                                <th>Duración</th>
-                                <th>Ubicación</th>
+                                <th>Título</th>
+                                <th>Médico</th>
+                                <th>Especialidad</th>
+                                <th>Estado</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var appointment in Model)
+                            @foreach (var appointment in Model.OrderByDescending(a => a.AppointmentDate))
                             {
-                                var isUpcoming = appointment.AppointmentDate > DateTime.Now;
-                                <tr class="@(isUpcoming ? "table-info" : "table-secondary")">
+                                <tr class="@(appointment.AppointmentDate < DateTime.Now ? "table-secondary" : "")">
+                                    <td>
+                                        <strong>@appointment.AppointmentDate.ToString("dd/MM/yyyy")</strong>
+                                        <br>
+                                        <small class="text-muted">@appointment.AppointmentDate.ToString("HH:mm")</small>
+                                    </td>
                                     <td>
                                         <strong>@appointment.Title</strong>
                                         @if (!string.IsNullOrEmpty(appointment.Notes))
                                         {
                                             <br>
-                                            <small class="text-muted">@Truncate(appointment.Notes, 50)</small>
+                                            <small class="text-muted">@appointment.Notes</small>
                                         }
                                     </td>
                                     <td>@(appointment.DoctorName ?? "No especificado")</td>
                                     <td>@(appointment.Specialty ?? "General")</td>
                                     <td>
-                                        @appointment.AppointmentDate.ToString("dd/MM/yyyy HH:mm")
-                                        <br>
-                                        <small class="text-muted @(isUpcoming ? "text-success" : "text-secondary")">
-                                            @(isUpcoming ? "Próxima" : "Completada")
-                                        </small>
+                                        @if (appointment.AppointmentDate < DateTime.Now)
+                                        {
+                                            <span class="badge bg-secondary">Completada</span>
+                                        }
+                                        else if (appointment.AppointmentDate <= DateTime.Now.AddDays(7))
+                                        {
+                                            <span class="badge bg-warning">Próxima</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">Programada</span>
+                                        }
                                     </td>
-                                    <td>@appointment.Duration min</td>
-                                    <td>@(appointment.Location ?? "No especificada")</td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
-                                            <a href="@Url.Action("EditAppointment", new { id = appointment.Id })" 
+                                            <a href="@Url.Action("EditAppointment", "Health", new { id = appointment.Id })" 
                                                class="btn btn-outline-primary" title="Editar">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <form method="post" action="@Url.Action("DeleteAppointment", new { id = appointment.Id })" 
-                                                  class="d-inline" onsubmit="return confirm('¿Estás seguro de que quieres eliminar esta cita?');">
+                                            <form method="post" action="@Url.Action("DeleteAppointment", "Health", new { id = appointment.Id })" 
+                                                  class="d-inline"
+                                                  onsubmit="return confirm('¿Estás seguro de que quieres eliminar esta cita?');">
                                                 @Html.AntiForgeryToken()
                                                 <button type="submit" class="btn btn-outline-danger" title="Eliminar">
                                                     <i class="fas fa-trash"></i>
@@ -116,96 +217,212 @@
             {
                 <div class="text-center py-5">
                     <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
-                    <h4>No hay citas médicas registradas</h4>
-                    <p class="text-muted mb-4">Comienza agregando tu primera cita médica</p>
-                    <a href="@Url.Action("CreateAppointment")" class="btn btn-primary btn-lg">
-                        <i class="fas fa-plus me-2"></i>Crear Primera Cita
+                    <h4 class="text-muted">No hay citas registradas</h4>
+                    <p class="text-muted mb-4">Comienza programando tu primera cita médica</p>
+                    <a href="@Url.Action("CreateAppointment", "Health")" class="btn btn-primary btn-lg">
+                        <i class="fas fa-plus me-2"></i>Programar Primera Cita
                     </a>
                 </div>
             }
         </div>
     </div>
+
+    <!-- INFORMACIÓN ADICIONAL -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>💡 Consejos</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li>Programa recordatorios para tus citas importantes</li>
+                        <li>Lleva preguntas preparadas para tu médico</li>
+                        <li>Registra notas después de cada consulta</li>
+                        <li>Mantén actualizada la información de contacto</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="fas fa-rocket me-2"></i>🚀 Acciones Rápidas</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="@Url.Action("CreateAppointment", "Health")" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Nueva Cita
+                        </a>
+                        <a href="@Url.Action("Index", "Health")" class="btn btn-outline-primary">
+                            <i class="fas fa-tachometer-alt me-2"></i>Volver al Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
-@section Scripts {
-    <script>
-        $(document).ready(function () {
-            // Filtro por estado
-            $('#statusFilter').change(function () {
-                filterAppointments();
-            });
+<style>
+    .health-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
 
-            // Filtro por especialidad
-            $('#specialtyFilter').on('input', function () {
-                filterAppointments();
-            });
+    .dashboard-title {
+        color: #2c3e50;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
 
-            // Limpiar filtros
-            $('#clearFilters').click(function () {
-                $('#statusFilter').val('all');
-                $('#specialtyFilter').val('');
-                filterAppointments();
-            });
+    .dashboard-subtitle {
+        color: #7f8c8d;
+        font-size: 1.1rem;
+    }
 
-            function filterAppointments() {
-                var status = $('#statusFilter').val();
-                var specialty = $('#specialtyFilter').val().toLowerCase();
-                var now = new Date();
+    .nav-buttons {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
 
-                $('#appointmentsTable tbody tr').each(function () {
-                    var $row = $(this);
-                    var appointmentDate = new Date($row.find('td:eq(3)').text().split('\n')[0]);
-                    var rowSpecialty = $row.find('td:eq(2)').text().toLowerCase();
-                    
-                    var statusMatch = true;
-                    var specialtyMatch = true;
+    .stat-card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        border: 1px solid #e9ecef;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
 
-                    // Filtro por estado
-                    if (status === 'upcoming') {
-                        statusMatch = appointmentDate > now;
-                    } else if (status === 'past') {
-                        statusMatch = appointmentDate <= now;
-                    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+    }
 
-                    // Filtro por especialidad
-                    if (specialty) {
-                        specialtyMatch = rowSpecialty.includes(specialty);
-                    }
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
 
-                    if (statusMatch && specialtyMatch) {
-                        $row.show();
-                    } else {
-                        $row.hide();
-                    }
-                });
-            }
-        });
-    </script>
+    .stat-label {
+        color: #666;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+    }
 
-    <style>
-        .health-container {
-            padding: 20px;
+    .appointments-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .appointment-item {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #28a745;
+    }
+
+    .appointment-info {
+        display: flex;
+        justify-content: between;
+        align-items: flex-start;
+    }
+
+    .appointment-main {
+        flex: 1;
+    }
+
+    .appointment-title {
+        margin-bottom: 8px;
+        color: #2c3e50;
+    }
+
+    .appointment-details {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .appointment-date, .appointment-doctor, .appointment-specialty {
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+
+    .appointment-actions {
+        display: flex;
+        gap: 5px;
+    }
+
+    .appointment-notes {
+        margin-top: 10px;
+        padding: 10px;
+        background: white;
+        border-radius: 4px;
+        font-size: 0.9rem;
+        color: #495057;
+        border-left: 3px solid #17a2b8;
+    }
+
+    .card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-header {
+        border-radius: 12px 12px 0 0 !important;
+        font-weight: 600;
+    }
+
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        color: #495057;
+        background: #f8f9fa;
+    }
+
+    .btn-group-sm > .btn {
+        padding: 0.25rem 0.5rem;
+    }
+
+    @@media (max-width: 768px) {
+        .nav-buttons {
+            flex-direction: column;
+            width: 100%;
         }
-
+        
+        .nav-buttons .btn {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        
+        .appointment-info {
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .appointment-actions {
+            align-self: flex-end;
+        }
+        
+        .appointment-details {
+            flex-direction: column;
+            gap: 5px;
+        }
+        
         .table-responsive {
-            border-radius: 10px;
-            overflow: hidden;
+            font-size: 0.9rem;
         }
-
-        .table th {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            font-weight: 600;
+        
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
         }
-
-        .table td {
-            vertical-align: middle;
-            border-color: #eee;
-        }
-
-        .btn-group-sm > .btn {
-            padding: 0.25rem 0.5rem;
-        }
-    </style>
-}
+    }
+</style>

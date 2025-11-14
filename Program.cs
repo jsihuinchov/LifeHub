@@ -124,8 +124,15 @@ builder.Services.AddSingleton<MLContext>();
 builder.Services.AddScoped<IFinanceAIService, FinanceAIService>();
 builder.Services.AddScoped<IHabitAIService, HabitAIService>();
 builder.Services.AddScoped<IHabitMLService, HabitMLService>();
-builder.Services.AddScoped<PatternDetectionService>();
+builder.Services.AddScoped<IHealthNotificationService, HealthNotificationService>();
 
+// ✅ REGISTRO CORRECTO DE SERVICIOS FASE 2
+builder.Services.AddHttpClient<IAppointmentChatbotService, AppointmentChatbotService>();
+builder.Services.AddScoped<IPatternDetectionService, LifeHub.Models.Services.PatternDetectionService>();
+builder.Services.AddScoped<IAppointmentChatbotService, AppointmentChatbotService>();
+builder.Services.AddScoped<IMedicalReportService, MedicalReportService>();
+builder.Services.AddScoped<IChatbotService, ChatbotService>();
+builder.Services.AddHttpClient<IChatbotService, ChatbotService>();
 // Logging
 builder.Services.AddLogging();
 

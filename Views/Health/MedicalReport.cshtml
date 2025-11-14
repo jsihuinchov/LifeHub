@@ -1,0 +1,279 @@
+@model LifeHub.Models.Services.MedicalReport
+@{
+    ViewData["Title"] = "Reporte Médico";
+    var startDate = ViewBag.StartDate as DateTime? ?? DateTime.UtcNow.AddDays(-30);
+    var endDate = ViewBag.EndDate as DateTime? ?? DateTime.UtcNow;
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="display-6">📋 Reporte Médico Inteligente</h1>
+                <div>
+                    <button class="btn btn-outline-secondary me-2" onclick="window.print()">
+                        <i class="fas fa-print"></i> Imprimir
+                    </button>
+                    <a href="@Url.Action("Index")" class="btn btn-primary">
+                        <i class="fas fa-arrow-left"></i> Volver al Dashboard
+                    </a>
+                </div>
+            </div>
+            <p class="text-muted">
+                Período: @startDate.ToString("dd/MM/yyyy") - @endDate.ToString("dd/MM/yyyy") • 
+                Generado: @Model.GeneratedAt.ToString("dd/MM/yyyy HH:mm")
+            </p>
+        </div>
+    </div>
+
+    <!-- Resumen Ejecutivo -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h6 class="mb-0"><i class="fas fa-file-contract me-2"></i>Resumen Ejecutivo</h6>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(Model.ExecutiveSummary))
+                    {
+                        <div class="executive-summary">
+                            @Html.Raw(Model.ExecutiveSummary.Replace("\n", "<br>"))
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No hay datos suficientes para generar un resumen.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Estadísticas -->
+        <div class="col-md-4 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Estadísticas del Período</h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.Statistics != null)
+                    {
+                        <div class="text-center">
+                            <div class="row">
+                                <div class="col-6 mb-3">
+                                    <div class="border rounded p-3">
+                                        <i class="fas fa-battery-half fa-2x text-warning mb-2"></i>
+                                        <h5 class="mb-1">@Model.Statistics.AverageEnergy</h5>
+                                        <small class="text-muted">Energía Promedio</small>
+                                    </div>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <div class="border rounded p-3">
+                                        <i class="fas fa-moon fa-2x text-info mb-2"></i>
+                                        <h5 class="mb-1">@Model.Statistics.AverageSleep</h5>
+                                        <small class="text-muted">Sueño Promedio</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="border rounded p-3">
+                                        <i class="fas fa-calendar-day fa-2x text-success mb-2"></i>
+                                        <h5 class="mb-1">@Model.Statistics.TotalEntries</h5>
+                                        <small class="text-muted">Días Registrados</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="border rounded p-3">
+                                        <i class="fas fa-pills fa-2x text-danger mb-2"></i>
+                                        <h5 class="mb-1">@((Model.Statistics.MedicationAdherence * 100).ToString("F0"))%</h5>
+                                        <small class="text-muted">Adherencia</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Tendencias -->
+        <div class="col-md-8 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Tendencias de Salud</h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.Trends.Any())
+                    {
+                        foreach (var trend in Model.Trends)
+                        {
+                            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+                                <div>
+                                    <h6 class="mb-1">@trend.Metric</h6>
+                                    <p class="mb-0 text-muted small">@trend.Description</p>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge @GetTrendBadgeClass(trend.Direction)">
+                                        @GetTrendIcon(trend.Direction) @trend.Direction
+                                    </span>
+                                    <div class="mt-1">
+                                        <small class="@GetTrendTextClass(trend.ChangePercentage)">
+                                            @(trend.ChangePercentage > 0 ? "+" : "")@trend.ChangePercentage%
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No hay tendencias significativas detectadas.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Recomendaciones -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Recomendaciones</h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.Recommendations.Any())
+                    {
+                        foreach (var recommendation in Model.Recommendations.OrderBy(r => r.Priority))
+                        {
+                            <div class="mb-3 p-3 border rounded">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="mb-0">@recommendation.Category</h6>
+                                    <span class="badge @GetPriorityBadgeClass(recommendation.Priority)">
+                                        @recommendation.Priority
+                                    </span>
+                                </div>
+                                <p class="mb-2">@recommendation.Description</p>
+                                <small class="text-muted">@recommendation.ActionSteps</small>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No hay recomendaciones específicas en este período.</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Patrones Detectados -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-project-diagram me-2"></i>Patrones Detectados</h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.Patterns.Any())
+                    {
+                        foreach (var pattern in Model.Patterns.Take(3))
+                        {
+                            <div class="mb-3 p-3 border rounded">
+                                <span class="badge bg-secondary mb-2">@pattern.PatternType</span>
+                                <p class="mb-2">@pattern.Description</p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        @if (pattern.RelatedFactors.Any())
+                                        {
+                                            <text>Factores: @string.Join(", ", pattern.RelatedFactors.Take(2))</text>
+                                        }
+                                    </small>
+                                    <small class="text-muted">@((int)(pattern.Confidence * 100))% confianza</small>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No se detectaron patrones significativos.</p>
+                    }
+
+                    @if (Model.Patterns.Count > 3)
+                    {
+                        <div class="text-center">
+                            <a href="@Url.Action("HealthPatterns")" class="btn btn-outline-info btn-sm">
+                                Ver todos los patrones (@Model.Patterns.Count)
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nota Final -->
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-light border">
+                <div class="d-flex">
+                    <i class="fas fa-info-circle fa-2x text-primary me-3"></i>
+                    <div>
+                        <h6 class="alert-heading">Reporte Generado Automáticamente</h6>
+                        <p class="mb-0">
+                            Este reporte se genera basado en tus registros diarios de bienestar. 
+                            Para obtener análisis más precisos, mantén un registro consistente de tu salud.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    private string GetTrendBadgeClass(string direction)
+    {
+        return direction.ToLower() switch
+        {
+            "improving" => "bg-success",
+            "declining" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetTrendIcon(string direction)
+    {
+        return direction.ToLower() switch
+        {
+            "improving" => "📈",
+            "declining" => "📉",
+            _ => "➡️"
+        };
+    }
+
+    private string GetTrendTextClass(double change)
+    {
+        return change > 0 ? "text-success" : change < 0 ? "text-danger" : "text-muted";
+    }
+
+    private string GetPriorityBadgeClass(string priority)
+    {
+        return priority.ToLower() switch
+        {
+            "high" => "bg-danger",
+            "medium" => "bg-warning",
+            _ => "bg-info"
+        };
+    }
+}
+
+<style>
+    .executive-summary {
+        line-height: 1.6;
+        white-space: pre-line;
+    }
+    
+    @@media print {
+        .btn { display: none !important; }
+        .card { border: 1px solid #ddd !important; box-shadow: none !important; }
+    }
+</style>
